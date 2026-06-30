@@ -2,26 +2,35 @@ import 'package:flutter/material.dart';
 import '../models/data_models.dart';
 
 class AppState extends ChangeNotifier {
+  // Authentication & Onboarding
+  bool hasOnboarded = false;
+  String parentName = "";
+  String parentEmail = "";
+  String parentPin = "2026";
+  
   String childName = "Ahrorbek";
+  int childAge = 9;
+  List<String> childInterests = ["Astronomiya"];
+
+  // Subscription Settings
+  ParentSubscriptionTier subscriptionTier = ParentSubscriptionTier.mini; // mini, plus, max
+
+  // State Variables
   int stars = 10;
   int currentLevel = 1;
   int streakDays = 4;
-  
-  bool hasOnboarded = false;
   bool inclusiveMode = false;
-  bool isPremiumSubscribed = false;
   
   int activeTab = 0;
   Scholar? selectedScholar;
   
-  // Customisations: Replaced emoji avatars with role-based vector identifiers
   String selectedAvatarRole = "child"; // child, astronomer, doctor, commander
   final List<String> unlockedAvatarRoles = ["child", "astronomer"];
   
-  String activeThemeName = "neon-cyber"; // neon-cyber, sky-blue, forest-mint
+  String activeThemeName = "neon-cyber"; 
   final List<String> unlockedThemes = ["neon-cyber"];
 
-  // Logs
+  // Logs & History
   final List<MoodLog> moodHistory = [
     MoodLog(date: DateTime.now().subtract(const Duration(days: 4)), mood: MoodType.happy),
     MoodLog(date: DateTime.now().subtract(const Duration(days: 3)), mood: MoodType.neutral),
@@ -35,11 +44,47 @@ class AppState extends ChangeNotifier {
     "beruniy": 4,
     "ibnsino": 2,
     "xorazmiy": 5,
-    "buxoriy": 1,
-    "temur": 6,
   };
 
   final Map<String, List<ChatMessage>> chatHistory = {};
+
+  // Parent Assigned Active Quests
+  ParentAssignment? activeAssignment;
+  bool isAssignmentCompleted = false;
+
+  // Mock Gemini Vision AI drawing analysis
+  final List<String> drawingAnalysisLogs = [
+    "Farzandingiz yorqin ko‘k va to‘q qizil ranglarni ishlatmoqda, uning ijodiy salohiyati yuqori.",
+    "Chizilgan sayyora tasviri koinotga qiziqishi baland ekanini ko‘rsatadi.",
+  ];
+
+  // Gamified Shorts feed data
+  final List<ShortVideoCard> shortsFeed = [
+    ShortVideoCard(
+      id: "sh-1",
+      title: "Observatoriya",
+      fact: "Mirzo Ulug‘bek Samarqandda balandligi 40 metrli ulkan sekstant asbobini qurdirgan. U yordamida quyosh yilini 365 kun, 6 soat, 10 daqiqagacha juda aniq o‘lchagan!",
+      question: "Ulug‘bek yozgan yulduzlar jadvali qanday ataladi?",
+      answer: "Ziji Jadidi Ko‘ragoniy",
+      accentColor: const Color(0xFF00A8E8),
+    ),
+    ShortVideoCard(
+      id: "sh-2",
+      title: "Algebra Kashfiyoti",
+      fact: "Al-Xorazmiy nol (0) raqamini arifmetikaga kiritib, sanoq sistemasini o‘zgartirgan. U yozgan kitoblar nomidan algebra va algoritm so‘zlari kelib chiqqan.",
+      question: "Algebra so‘zi qaysi arabcha so‘zdan olingan?",
+      answer: "Al-jabr",
+      accentColor: const Color(0xFFFF6B35),
+    ),
+    ShortVideoCard(
+      id: "sh-3",
+      title: "Tibbiyot Qonuni",
+      fact: "Ibn Sino yozgan 'Tibbiyot qonunlari' kitobi Yevropada 500 yildan ortiq vaqt davomida shifokorlar tayyorlash uchun asosiy qo‘llanma bo‘lgan.",
+      question: "Ibn Sino Yevropada qanday nom bilan mashhur?",
+      answer: "Avitsenna",
+      accentColor: const Color(0xFF06D6A0),
+    ),
+  ];
 
   final List<Quest> quests = [
     Quest(
@@ -74,7 +119,6 @@ class AppState extends ChangeNotifier {
 
   bool get isMoodLoggedToday => loggedMoodToday != null;
 
-  // Map avatar role to material vector icon
   IconData getAvatarIcon(String role) {
     switch (role) {
       case "astronomer":
@@ -89,7 +133,18 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void completeOnboarding() {
+  // Multi-step Onboarding setups
+  void setupParentAuth(String name, String email, String pin) {
+    parentName = name;
+    parentEmail = email;
+    parentPin = pin;
+    notifyListeners();
+  }
+
+  void setupChildProfile(String name, int age, List<String> interests) {
+    childName = name;
+    childAge = age;
+    childInterests = interests;
     hasOnboarded = true;
     notifyListeners();
   }
@@ -195,6 +250,50 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool isPremiumSubscribed = false;
+
+  void changeSubscriptionTier(ParentSubscriptionTier tier) {
+    subscriptionTier = tier;
+    isPremiumSubscribed = true; // Automatically unlocks premium features
+    notifyListeners();
+  }
+
+  // Custom Parent Quests Assignment
+  void assignParentQuest(ParentAssignment assignment) {
+    activeAssignment = assignment;
+    isAssignmentCompleted = false;
+    notifyListeners();
+  }
+
+  void completeParentQuest() {
+    if (activeAssignment != null && !isAssignmentCompleted) {
+      isAssignmentCompleted = true;
+      stars += activeAssignment!.rewardStars;
+      _checkLevelUp();
+      activeAssignment = null; // Clear after completion
+      notifyListeners();
+    }
+  }
+
+  // Mock Gemini Vision AI Analyzer
+  void submitDrawingForGeminiAnalysis() {
+    drawingAnalysisLogs.add(
+      "Yangi tahlil: Farzandingiz koinot va yulduzlar rasmini chizdi. Unda tabiat va koinotga qiziqish juda baland. Ranglardan erkin foydalanish ijodiy mustaqillikni ifodalaydi."
+    );
+    notifyListeners();
+  }
+
+  // Shorts Interaction
+  void likeShortVideoCard(String id) {
+    final idx = shortsFeed.indexWhere((s) => s.id == id);
+    if (idx != -1) {
+      shortsFeed[idx].likes++;
+      stars += 1; // Gain 1 star per double-tap like (Dopamine loops)
+      _checkLevelUp();
+      notifyListeners();
+    }
+  }
+
   bool unlockAvatarRole(String role, int cost) {
     if (stars >= cost && !unlockedAvatarRoles.contains(role)) {
       stars -= cost;
@@ -219,11 +318,6 @@ class AppState extends ChangeNotifier {
 
   void selectAvatarRole(String role) {
     selectedAvatarRole = role;
-    notifyListeners();
-  }
-
-  void selectTheme(String themeName) {
-    activeThemeName = themeName;
     notifyListeners();
   }
 

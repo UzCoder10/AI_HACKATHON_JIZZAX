@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../models/data_models.dart';
 import '../../controllers/app_state.dart';
-import 'payme_subscription_screen.dart';
 
 class ParentTab extends StatefulWidget {
   final AppState appState;
@@ -15,8 +15,38 @@ class ParentTab extends StatefulWidget {
 class _ParentTabState extends State<ParentTab> {
   bool _isUnlocked = false;
   String _pinCodeInput = "";
-  final String _correctPin = "2026";
   String _pinErrorMessage = "";
+
+  // Academic Assignment Fields
+  String _selectedTopic = "Matematika";
+  final List<String> _topics = ["Matematika", "Astronomiya", "Tarix", "Geografiya"];
+  
+  final Map<String, ParentAssignment> _topicQuizzes = {
+    "Matematika": const ParentAssignment(
+      topic: "Matematika",
+      question: "Qaysi olim Nol (0) raqamini kiritgan va algebra faniga asos solgan?",
+      options: ["Mirzo Ulug‘bek", "Al-Xorazmiy", "Ibn Sino", "Abu Rayhon Beruniy"],
+      correctAnswerIndex: 1,
+    ),
+    "Astronomiya": const ParentAssignment(
+      topic: "Astronomiya",
+      question: "Samarqandda yulduzlar observatoriyasini kim qurdirgan?",
+      options: ["Amir Temur", "Mirzo Ulug‘bek", "Al-Xorazmiy", "Ibn Sino"],
+      correctAnswerIndex: 1,
+    ),
+    "Tarix": const ParentAssignment(
+      topic: "Tarix",
+      question: "Buyuk ipak yo‘lini tiklash va rivojlantirishga kim katta hissa qo‘shgan?",
+      options: ["Mirzo Ulug‘bek", "Amir Temur", "Ibn Sino", "Al-Xorazmiy"],
+      correctAnswerIndex: 1,
+    ),
+    "Geografiya": const ParentAssignment(
+      topic: "Geografiya",
+      question: "Yer radiusini tog‘ tepasidan turib ufq burchagini o‘lchash orqali hisoblagan olim kim?",
+      options: ["Mirzo Ulug‘bek", "Abu Rayhon Beruniy", "Al-Xorazmiy", "Ibn Sino"],
+      correctAnswerIndex: 1,
+    ),
+  };
 
   void _onPinKeyTap(String value) {
     setState(() {
@@ -26,7 +56,7 @@ class _ParentTabState extends State<ParentTab> {
       }
       
       if (_pinCodeInput.length == 4) {
-        if (_pinCodeInput == _correctPin) {
+        if (_pinCodeInput == widget.appState.parentPin) {
           _isUnlocked = true;
         } else {
           _pinCodeInput = "";
@@ -42,6 +72,19 @@ class _ParentTabState extends State<ParentTab> {
         _pinCodeInput = _pinCodeInput.substring(0, _pinCodeInput.length - 1);
       }
     });
+  }
+
+  void _sendAssignment() {
+    final quiz = _topicQuizzes[_selectedTopic];
+    if (quiz != null) {
+      widget.appState.assignParentQuest(quiz);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Ota-ona topshirig‘i muvaffaqiyatli yuborildi: $_selectedTopic!"),
+          backgroundColor: AppTheme.mintGreen,
+        ),
+      );
+    }
   }
 
   @override
@@ -76,7 +119,7 @@ class _ParentTabState extends State<ParentTab> {
               ),
               const SizedBox(height: 6),
               Text(
-                "Iltimos, PIN kodni kiriting (Parol: 2026)",
+                "Iltimos, sozlagan PIN kodni kiriting (Standart: 2026)",
                 style: AppTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
@@ -207,7 +250,7 @@ class _ParentTabState extends State<ParentTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Safe Alert Escalation Banner (No black, cherry borders/shadows)
+            // Safe Alert Escalation Banner
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -241,134 +284,333 @@ class _ParentTabState extends State<ParentTab> {
             ),
             const SizedBox(height: 20),
 
-            // Premium Check
-            if (!state.isPremiumSubscribed) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: AppTheme.vibrant3DBoxDecoration(
-                  color: AppTheme.yellow,
-                  borderColor: AppTheme.darkYellow,
-                  shadowColor: AppTheme.mandarin,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Premium A‘zolik (Payme / Click)", style: AppTheme.headerSmall),
-                    const SizedBox(height: 4),
-                    Text("Barcha allomalar va audio darsliklarni to‘liq ochish uchun obunani rasmiylashtiring.", style: AppTheme.bodySmall),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.darkPurple,
-                        foregroundColor: AppTheme.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: AppTheme.darkPurpleBorder, width: 1.5),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PaymeSubscriptionScreen(appState: state),
-                          ),
-                        );
-                      },
-                      child: Text("Hozir faollashtirish", style: AppTheme.fontHeader.copyWith(color: Colors.white, fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Weekly Mood Metrics (Fills: Marine Blue, Mint Green, Mandarin Orange, borders: dark versions)
-            Text("Haftalik Emotsional Holat (Kayfiyat)", style: AppTheme.headerMedium),
+            // Tiered Subscription Model Selector (Mini, Plus, Max tabs)
+            Text("A‘zolik Tariflari", style: AppTheme.headerMedium),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: AppTheme.vibrant3DBoxDecoration(
                 color: AppTheme.white,
-                borderColor: AppTheme.darkPurpleBorder,
-                shadowColor: AppTheme.pastelBlue,
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildGraphBar("Du", 0.8, AppTheme.marineBlue, AppTheme.darkMarineBlue),
-                      _buildGraphBar("Se", 0.6, AppTheme.mandarin, AppTheme.darkMandarin),
-                      _buildGraphBar("Ch", 0.9, AppTheme.yellow, AppTheme.darkYellow),
-                      _buildGraphBar("Pa", 0.4, AppTheme.mintGreen, AppTheme.darkMintGreen),
-                      _buildGraphBar("Ju", 0.7, AppTheme.marineBlue, AppTheme.darkMarineBlue),
-                      _buildGraphBar("Sh", 0.5, AppTheme.mandarin, AppTheme.darkMandarin),
-                      _buildGraphBar("Ya", 0.95, AppTheme.mintGreen, AppTheme.darkMintGreen),
+                      _buildTierTab(ParentSubscriptionTier.mini, "Mini", AppTheme.cyan),
+                      _buildTierTab(ParentSubscriptionTier.plus, "Plus", AppTheme.yellow),
+                      _buildTierTab(ParentSubscriptionTier.max, "Max", AppTheme.mandarin),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildLegendCircle(AppTheme.marineBlue, AppTheme.darkMarineBlue, "Xursand"),
-                      const SizedBox(width: 14),
-                      _buildLegendCircle(AppTheme.mandarin, AppTheme.darkMandarin, "Oddiy"),
-                      const SizedBox(width: 14),
-                      _buildLegendCircle(AppTheme.yellow, AppTheme.darkYellow, "Xafa"),
-                    ],
-                  ),
+                  const SizedBox(height: 16),
+                  _buildSubscriptionDetails(state.subscriptionTier),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Academic Interest profile
-            Text("Qiziqishlar Profili (Academic Profile)", style: AppTheme.headerMedium),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrant3DBoxDecoration(
-                color: AppTheme.pastelBlue, 
-                borderColor: AppTheme.darkMarineBlue,
-                shadowColor: AppTheme.marineBlue,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: fav.solidColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.getBorderColorFor(fav.solidColor), width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      fav.initials,
-                      style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            // Premium Locks Checking (Plus & Max features)
+            if (state.subscriptionTier == ParentSubscriptionTier.mini) ...[
+              _buildFeatureLockCard("Tahlillar va Ota-ona topshiriqlari bloklangan. Foydalanish uchun tarifingizni Plus yoki Maxga yangilang!")
+            ] else ...[
+              // Weekly Mood Chart (Plus Feature)
+              Text("Haftalik Emotsional Holat (Kayfiyat)", style: AppTheme.headerMedium),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: AppTheme.white,
+                  borderColor: AppTheme.darkPurpleBorder,
+                  shadowColor: AppTheme.pastelBlue,
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text("Eng ko‘p suhbatlashgan allomasi:", style: AppTheme.bodySmall),
-                        Text(fav.name, style: AppTheme.headerSmall),
-                        Text(
-                          "Asosiy yo‘nalishi: ${fav.field}",
-                          style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
-                        ),
+                        _buildGraphBar("Du", 0.8, AppTheme.marineBlue, AppTheme.darkMarineBlue),
+                        _buildGraphBar("Se", 0.6, AppTheme.mandarin, AppTheme.darkMandarin),
+                        _buildGraphBar("Ch", 0.9, AppTheme.yellow, AppTheme.darkYellow),
+                        _buildGraphBar("Pa", 0.4, AppTheme.mintGreen, AppTheme.darkMintGreen),
+                        _buildGraphBar("Ju", 0.7, AppTheme.marineBlue, AppTheme.darkMarineBlue),
+                        _buildGraphBar("Sh", 0.5, AppTheme.mandarin, AppTheme.darkMandarin),
+                        _buildGraphBar("Ya", 0.95, AppTheme.mintGreen, AppTheme.darkMintGreen),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildLegendCircle(AppTheme.marineBlue, AppTheme.darkMarineBlue, "Xursand"),
+                        const SizedBox(width: 14),
+                        _buildLegendCircle(AppTheme.mandarin, AppTheme.darkMandarin, "Oddiy"),
+                        const SizedBox(width: 14),
+                        _buildLegendCircle(AppTheme.yellow, AppTheme.darkYellow, "Xafa"),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
+
+              // Academic Interest Profile
+              Text("Qiziqishlar Profili (Academic Profile)", style: AppTheme.headerMedium),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: AppTheme.pastelBlue, 
+                  borderColor: AppTheme.darkMarineBlue,
+                  shadowColor: AppTheme.marineBlue,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: fav.solidColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.getBorderColorFor(fav.solidColor), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        fav.initials,
+                        style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Eng ko‘p suhbatlashgan allomasi:", style: AppTheme.bodySmall),
+                          Text(fav.name, style: AppTheme.headerSmall),
+                          Text(
+                            "Asosiy yo‘nalishi: ${fav.field}",
+                            style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Custom AI Academic Assignments (Max Feature Only)
+              if (state.subscriptionTier != ParentSubscriptionTier.max) ...[
+                _buildFeatureLockCard("Custom AI Assignments va Gemini Drawing Analyser faqat Max tarifida mavjud!")
+              ] else ...[
+                Text("Custom AI Assignments (Ilmiy Topshiriq yuborish)", style: AppTheme.headerMedium),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.white,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Bolangiz uy vazifasini yoki ilmiy qiziqishini shakllantirish uchun maxsus topshiriq va test yuboring:",
+                        style: AppTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedTopic,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: AppTheme.darkPurpleBorder, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: AppTheme.porcelain,
+                        ),
+                        items: _topics.map((t) {
+                          return DropdownMenuItem<String>(
+                            value: t,
+                            child: Text(t, style: AppTheme.bodyMedium),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedTopic = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: _sendAssignment,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: AppTheme.mandarin,
+                            borderColor: AppTheme.darkMandarin,
+                            shadowColor: AppTheme.darkMandarin,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Topshiriqni yuborish",
+                            style: AppTheme.headerSmall.copyWith(color: AppTheme.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Gemini Drawing Analyzer Feed (Max Feature Only)
+                Text("Gemini Vision Rasm Tahlilchisi", style: AppTheme.headerMedium),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.pastelGold,
+                    borderColor: AppTheme.darkYellow,
+                    shadowColor: AppTheme.yellow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.psychology_rounded, color: AppTheme.darkPurple, size: 24),
+                          const SizedBox(width: 8),
+                          Text("AI Rasm Analitika Natijalari", style: AppTheme.headerSmall),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: state.drawingAnalysisLogs.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.circle, color: AppTheme.mandarin, size: 8),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    state.drawingAnalysisLogs[index],
+                                    style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTierTab(ParentSubscriptionTier tier, String label, Color accent) {
+    final bool isSelected = widget.appState.subscriptionTier == tier;
+    return GestureDetector(
+      onTap: () {
+        widget.appState.changeSubscriptionTier(tier);
+        setState(() {});
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: isSelected
+            ? AppTheme.vibrant3DBoxDecoration(
+                color: accent,
+                radius: 16,
+                borderWidth: 2,
+                shadowOffset: const Offset(2, 2),
+              )
+            : BoxDecoration(
+                color: AppTheme.porcelain,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+              ),
+        child: Text(
+          label,
+          style: AppTheme.headerSmall.copyWith(
+            fontSize: 12,
+            color: isSelected ? AppTheme.white : AppTheme.darkPurple.withAlpha(153),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionDetails(ParentSubscriptionTier tier) {
+    switch (tier) {
+      case ParentSubscriptionTier.mini:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Mini Tarif (Tep-tekin)", style: AppTheme.headerSmall.copyWith(fontSize: 14)),
+            const SizedBox(height: 4),
+            Text("• Allomalardan faqat 2 tasi bilan muloqot (Ulug‘bek, Beruniy).", style: AppTheme.bodySmall),
+            Text("• Haftalik emotsional hisobotlar yopiq.", style: AppTheme.bodySmall),
+          ],
+        );
+      case ParentSubscriptionTier.plus:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Plus Tarif (19 000 so‘m / oy)", style: AppTheme.headerSmall.copyWith(fontSize: 14, color: AppTheme.yellow)),
+            const SizedBox(height: 4),
+            Text("• Barcha allomalar bilan cheksiz muloqot.", style: AppTheme.bodySmall),
+            Text("• Haftalik va oylik emotsional holat tahlil jadvallari.", style: AppTheme.bodySmall),
+          ],
+        );
+      case ParentSubscriptionTier.max:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Max Tarif (39 000 so‘m / oy)", style: AppTheme.headerSmall.copyWith(fontSize: 14, color: AppTheme.mandarin)),
+            const SizedBox(height: 4),
+            Text("• To‘liq allomalar + Ota-onadan maxsus topshiriq yuborish (Assignments).", style: AppTheme.bodySmall),
+            Text("• Gemini Vision AI orqali bolaning chizgan rasmini psixologik tahlil qilish.", style: AppTheme.bodySmall),
+            Text("• Farzand faolligi bo‘yicha ustuvor xavfsizlik ogohlantirishlari.", style: AppTheme.bodySmall),
+          ],
+        );
+    }
+  }
+
+  Widget _buildFeatureLockCard(String message) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.vibrant3DBoxDecoration(
+        color: AppTheme.white,
+        borderColor: Colors.grey.shade300,
+        shadowColor: Colors.grey.shade200,
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 36),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: AppTheme.bodySmall.copyWith(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

@@ -97,19 +97,17 @@ class _PulseRadarAvatarState extends State<PulseRadarAvatar> with SingleTickerPr
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Concentric ripple ring 1
             Container(
               width: 38 + (24 * _controller.value),
               height: 38 + (24 * _controller.value),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: widget.scholar.solidColor.withOpacity(1.0 - _controller.value),
+                  color: widget.scholar.solidColor.withAlpha(((1.0 - _controller.value) * 255).round()),
                   width: 2.5,
                 ),
               ),
             ),
-            // Concentric ripple ring 2
             if (_controller.value > 0.5)
               Container(
                 width: 38 + (24 * (_controller.value - 0.5) * 2),
@@ -117,7 +115,7 @@ class _PulseRadarAvatarState extends State<PulseRadarAvatar> with SingleTickerPr
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: widget.scholar.solidColor.withOpacity(1.0 - (_controller.value - 0.5) * 2),
+                    color: widget.scholar.solidColor.withAlpha(((1.0 - (_controller.value - 0.5) * 2) * 255).round()),
                     width: 1.5,
                   ),
                 ),
@@ -295,6 +293,13 @@ class _ChatTabState extends State<ChatTab> {
     }
 
     final chatLogs = state.chatHistory[scholar.id] ?? [];
+    
+    // Proactive opening greeting trigger (Dopamine Flow)
+    if (chatLogs.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        state.sendScholarResponse(scholar.id, scholar.automatedGreeting);
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.porcelain,
@@ -307,7 +312,6 @@ class _ChatTabState extends State<ChatTab> {
         ),
         title: Row(
           children: [
-            // Pulse radar custom animated avatar
             PulseRadarAvatar(scholar: scholar),
             const SizedBox(width: 12),
             Expanded(
@@ -375,9 +379,13 @@ class _ChatTabState extends State<ChatTab> {
                 ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.only(bottom: 100, top: 10),
-                  itemCount: chatLogs.length,
+                  itemCount: chatLogs.length + 1,
                   itemBuilder: (context, index) {
-                    final msg = chatLogs[index];
+                    if (index == 0) {
+                      // Render Bouncing Portrait and Lottie/Rive Animation indicator at the top
+                      return _buildBouncingPortrait(scholar);
+                    }
+                    final msg = chatLogs[index - 1];
                     return _buildChatBubble(msg, scholar);
                   },
                 ),
@@ -440,7 +448,7 @@ class _ChatTabState extends State<ChatTab> {
             ),
           ),
 
-          // Inclusive Mode Banner (Deep contrasted purple block + bright yellow text + borders)
+          // Inclusive Mode Banner
           if (state.inclusiveMode && _lastScholarResponse.isNotEmpty)
             Container(
               width: double.infinity,
@@ -519,6 +527,49 @@ class _ChatTabState extends State<ChatTab> {
     );
   }
 
+  Widget _buildBouncingPortrait(Scholar scholar) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: FloatingWidget(
+          child: Column(
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: scholar.pastelColor,
+                  radius: 32,
+                  borderColor: AppTheme.getBorderColorFor(scholar.solidColor),
+                  shadowColor: scholar.solidColor,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  scholar.iconData,
+                  color: scholar.solidColor,
+                  size: 44,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.white,
+                  border: Border.all(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 1.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "[Lottie / Rive Visual Animation Live]",
+                  style: AppTheme.bodySmall.copyWith(fontSize: 8, color: scholar.solidColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildScholarGrid() {
     return Scaffold(
       backgroundColor: AppTheme.porcelain,
@@ -546,52 +597,80 @@ class _ChatTabState extends State<ChatTab> {
               ),
               itemBuilder: (context, index) {
                 final s = scholarsList[index];
+                
+                // Tier feature lock
+                final bool isLocked = widget.appState.subscriptionTier == ParentSubscriptionTier.mini && index >= 2;
+
                 return FloatingWidget(
                   delayMs: index * 120,
                   child: GestureDetector(
-                    onTap: () => widget.appState.selectScholar(s),
+                    onTap: () {
+                      if (isLocked) {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            title: const Text("Alloma Qulflangan"),
+                            content: const Text("Ushbu alloma bilan gaplashish uchun obunangizni Plus yoki Max tarifiga yangilang!"),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text("Yopish"),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        widget.appState.selectScholar(s);
+                      }
+                    },
                     child: Container(
                       decoration: AppTheme.vibrant3DBoxDecoration(
-                        color: s.pastelColor,
+                        color: isLocked ? Colors.grey.shade100 : s.pastelColor,
                         radius: 24,
-                        borderColor: AppTheme.getBorderColorFor(s.solidColor),
-                        shadowColor: s.solidColor,
+                        borderColor: AppTheme.getBorderColorFor(isLocked ? Colors.grey : s.solidColor),
+                        shadowColor: isLocked ? Colors.grey.shade300 : s.solidColor,
                       ),
                       padding: const EdgeInsets.all(14),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: s.solidColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppTheme.getBorderColorFor(s.solidColor),
-                                width: 2.5,
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: isLocked ? Colors.grey.shade300 : s.solidColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.getBorderColorFor(isLocked ? Colors.grey : s.solidColor),
+                                    width: 2.5,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  isLocked ? Icons.lock_rounded : s.iconData,
+                                  color: AppTheme.white,
+                                  size: 24,
+                                ),
                               ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Icon(
-                              s.iconData,
-                              color: AppTheme.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            s.name,
-                            style: AppTheme.headerSmall.copyWith(fontSize: 14),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            s.field,
-                            style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.greyText),
-                            textAlign: TextAlign.center,
+                              const SizedBox(height: 10),
+                              Text(
+                                s.name,
+                                style: AppTheme.headerSmall.copyWith(fontSize: 14, color: isLocked ? Colors.grey : AppTheme.darkPurple),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                s.field,
+                                style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold, color: isLocked ? Colors.grey : AppTheme.greyText),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -638,7 +717,7 @@ class _ChatTabState extends State<ChatTab> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: AppTheme.vibrant3DBoxDecoration(
-                color: isUser ? AppTheme.white : scholar.solidColor, // Scholar is filled with their primary theme
+                color: isUser ? AppTheme.white : scholar.solidColor,
                 borderColor: resolvedBorderColor,
                 shadowColor: resolvedShadowColor,
                 radius: 20,

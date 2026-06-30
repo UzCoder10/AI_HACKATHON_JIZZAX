@@ -1,5 +1,43 @@
 import 'package:flutter/material.dart';
 
+enum ParentSubscriptionTier { mini, plus, max }
+
+class ParentAssignment {
+  final String topic;
+  final String question;
+  final List<String> options;
+  final int correctAnswerIndex;
+  final int rewardStars;
+
+  const ParentAssignment({
+    required this.topic,
+    required this.question,
+    required this.options,
+    required this.correctAnswerIndex,
+    this.rewardStars = 50,
+  });
+}
+
+class ShortVideoCard {
+  final String id;
+  final String title;
+  final String fact;
+  final String question;
+  final String answer;
+  final Color accentColor;
+  int likes;
+
+  ShortVideoCard({
+    required this.id,
+    required this.title,
+    required this.fact,
+    required this.question,
+    required this.answer,
+    required this.accentColor,
+    this.likes = 0,
+  });
+}
+
 class Scholar {
   final String id;
   final String name;
@@ -19,6 +57,9 @@ class Scholar {
   final List<String> keyDiscoveries;
   final String famousQuote;
 
+  // Proactive automated greeting for Dopamine Loops
+  final String automatedGreeting;
+
   const Scholar({
     required this.id,
     required this.name,
@@ -35,6 +76,7 @@ class Scholar {
     required this.mapLabel,
     required this.keyDiscoveries,
     required this.famousQuote,
+    required this.automatedGreeting,
   });
 }
 
@@ -103,7 +145,7 @@ class MoodLog {
   }
 }
 
-// Hardcoded scholars list with Sunny Pop UI accent colors (Marine Blue, Mandarin Orange, Apple Red, Mint Green, Sunny Yellow)
+// Hardcoded scholars list with Sunny Pop UI accent colors & automated speech greetings
 final List<Scholar> scholarsList = [
   const Scholar(
     id: "ulugbek",
@@ -135,6 +177,7 @@ final List<Scholar> scholarsList = [
       "O‘rta asrlarning eng ulkan 40 metrlik sekstantini qurdirdi."
     ],
     famousQuote: "Koinotni o‘rganish aqlni komil qiladi va haqiqat eshiklarini ochadi.",
+    automatedGreeting: "Salom, yosh koinot izlovchisi! Yulduzlar va koinotning sirli xaritalari haqida suhbatlashamizmi? Savolingni kutaman! 🌌",
   ),
   const Scholar(
     id: "beruniy",
@@ -166,6 +209,7 @@ final List<Scholar> scholarsList = [
       "Qimmatbaho toshlar va metallarning solishtirma og‘irligini aniqladi."
     ],
     famousQuote: "Ilm kashf qilish yo‘lidagi zahmat — eng totli hissiyotdir.",
+    automatedGreeting: "Salom! Men Abu Rayhon Beruniyman. Yer yuzi, daryolar va qit‘alarning qanday joylashgani haqida gaplashamizmi? 🌍",
   ),
   const Scholar(
     id: "ibnsino",
@@ -197,6 +241,7 @@ final List<Scholar> scholarsList = [
       "Miyaning ruhiy emotsional holat bilan bog‘liqligini isbotladi."
     ],
     famousQuote: "Sog‘liqni saqlashning asosi jismoniy harakat va toza havodir.",
+    automatedGreeting: "Salom, sog‘lom bo‘lishga intiluvchi yosh shifokor! Inson tanasi qanday ishlashi haqida bilishni istaysanmi? 🩺",
   ),
   const Scholar(
     id: "xorazmiy",
@@ -228,67 +273,6 @@ final List<Scholar> scholarsList = [
       "Komputer ilmining asosi bo‘lgan Algoritm qoidalarini kashf etdi."
     ],
     famousQuote: "Matematika — tafakkurning eng go‘zal va yorqin ifodasidir.",
-  ),
-  const Scholar(
-    id: "buxoriy",
-    name: "Imom al-Buxoriy",
-    years: "810 – 870",
-    field: "Hadisshunoslik va Odob",
-    solidColor: Color(0xFFFFB627), // Sunny Yellow
-    pastelColor: Color(0xFFFFF6E5),
-    initials: "IB",
-    iconData: Icons.menu_book_rounded,
-    introText: "Salom, aziz bolajon. Men ezgulik, halollik va odob-axloq haqidagi Payg‘ambarimiz (s.a.v.) hadislarini to‘plaganman. Savob, yaxshilik va ota-onaga hurmat haqida suhbatlashamiz.",
-    suggestedQuestions: [
-      "Hadis nima va ularni qanday to‘plagansiz?",
-      "\"Sahihi Buxoriy\" kitobi haqida so‘zlab bering.",
-      "Ilm olishning qanday foydalari bor?",
-      "Yaxshi xulq-atvor qanday bo‘lishi kerak?",
-    ],
-    fallbackResponses: [
-      "Hadis — Payg‘ambarimiz Muhammad (s.a.v.)ning aytgan so‘zlari, qilgan ishlari va ko‘rsatmalari. Men ularni to‘plash uchun butun islom olamini kezip chiqdim. Har bir eshitgan hadisni yozishdan oldin, uni aytgan kishining to‘g‘ri so‘zligini tekshirdim.",
-      "Mening eng katta asarim \"Al-Jome‘ as-sahih\" (Sahihi Buxoriy) deb ataladi. Unda eng ishonchli (sahih) deb topilgan 7275 ta hadis jamlangan. Bu kitob Qur‘ondan keyingi eng ishonchli manba hisoblanadi.",
-      "Ilm olish — har bir inson uchun eng go‘zal va oliy vazifadir. \"Ilmdan boshqa najot yo‘q va bo‘lmaydi ham\", degan hikmat bor. Ilmli inson qorong‘ulikdagi chiroq kabidir. O‘rgangan bilimlaringiz jamiyatga foyda keltirishi kerak.",
-      "Yaxshi xulq — insonning eng katta ziynatidir. Kattalarga hurmatda, kichiklarga shafqatda bo‘lish, hamisha to‘g‘ri so‘zlash, va‘daga vafo qilish va boshqalarga yomonlik tilamaslik chinakam go‘zal xulqdir."
-    ],
-    historyLocation: "Buxoro / Hartang",
-    mapLabel: "Buxoro / Hartang, O‘zbekiston",
-    keyDiscoveries: [
-      "Roviylar biografiyasini o‘rganuvchi \"ilm-al-rijol\" ilmini rivojlantirdi.",
-      "600 mikdan ortiq hadis orasidan eng sahih hadislarni saraladi.",
-      "\"Sahihi Buxoriy\" - Islom olamidagi ikkinchi eng ishonchli manbaga asos soldi."
-    ],
-    famousQuote: "Ilmdan boshqa najot yo‘q va bo‘lmaydi ham.",
-  ),
-  const Scholar(
-    id: "temur",
-    name: "Amir Temur",
-    years: "1336 – 1405",
-    field: "Davlat boshqaruvi va Nizom",
-    solidColor: Color(0xFFEF476F), // Apple Red
-    pastelColor: Color(0xFFFCEAEF),
-    initials: "AT",
-    iconData: Icons.shield_rounded,
-    introText: "Salom, vatanparvar farzand! Men ulug‘ saltanat qurganman. Men bilan davlat boshqaruvi, rejalashtirish, jasorat va adolat qoidalari haqida suhbatlashamiz.",
-    suggestedQuestions: [
-      "Saltanatni qanday boshqargansiz?",
-      "\"Temur tuzuklari\" asari nima haqida?",
-      "\"Kuch adolatdadir\" iborasini qanday tushunasiz?",
-      "Bunyodkorlik ishlaringiz haqida gapiring.",
-    ],
-    fallbackResponses: [
-      "Men ulkan saltanatni kuchli intizom, maslahat (kengash) va adolat qonunlari bilan boshqardim. Har bir ishni reja asosida qildim, aqlli va bilimdon vazirlar bilan kengashib qaror qabul qildim.",
-      "\"Temur tuzuklari\" — mening davlat boshqarishdagi qoidalarim, harbiy san‘atim va shaxsiy o‘gitlarim to‘plamidir. Unda adolatli bo‘lish, qo‘l ostingdagilarga g‘amxo‘rlik qilish va har bir ishni reja bilan bajarish haqida yozilgan.",
-      "Mening eng muhim shiorim — \"Kuch adolatdadir\". Bu degani, har qanday kuch va hokimiyat adolatga tayanmog‘i lozim. Adolatsiz kuch zulmdir, adolatli kuch esa tinchlik va taraqqiyot garovidir.",
-      "Men Samarqand va boshqa shaharlarni dunyoning eng go‘zal maskanlariga aylantirishni istadim. Bibixonim masjidi, Go‘ri Amir maqbarasi, Oqsaroy kabi muhtasham binolar qurdirdim."
-    ],
-    historyLocation: "Samarqand Ko‘ksaroyi",
-    mapLabel: "Samarqand / Shahrisabz, O‘zbekiston",
-    keyDiscoveries: [
-      "Markaziy Osiyoni birlashtirib buyuk qudratli davlat barpo etdi.",
-      "Konstitutsion mohiyatdagi \"Temur tuzuklari\" boshqaruv qonunini yaratdi.",
-      "Buyuk Ipak yo‘li xavfsizligini ta‘minlab, savdo tizimini rivojlantirdi."
-    ],
-    famousQuote: "Adolat bilan mamlakat barbod bo‘lishdan najot topadi.",
+    automatedGreeting: "Salom, bo‘lajak dasturchi! Algoritmlar va tenglamalar olamiga sayohat qilishga tayyormisan? 💻",
   ),
 ];

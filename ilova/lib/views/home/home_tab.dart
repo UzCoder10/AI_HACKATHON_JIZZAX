@@ -62,7 +62,7 @@ class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProvid
 }
 
 // =========================================================================
-// HOMETAB CHILD VIEW
+// HOMETAB VIEW
 // =========================================================================
 class HomeTab extends StatefulWidget {
   final AppState appState;
@@ -98,6 +98,123 @@ class _HomeTabState extends State<HomeTab> {
           break;
       }
     });
+  }
+
+  // Interactive Parent Quest Assignment Modal Quiz
+  void _openParentQuestQuiz(ParentAssignment assignment) {
+    int? selectedOption;
+    bool checked = false;
+    String feedback = "";
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            title: Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 28),
+                const SizedBox(width: 8),
+                Text("Maxsus Kvest", style: AppTheme.headerSmall),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Mavzu: ${assignment.topic}",
+                    style: AppTheme.bodySmall.copyWith(color: AppTheme.mandarin, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(assignment.question, style: AppTheme.bodyLarge),
+                  const SizedBox(height: 16),
+                  
+                  // Options
+                  ...List.generate(assignment.options.length, (idx) {
+                    final isSel = selectedOption == idx;
+                    Color btnColor = AppTheme.white;
+                    if (checked) {
+                      if (idx == assignment.correctAnswerIndex) {
+                        btnColor = AppTheme.pastelMint;
+                      } else if (isSel) {
+                        btnColor = AppTheme.pastelRed;
+                      }
+                    } else if (isSel) {
+                      btnColor = AppTheme.pastelBlue;
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: GestureDetector(
+                        onTap: checked ? null : () {
+                          setModalState(() {
+                            selectedOption = idx;
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: btnColor,
+                            radius: 16,
+                            borderWidth: 2,
+                            shadowOffset: isSel ? const Offset(1, 1) : const Offset(3, 3),
+                          ),
+                          child: Text(
+                            assignment.options[idx],
+                            style: AppTheme.bodyMedium,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  
+                  if (feedback.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      feedback,
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: feedback.startsWith("To‘g‘ri") ? AppTheme.darkMintGreen : AppTheme.appleRed,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              if (!checked)
+                ElevatedButton(
+                  onPressed: selectedOption == null ? null : () {
+                    setModalState(() {
+                      checked = true;
+                      if (selectedOption == assignment.correctAnswerIndex) {
+                        feedback = "To‘g‘ri javob! Qoyil! +50 Super Yulduzcha! ⭐";
+                      } else {
+                        feedback = "Noto‘g‘ri. To‘g‘ri javob: ${assignment.options[assignment.correctAnswerIndex]}";
+                      }
+                    });
+                  },
+                  child: const Text("Tekshirish"),
+                )
+              else
+                ElevatedButton(
+                  onPressed: () {
+                    widget.appState.completeParentQuest();
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text("Davom etish"),
+                ),
+            ],
+          );
+        }
+      ),
+    );
   }
 
   @override
@@ -162,7 +279,7 @@ class _HomeTabState extends State<HomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Welcome Banner
+            // Welcome Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -204,7 +321,58 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // Modern Mood Tracker (Emoji-free, Vector icon buttons, 3D interactive indentation)
+            // Parental Quest Quiz Banner (Dopamine Trigger)
+            if (state.activeAssignment != null && !state.isAssignmentCompleted) ...[
+              FloatingWidget(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.mandarin,
+                    borderColor: AppTheme.darkMandarin,
+                    shadowColor: AppTheme.darkMandarin,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 36),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Ota-onangizdan Maxsus Kvest! 👑",
+                              style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Mavzu: ${state.activeAssignment!.topic}. Kvestni bajaring va +50 Super Yulduzcha yutib oling!",
+                              style: AppTheme.bodySmall.copyWith(color: AppTheme.white.withAlpha(220)),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.white,
+                                foregroundColor: AppTheme.mandarin,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _openParentQuestQuiz(state.activeAssignment!),
+                              child: Text(
+                                "Kvestni boshlash",
+                                style: AppTheme.fontHeader.copyWith(fontSize: 12, color: AppTheme.mandarin),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Mood Tracker
             Container(
               padding: const EdgeInsets.all(16),
               decoration: AppTheme.vibrant3DBoxDecoration(
@@ -249,7 +417,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // Daily Quest Activity Card (Floating Up & Down Motion)
+            // Daily Quest Card
             FloatingWidget(
               child: Container(
                 width: double.infinity,
@@ -393,25 +561,25 @@ class _HomeTabState extends State<HomeTab> {
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            scholar.field,
-                            style: AppTheme.bodySmall.copyWith(fontSize: 9, color: AppTheme.greyText),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          scholar.field,
+                          style: AppTheme.bodySmall.copyWith(fontSize: 9, color: AppTheme.greyText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          ],
-        ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMoodBtn(MoodType mood, IconData icon, String text, Color activeColor) {
     final bool isSelected = widget.appState.loggedMoodToday == mood;

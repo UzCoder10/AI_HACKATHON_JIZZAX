@@ -122,7 +122,7 @@ class _DrawingQuestScreenState extends State<DrawingQuestScreen> {
                       const SizedBox(width: 8),
                       _buildColorCircle(AppTheme.yellow),
                       const SizedBox(width: 8),
-                      _buildColorCircle(AppTheme.darkBlue),
+                      _buildColorCircle(AppTheme.mintGreen),
                     ],
                   ),
                   GestureDetector(
@@ -154,6 +154,7 @@ class _DrawingQuestScreenState extends State<DrawingQuestScreen> {
                   final activeScholar = widget.appState.selectedScholar ?? scholarsList.first;
                   widget.appState.selectScholar(activeScholar);
                   widget.appState.submitDrawingQuest(activeScholar.id);
+                  widget.appState.submitDrawingForGeminiAnalysis(); // Mock Gemini Vision report triggers
                   
                   // Scholar custom reply timer
                   Timer(const Duration(milliseconds: 1600), () {
@@ -169,9 +170,9 @@ class _DrawingQuestScreenState extends State<DrawingQuestScreen> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: AppTheme.neonDecoration(color: AppTheme.cyan),
+                  decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.cyan),
                   alignment: Alignment.center,
-                  child: Text("Allomaga Yuborish", style: AppTheme.headerMedium),
+                  child: Text("Allomaga Yuborish", style: AppTheme.headerMedium.copyWith(color: AppTheme.white)),
                 ),
               ),
             ],
