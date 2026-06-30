@@ -181,8 +181,13 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
 class RoadmapPainter extends CustomPainter {
   final AgeTier tier;
   final int activeIndex;
+  final List<String> focusAreas;
 
-  RoadmapPainter({required this.tier, required this.activeIndex});
+  RoadmapPainter({
+    required this.tier,
+    required this.activeIndex,
+    required this.focusAreas,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -245,15 +250,29 @@ class RoadmapPainter extends CustomPainter {
     final random = math.Random(42);
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    List<String> emojis = ["🌲", "🍓", "🍎", "🌸"];
-    if (tier == AgeTier.intermediate) emojis = ["🏛️", "📜", "🎒", "🏺"];
-    if (tier == AgeTier.advanced) emojis = ["🪐", "🚀", "🛰️", "🛸"];
+    List<String> emojis = [];
+    for (final area in focusAreas) {
+      if (area.contains("Math")) {
+        emojis.addAll(["➕", "📐", "🧮", "🔢"]);
+      } else if (area.contains("Logic")) {
+        emojis.addAll(["🧩", "💡", "🔍", "⚙️"]);
+      } else if (area.contains("History") || area.contains("Allomalar")) {
+        emojis.addAll(["🏛️", "📜", "🏺", "🕌"]);
+      }
+    }
+    
+    // Default fallback decorations
+    if (emojis.isEmpty) {
+      if (tier == AgeTier.toddler) emojis = ["🌲", "🍓", "🍎", "🌸"];
+      if (tier == AgeTier.intermediate) emojis = ["🏛️", "📜", "🎒", "🏺"];
+      if (tier == AgeTier.advanced) emojis = ["🪐", "🚀", "🛰️", "🛸"];
+    }
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 15; i++) {
       final double rx = random.nextDouble() * size.width;
       final double ry = random.nextDouble() * size.height;
 
-      // Ensure decorations don't sit on the roadmap line center
+      // Ensure decorations don't sit directly on the roadmap line center
       if ((rx - size.width * 0.5).abs() < 60) continue;
 
       textPainter.text = TextSpan(
@@ -513,6 +532,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                           painter: RoadmapPainter(
                             tier: tier,
                             activeIndex: ageController.activeNodeIndex,
+                            focusAreas: ageController.focusAreas,
                           ),
                         ),
                       ),

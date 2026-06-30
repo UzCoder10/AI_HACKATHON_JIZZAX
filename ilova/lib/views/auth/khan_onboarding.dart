@@ -16,7 +16,7 @@ class KhanOnboarding extends StatefulWidget {
 }
 
 class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProviderStateMixin {
-  int _currentStep = 0; // 0: Parent PIN, 1: Firebase Auth, 2: Child Profile Creation
+  int _currentStep = 0; // 0: Parent PIN, 1: Firebase Auth, 2: Child Profile Creation, 3: Curriculum Matrix
   bool _isSignUpMode = true;
 
   // Controllers
@@ -39,6 +39,12 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
   // Real-time password checklist
   bool _hasSixChars = false;
   bool _hasNumber = false;
+
+  // Curriculum Focus Areas selection state
+  final List<String> _selectedFocusAreas = ["Aniq Fanlar (Math & Geometry)", "Tanqidiy Fikr (Logic & Space)"];
+  String? _createdChildId;
+  String? _createdChildName;
+  int? _createdChildAge;
 
   @override
   void initState() {
@@ -256,21 +262,56 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               .collection('children')
               .doc();
 
+          _createdChildId = newChildRef.id;
+          _createdChildName = name;
+          _createdChildAge = _selectedAge;
+
           await newChildRef.set({
             'name': name,
             'age': _selectedAge,
             'activeNodeIndex': 0,
             'stars': 0,
             'badges': ['Mantiq Ustasi'],
+            'focusAreas': _selectedFocusAreas,
           });
 
           if (!mounted) return;
           final ageController = Provider.of<AgeTierController>(context, listen: false);
           await ageController.selectChildProfile(newChildRef.id);
         } else {
-          if (!mounted) return;
-          final ageController = Provider.of<AgeTierController>(context, listen: false);
-          ageController.setChildProfileLocal(name, _selectedAge);
+          _createdChildName = name;
+          _createdChildAge = _selectedAge;
+        }
+
+        // Transition to Curriculum Matrix selection
+        setState(() {
+          _currentStep = 3;
+        });
+        _animController.reset();
+        _animController.forward();
+      } catch (e) {
+        debugPrint(e.toString());
+        setState(() {
+          _currentStep = 3;
+        });
+        _animController.reset();
+        _animController.forward();
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    } else if (_currentStep == 3) {
+      // Save curriculum focus areas and enter game map
+      setState(() => _isLoading = true);
+      try {
+        final ageController = Provider.of<AgeTierController>(context, listen: false);
+        if (_createdChildId != null) {
+          await ageController.syncFocusAreas(_selectedFocusAreas);
+        } else {
+          ageController.setChildProfileLocal(
+            _createdChildName ?? "Ahrorbek", 
+            _createdChildAge ?? 9,
+            areas: _selectedFocusAreas,
+          );
         }
       } catch (e) {
         debugPrint(e.toString());
@@ -318,8 +359,10 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
       return _buildParentGate();
     } else if (_currentStep == 1) {
       return _buildAuthGate();
-    } else {
+    } else if (_currentStep == 2) {
       return _buildChildProfile();
+    } else {
+      return _buildCurriculumMatrix();
     }
   }
 
@@ -341,7 +384,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         Text(
           _currentStep == 0 
               ? "Kattalar uchun xavfsizlik darvozasi" 
-              : (_currentStep == 1 ? "Ota-ona hisobi" : "O'z profilingni yarat!"),
+              : (_currentStep == 1 ? "Ota-ona hisobi" : (_currentStep == 2 ? "O'z profilingni yarat!" : "Curriculum Strategy Matrix")),
           style: AppTheme.bodyMedium.copyWith(color: AppTheme.greyText),
           textAlign: TextAlign.center,
         ),
@@ -519,7 +562,6 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
 
           if (_isSignUpMode) ...[
             const SizedBox(height: 10),
-            // Password checklist
             Row(
               children: [
                 Icon(
@@ -545,7 +587,6 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
             ),
             const SizedBox(height: 14),
 
-            // Terms checkbox
             Row(
               children: [
                 Checkbox(
@@ -653,6 +694,82 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
     );
   }
 
+  Widget _buildCurriculumMatrix() {
+    final focusAreasList = [
+      {"title": "Aniq Fanlar (Math & Geometry)", "icon": Icons.calculate_rounded, "color": AppTheme.mandarin},
+      {"title": "Tanqidiy Fikr (Logic & Space)", "icon": Icons.psychology_rounded, "color": AppTheme.marineBlue},
+      {"title": "Allomalar Tarixi (History & Architecture)", "icon": Icons.account_balance_rounded, "color": AppTheme.mintGreen},
+    ];
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.pastelBlue, radius: 18),
+            child: Text(
+              "Ota-onalar diqqatiga: Farzandingiz uchun mos keladigan asosiy yo'nalishlarni belgilang. Ilova xaritasi ushbu yo'nalishlar bo'yicha shakllanadi.",
+              style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple, height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text("O'quv Strategiyasini tanlang:", style: AppTheme.headerSmall),
+          const SizedBox(height: 12),
+          ...focusAreasList.map((area) {
+            final title = area["title"] as String;
+            final icon = area["icon"] as IconData;
+            final color = area["color"] as Color;
+            final isChecked = _selectedFocusAreas.contains(title);
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isChecked) {
+                    if (_selectedFocusAreas.length > 1) {
+                      _selectedFocusAreas.remove(title);
+                    }
+                  } else {
+                    _selectedFocusAreas.add(title);
+                  }
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: isChecked ? color.withAlpha(50) : AppTheme.white,
+                  radius: 20,
+                  borderWidth: 2,
+                  borderColor: isChecked ? color : AppTheme.darkPurpleBorder,
+                  shadowOffset: const Offset(3, 3),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: color, size: 28),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
+                      ),
+                    ),
+                    Icon(
+                      isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      color: isChecked ? color : Colors.grey,
+                      size: 24,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton() {
     return GestureDetector(
       onTap: _nextStep,
@@ -662,13 +779,15 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         decoration: AppTheme.vibrant3DBoxDecoration(
           color: _currentStep == 0 
               ? AppTheme.marineBlue 
-              : (_currentStep == 1 ? AppTheme.yellow : AppTheme.mandarin),
+              : (_currentStep == 1 ? AppTheme.yellow : (_currentStep == 2 ? AppTheme.mintGreen : AppTheme.mandarin)),
         ),
         alignment: Alignment.center,
         child: Text(
           _currentStep == 0 
               ? "Ruxsat Berish" 
-              : (_currentStep == 1 ? (_isSignUpMode ? "Ro'yxatdan o'tish" : "Tizimga kirish") : "Mening Olamimga Kirish! 🚀"),
+              : (_currentStep == 1 
+                  ? (_isSignUpMode ? "Ro'yxatdan o'tish" : "Tizimga kirish") 
+                  : (_currentStep == 2 ? "Bolakay Sozlamalari" : "Mening Olamimga Kirish! 🚀")),
           style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
         ),
       ),

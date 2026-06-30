@@ -6,7 +6,7 @@ import '../core/theme.dart';
 
 enum AgeTier { toddler, intermediate, advanced }
 
-enum BuildingMaterial { brick, wood, clay }
+enum BuildingMaterial { brick, wood, stone }
 
 class AgeTierController extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -25,13 +25,14 @@ class AgeTierController extends ChangeNotifier {
   int _activeNodeIndex = 0;
   int _starsCount = 0;
   List<String> _badges = ["Mantiq Ustasi"];
+  List<String> _focusAreas = ["Aniq Fanlar", "Tanqidiy Fikr"];
   
   // Game states
   BuildingMaterial _selectedMaterial = BuildingMaterial.brick;
   final List<BuildingMaterial> _unlockedMaterials = [
     BuildingMaterial.brick,
     BuildingMaterial.wood,
-    BuildingMaterial.clay,
+    BuildingMaterial.stone,
   ];
 
   AgeTierController() {
@@ -65,13 +66,17 @@ class AgeTierController extends ChangeNotifier {
   int get activeNodeIndex => _activeNodeIndex;
   int get starsCount => _starsCount;
   List<String> get badges => _badges;
+  List<String> get focusAreas => _focusAreas;
   BuildingMaterial get selectedMaterial => _selectedMaterial;
   List<BuildingMaterial> get unlockedMaterials => _unlockedMaterials;
 
   // Set local state in case Firestore is unavailable
-  void setChildProfileLocal(String name, int age) {
+  void setChildProfileLocal(String name, int age, {List<String>? areas}) {
     _activeChildName = name;
     _activeAge = age;
+    if (areas != null) {
+      _focusAreas = areas;
+    }
     if (age <= 5) {
       _activeTier = AgeTier.toddler;
     } else if (age <= 7) {
@@ -117,6 +122,12 @@ class AgeTierController extends ChangeNotifier {
         if (rawBadges != null) {
           _badges = rawBadges.map((e) => e.toString()).toList();
         }
+
+        final rawAreas = data['focusAreas'] as List?;
+        if (rawAreas != null) {
+          _focusAreas = rawAreas.map((e) => e.toString()).toList();
+        }
+
         notifyListeners();
       }
     });
@@ -135,7 +146,6 @@ class AgeTierController extends ChangeNotifier {
       if (snapshot.docs.isNotEmpty) {
         selectChildProfile(snapshot.docs.first.id);
       } else {
-        // Provision a default child document if none exists
         final newChildRef = _firestore
             .collection('users')
             .doc(_currentUser!.uid)
@@ -148,12 +158,12 @@ class AgeTierController extends ChangeNotifier {
           'activeNodeIndex': 0,
           'stars': 0,
           'badges': ['Mantiq Ustasi'],
+          'focusAreas': ['Aniq Fanlar', 'Tanqidiy Fikr'],
         });
 
         selectChildProfile(newChildRef.id);
       }
     } catch (e) {
-      // Offline fallback
       setChildProfileLocal("Ahrorbek", 9);
     }
   }
@@ -221,6 +231,24 @@ class AgeTierController extends ChangeNotifier {
         } catch (e) {
           debugPrint("Offline Sync: Badge saved locally");
         }
+      }
+    }
+  }
+
+  Future<void> syncFocusAreas(List<String> areas) async {
+    _focusAreas = areas;
+    notifyListeners();
+
+    if (_currentUser != null && _activeChildId != null) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .collection('children')
+            .doc(_activeChildId)
+            .update({'focusAreas': areas});
+      } catch (e) {
+        debugPrint("Offline Sync: Focus areas saved locally");
       }
     }
   }

@@ -8,11 +8,18 @@ import '../../controllers/age_tier_controller.dart';
 import 'building_game_tab.dart';
 
 // =========================================================================
-// TODDLER PHYSICS: FLOATING BUBBLE FRUITS & PARTICLES
+// TODDLER PHYSICS: PACHINKO GRAVITY FRUIT DROP & PEG DEFLECTIONS
 // =========================================================================
+class Peg {
+  final Offset pos;
+  final double radius;
+
+  Peg({required this.pos, required this.radius});
+}
+
 class FruitBubble {
   Offset pos;
-  double speed;
+  Offset vel;
   final double radius;
   final String emoji;
   final Color color;
@@ -22,15 +29,37 @@ class FruitBubble {
 
   FruitBubble({
     required this.pos,
-    required this.speed,
+    required this.vel,
     required this.radius,
     required this.emoji,
     required this.color,
   });
 
-  void update(double dt) {
+  void update(double dt, List<Peg> pegs) {
     if (!isPopped) {
-      pos = Offset(pos.dx, pos.dy - speed * dt);
+      // 1. Gravity acceleration downwards
+      vel = Offset(vel.dx, vel.dy + 250.0 * dt);
+      pos += vel * dt;
+
+      // 2. Peg Deflections & Elastic Bounces
+      for (final peg in pegs) {
+        final double dist = (pos - peg.pos).distance;
+        final double minDist = radius + peg.radius;
+        if (dist < minDist) {
+          // Calculate normal vector
+          final normal = (pos - peg.pos) / dist;
+          
+          // Reposition to prevent clipping
+          pos = peg.pos + normal * minDist;
+          
+          // Elastic vector rebound reflection
+          final double dotProduct = vel.dx * normal.dx + vel.dy * normal.dy;
+          vel = Offset(vel.dx - 2 * dotProduct * normal.dx, vel.dy - 2 * dotProduct * normal.dy) * 0.75;
+          
+          // Add a small horizontal dispersion
+          vel += Offset((math.Random().nextDouble() - 0.5) * 50.0, 0.0);
+        }
+      }
     } else {
       popAnimTime += dt * 10;
       scale = 1.0 + math.sin(popAnimTime) * 0.6;
@@ -59,16 +88,35 @@ class BubbleParticle {
   }
 }
 
-class ToddlerBubblePainter extends CustomPainter {
+class ToddlerPachinkoPainter extends CustomPainter {
   final List<FruitBubble> bubbles;
   final List<BubbleParticle> particles;
+  final List<Peg> pegs;
+  final List<double> basketRecoils;
 
-  ToddlerBubblePainter({required this.bubbles, required this.particles});
+  ToddlerPachinkoPainter({
+    required this.bubbles,
+    required this.particles,
+    required this.pegs,
+    required this.basketRecoils,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
+    // 1. Paint Peg array (white circles with dark borders)
+    final pPeg = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
+    final pPegBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.0;
+
+    for (final peg in pegs) {
+      canvas.drawCircle(peg.pos, peg.radius, pPeg);
+      canvas.drawCircle(peg.pos, peg.radius, pPegBorder);
+      // Small peg pin point
+      canvas.drawCircle(peg.pos, 2, Paint()..color = AppTheme.darkPurple);
+    }
+
+    // 2. Paint falling fruits
     for (final b in bubbles) {
       if (b.isPopped && b.popAnimTime >= math.pi) continue;
 
@@ -97,6 +145,33 @@ class ToddlerBubblePainter extends CustomPainter {
       canvas.restore();
     }
 
+    // 3. Paint weight displacement recoil baskets at the bottom
+    final double basketWidth = size.width / 3 - 16;
+    final double basketHeight = 45.0;
+    final double basketY = size.height - 75.0;
+
+    final basketColors = [AppTheme.mandarin, AppTheme.yellow, AppTheme.mintGreen];
+
+    for (int i = 0; i < 3; i++) {
+      final double bx = 8 + i * (size.width / 3) + 4;
+      final double recoil = basketRecoils[i];
+
+      final rect = Rect.fromLTWH(bx, basketY + recoil, basketWidth, basketHeight);
+      final pBasket = Paint()..color = basketColors[i]..style = PaintingStyle.fill;
+      final pBasketBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
+
+      // Draw custom 3D styled basket
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pBasket);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pBasketBorder);
+
+      // Draw basket grid lines
+      final pGrid = Paint()..color = AppTheme.white.withAlpha(120)..strokeWidth = 2.0;
+      canvas.drawLine(Offset(bx + basketWidth * 0.25, basketY + recoil), Offset(bx + basketWidth * 0.25, basketY + recoil + basketHeight), pGrid);
+      canvas.drawLine(Offset(bx + basketWidth * 0.5, basketY + recoil), Offset(bx + basketWidth * 0.5, basketY + recoil + basketHeight), pGrid);
+      canvas.drawLine(Offset(bx + basketWidth * 0.75, basketY + recoil), Offset(bx + basketWidth * 0.75, basketY + recoil + basketHeight), pGrid);
+    }
+
+    // 4. Paint vector particles
     for (final p in particles) {
       final paint = Paint()
         ..color = p.color.withAlpha((p.opacity * 255).round())
@@ -190,7 +265,7 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathLeaf, pLeaf);
       canvas.drawPath(pathLeaf, Paint()..color = AppTheme.darkMintGreen..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
-      // Body (Double-lobed Apple)
+      // Body
       canvas.drawCircle(const Offset(-14, 2), 26, pRed);
       canvas.drawCircle(const Offset(14, 2), 26, pRed);
       canvas.drawCircle(const Offset(-14, 2), 26, pDarkRed);
@@ -206,7 +281,7 @@ class SyllableObjectPainter extends CustomPainter {
       final pDarkBlue = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
       final pPages = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
 
-      // Spine / Cover Backing
+      // Spine / Cover
       final pathCover = Path()
         ..moveTo(-35, -20)
         ..lineTo(30, -20)
@@ -216,7 +291,7 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathCover, pBlue);
       canvas.drawPath(pathCover, pDarkBlue);
 
-      // Paper Pages Stack
+      // Paper Pages
       final pathPages = Path()
         ..moveTo(-30, -16)
         ..lineTo(26, -16)
@@ -253,7 +328,7 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathBody, pPencilBody);
       canvas.drawPath(pathBody, pStroke);
 
-      // Wooden Cone Tip
+      // Wooden Cone
       final pathCone = Path()
         ..moveTo(10, -10)
         ..lineTo(28, 0)
@@ -262,7 +337,7 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathCone, pWood);
       canvas.drawPath(pathCone, pStroke);
 
-      // Graphite Tip
+      // Tip
       final pathTip = Path()
         ..moveTo(22, -3)
         ..lineTo(28, 0)
@@ -292,9 +367,11 @@ class AdaptiveLogicGames extends StatefulWidget {
 class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProviderStateMixin {
   late int _activeGameIndex;
 
-  // Toddler Math Game State
+  // Toddler Pachinko Game State
   final List<FruitBubble> _bubbles = [];
   final List<BubbleParticle> _particles = [];
+  final List<Peg> _pegs = [];
+  final List<double> _basketRecoils = [0.0, 0.0, 0.0];
   int _toddlerCount = 0;
   late final Ticker _physicsTicker;
   double _spawnTimer = 0.0;
@@ -333,6 +410,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     );
 
     if (_activeGameIndex == 0) {
+      _setupPachinkoPegs();
       _physicsTicker.start();
     } else if (_activeGameIndex == 1) {
       _setupSyllableGame();
@@ -359,6 +437,29 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       });
   }
 
+  void _setupPachinkoPegs() {
+    // Staggered peg matrix layout
+    final double pegRadius = 6.0;
+    
+    // Row 1
+    _pegs.add(Peg(pos: const Offset(70, 160), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(170, 160), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(270, 160), radius: pegRadius));
+
+    // Row 2 (Staggered)
+    _pegs.add(Peg(pos: const Offset(120, 240), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(220, 240), radius: pegRadius));
+
+    // Row 3
+    _pegs.add(Peg(pos: const Offset(70, 320), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(170, 320), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(270, 320), radius: pegRadius));
+
+    // Row 4 (Staggered)
+    _pegs.add(Peg(pos: const Offset(120, 400), radius: pegRadius));
+    _pegs.add(Peg(pos: const Offset(220, 400), radius: pegRadius));
+  }
+
   @override
   void dispose() {
     _physicsTicker.dispose();
@@ -375,7 +476,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _spawnTimer += dt;
       final size = MediaQuery.of(context).size;
 
-      if (_spawnTimer > 1.0 && _toddlerCount < 10) {
+      // Spawn falling fruits
+      if (_spawnTimer > 1.2 && _toddlerCount < 10) {
         _spawnTimer = 0.0;
         final random = math.Random();
         final emojis = ["🍎", "🍋", "🍇", "🍓", "🍉", "🍒"];
@@ -383,19 +485,61 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         
         final idx = random.nextInt(emojis.length);
         _bubbles.add(FruitBubble(
-          pos: Offset(40 + random.nextDouble() * (size.width - 80), size.height * 0.75),
-          speed: 70.0 + random.nextDouble() * 90.0,
-          radius: 36.0,
+          pos: Offset(40 + random.nextDouble() * (size.width - 80), 20),
+          vel: Offset((random.nextDouble() - 0.5) * 40.0, 50.0),
+          radius: 26.0,
           emoji: emojis[idx],
           color: colors[idx],
         ));
       }
 
+      // Update falling fruits
       for (final b in _bubbles) {
-        b.update(dt);
+        b.update(dt, _pegs);
       }
 
-      _bubbles.removeWhere((b) => b.pos.dy < -50 || (b.isPopped && b.popAnimTime >= math.pi));
+      // Basket Landings & Recoil trigger checks
+      final double basketY = size.height - 75.0;
+      final double basketWidth = size.width / 3;
+
+      for (final b in _bubbles) {
+        if (!b.isPopped && b.pos.dy >= basketY - 10) {
+          b.isPopped = true;
+
+          // Determine which basket
+          int basketIdx = (b.pos.dx / basketWidth).floor().clamp(0, 2);
+          
+          // Trigger spring recoil displacement
+          _basketRecoils[basketIdx] = 16.0;
+          _toddlerCount++;
+
+          // Tally score particle pop
+          final random = math.Random();
+          for (int i = 0; i < 15; i++) {
+            final double angle = random.nextDouble() * math.pi * 2;
+            final double speed = 80.0 + random.nextDouble() * 120.0;
+            _particles.add(BubbleParticle(
+              pos: b.pos,
+              vel: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
+              color: b.color,
+              size: 4.0 + random.nextDouble() * 6.0,
+            ));
+          }
+
+          if (_toddlerCount >= 10) {
+            _winGame(10);
+          }
+        }
+      }
+
+      // Reset basket recoil decay
+      for (int i = 0; i < 3; i++) {
+        if (_basketRecoils[i] > 0.0) {
+          _basketRecoils[i] = math.max(0.0, _basketRecoils[i] - dt * 90.0);
+        }
+      }
+
+      _bubbles.removeWhere((b) => b.pos.dy > size.height || (b.isPopped && b.popAnimTime >= math.pi));
 
       for (final p in _particles) {
         p.update(dt);
@@ -409,20 +553,21 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     for (final b in _bubbles) {
       if (!b.isPopped) {
         final double dist = (b.pos - tapPos).distance;
-        if (dist <= b.radius + 10) {
+        if (dist <= b.radius + 15) {
           setState(() {
             b.isPopped = true;
             _toddlerCount++;
 
+            // Explode particles vector canvas
             final random = math.Random();
-            for (int i = 0; i < 15; i++) {
+            for (int i = 0; i < 20; i++) {
               final double angle = random.nextDouble() * math.pi * 2;
-              final double speed = 100.0 + random.nextDouble() * 150.0;
+              final double speed = 120.0 + random.nextDouble() * 160.0;
               _particles.add(BubbleParticle(
                 pos: b.pos,
                 vel: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
                 color: b.color,
-                size: 6.0 + random.nextDouble() * 10.0,
+                size: 5.0 + random.nextDouble() * 8.0,
               ));
             }
 
@@ -508,7 +653,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           slot.filled = true;
           matched = true;
           
-          // Trigger matching burst effect
           final random = math.Random();
           for (int i = 0; i < 8; i++) {
             final double angle = random.nextDouble() * math.pi * 2;
@@ -568,7 +712,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           ],
         ),
         content: Text(
-          "Yulduzchalar hisobingizga +$rewardStars ta qo'shildi! Siz barcha bo'g'inlarni to'g'ri bog'ladingiz! ⭐",
+          "Yulduzchalar hisobingizga +$rewardStars ta qo'shildi! Siz barcha bosqichlarni muvaffaqiyatli yakunladingiz! ⭐",
           style: AppTheme.bodyLarge,
         ),
         actions: [
@@ -603,7 +747,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         elevation: 0,
         title: Text(
           _activeGameIndex == 0 
-              ? "Meva pufakchalarini yor!" 
+              ? "Meva pachinko shousi!" 
               : (_activeGameIndex == 1 ? "Bo'g'inli So'zlar" : "3D Arxitektor"),
           style: AppTheme.headerMedium,
         ),
@@ -643,7 +787,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Hisoblash tepsisi:", style: AppTheme.headerSmall.copyWith(fontSize: 14)),
+                Text("Yig'ilgan mevalar:", style: AppTheme.headerSmall.copyWith(fontSize: 14)),
                 Row(
                   children: List.generate(10, (idx) {
                     final bool filled = idx < _toddlerCount;
@@ -680,7 +824,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
               child: GestureDetector(
                 onTapDown: _onToddlerScreenTap,
                 child: CustomPaint(
-                  painter: ToddlerBubblePainter(bubbles: _bubbles, particles: _particles),
+                  painter: ToddlerPachinkoPainter(
+                    bubbles: _bubbles,
+                    particles: _particles,
+                    pegs: _pegs,
+                    basketRecoils: _basketRecoils,
+                  ),
                   child: Container(),
                 ),
               ),
@@ -697,7 +846,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
 
     return Column(
       children: [
-        // Level/Word display
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Row(
@@ -828,7 +976,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     Positioned.fill(
                       child: IgnorePointer(
                         child: CustomPaint(
-                          painter: ToddlerBubblePainter(bubbles: [], particles: _particles),
+                          painter: ToddlerPachinkoPainter(bubbles: [], particles: _particles, pegs: [], basketRecoils: []),
                         ),
                       ),
                     ),

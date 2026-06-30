@@ -8,7 +8,7 @@ import '../../controllers/age_tier_controller.dart';
 
 enum ArchitectureType { column, arch, wall, dome }
 
-enum GameBuildingMaterial { brick, wood, clay }
+enum GameBuildingMaterial { brick, wood, stone }
 
 class GameParticle {
   Offset pos;
@@ -62,7 +62,7 @@ class TumblingComponent {
   });
 
   void update(double dt, List<GameParticle> particles) {
-    vel = Offset(vel.dx, vel.dy + 800 * dt);
+    vel = Offset(vel.dx, vel.dy + 850 * dt);
     pos += vel * dt;
     rotX += angularVelX * dt;
     rotY += angularVelY * dt;
@@ -71,16 +71,16 @@ class TumblingComponent {
     if (pos.dy >= groundLevel) {
       pos = Offset(pos.dx, groundLevel);
       if (bounces < 3) {
-        vel = Offset(vel.dx * 0.65, -vel.dy * bounceFactor);
+        vel = Offset(vel.dx * 0.6, -vel.dy * bounceFactor);
         bounces++;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
           particles.add(GameParticle(
             pos: Offset(pos.dx, groundLevel),
-            vel: Offset(-50 + math.Random().nextDouble() * 100, -30 - math.Random().nextDouble() * 50),
+            vel: Offset(-60 + math.Random().nextDouble() * 120, -30 - math.Random().nextDouble() * 60),
             color: Colors.grey.shade400,
-            size: 8.0 + math.Random().nextDouble() * 10.0,
+            size: 6.0 + math.Random().nextDouble() * 12.0,
             opacity: 0.8,
-            lifeDecay: 1.2,
+            lifeDecay: 1.5,
           ));
         }
       } else {
@@ -152,452 +152,12 @@ class CityTree {
   double wobbleAngle = 0.0;
   bool isFlashing = false;
 
-  CityTree({required this.gridX, required this.gridY});
-}
-
-// =========================================================================
-// ISOMETRIC TEXTURED CITY CUSTOM PAINTER
-// =========================================================================
-class UltraPhysicsCityPainter extends CustomPainter {
-  final List<StackedComponent> blocks;
-  final List<AuxiliaryBuilding> auxBuildings;
-  final List<CityTree> trees;
-  final List<GameParticle> particles;
-  final List<TumblingComponent> debris;
-  final List<VectorCar> cars;
-  final Offset centerOrigin;
-  final double scaleSize;
-  
-  final bool isDropping;
-  final Offset droppingBlockPos;
-  final Color droppingColor;
-  final ArchitectureType droppingType;
-
-  final double craneTrolleyX;
-  final double craneCableLength;
-
-  final double citadelTiltAngle;
-  final double towerWobbleOffset;
-
-  UltraPhysicsCityPainter({
-    required this.blocks,
-    required this.auxBuildings,
-    required this.trees,
-    required this.particles,
-    required this.debris,
-    required this.cars,
-    required this.centerOrigin,
-    required this.scaleSize,
-    required this.isDropping,
-    required this.droppingBlockPos,
-    required this.droppingColor,
-    required this.droppingType,
-    required this.craneTrolleyX,
-    required this.craneCableLength,
-    required this.citadelTiltAngle,
-    required this.towerWobbleOffset,
+  CityTree({
+    required this.gridX,
+    required this.gridY,
   });
-
-  Offset _project(double gx, double gy, double gz) {
-    final double cos30 = math.cos(math.pi / 6);
-    final double sin30 = math.sin(math.pi / 6);
-    final double screenX = centerOrigin.dx + (gx - gy) * scaleSize * cos30;
-    final double screenY = centerOrigin.dy + (gx + gy) * scaleSize * sin30 - gz * (scaleSize * 0.95);
-    return Offset(screenX, screenY);
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double r = scaleSize * 0.95;
-    final double h = scaleSize * 0.98;
-
-    for (int x = -3; x <= 3; x++) {
-      for (int y = -3; y <= 3; y++) {
-        final isRoadHorizontal = (y == 0);
-        final isRoadVertical = (x == 0);
-        if (isRoadHorizontal || isRoadVertical) {
-          _drawRoadTile(canvas, x.toDouble(), y.toDouble());
-        } else {
-          _drawGrassTile(canvas, x.toDouble(), y.toDouble());
-        }
-      }
-    }
-
-    for (final car in cars) {
-      _drawVectorCar(canvas, car);
-    }
-
-    for (final tree in trees) {
-      final base = _project(tree.gridX, tree.gridY, 0.0);
-      _drawTree(canvas, base, tree.wobbleAngle, tree.isFlashing);
-    }
-
-    for (final aux in auxBuildings) {
-      final base = _project(aux.gridX, aux.gridY, 0.0);
-      _drawDetailedBuilding(canvas, base, r * 0.9, aux.height, aux.color, aux.windowRows, aux.windowCols, aux.wobbleAngle, aux.isFlashing);
-    }
-
-    final citadelBase = _project(0.0, 0.0, 0.0);
-    _drawDetailedBuilding(canvas, citadelBase, r * 1.35, h * 0.6, AppTheme.yellow, 1, 3, citadelTiltAngle, false);
-
-    double currentHeightOffset = 0.6;
-    for (int i = 0; i < blocks.length; i++) {
-      final b = blocks[i];
-      final basePos = _project(0.0, 0.0, currentHeightOffset);
-      final double totalOffset = b.driftX + towerWobbleOffset + b.wobbleOffset;
-      final Offset blockCenter = Offset(basePos.dx + totalOffset, basePos.dy);
-
-      _drawArchitecture(canvas, blockCenter, r, h, b.color, b.type, 0.0, 0.0, citadelTiltAngle);
-      currentHeightOffset += 1.0;
-    }
-
-    if (isDropping) {
-      _drawArchitecture(canvas, droppingBlockPos, r, h, droppingColor, droppingType, 0.0, 0.0, 0.0);
-    }
-
-    for (final frag in debris) {
-      _drawArchitecture(canvas, frag.pos, r, h, frag.color, frag.type, frag.rotX, frag.rotY, frag.rotZ);
-    }
-
-    for (final p in particles) {
-      final paint = Paint()
-        ..color = p.color.withAlpha((p.opacity * 255).round())
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(p.pos, p.size, paint);
-    }
-
-    _drawCraneSystem(canvas, size);
-  }
-
-  void _drawGrassTile(Canvas canvas, double gx, double gy) {
-    final path = _getTilePath(gx, gy);
-    canvas.drawPath(path, Paint()..color = AppTheme.pastelMint..style = PaintingStyle.fill);
-    
-    final pBlade = Paint()..color = AppTheme.darkMintGreen..strokeWidth = 1.5;
-    final center = _project(gx, gy, 0.0);
-    canvas.drawLine(center, Offset(center.dx - 2, center.dy - 4), pBlade);
-    canvas.drawLine(center, Offset(center.dx + 2, center.dy - 3), pBlade);
-  }
-
-  void _drawRoadTile(Canvas canvas, double gx, double gy) {
-    final path = _getTilePath(gx, gy);
-    canvas.drawPath(path, Paint()..color = AppTheme.porcelain..style = PaintingStyle.fill);
-    canvas.drawPath(path, Paint()..color = AppTheme.darkPurpleBorder.withAlpha(50)..style = PaintingStyle.stroke..strokeWidth = 1.0);
-
-    final center = _project(gx, gy, 0.0);
-    final pMarking = Paint()..color = AppTheme.yellow..strokeWidth = 2.0;
-    
-    if (gy == 0.0) {
-      canvas.drawLine(Offset(center.dx - 6, center.dy - 3), Offset(center.dx + 6, center.dy + 3), pMarking);
-    } else if (gx == 0.0) {
-      canvas.drawLine(Offset(center.dx - 6, center.dy + 3), Offset(center.dx + 6, center.dy - 3), pMarking);
-    }
-  }
-
-  Path _getTilePath(double gx, double gy) {
-    final pTop = _project(gx - 0.5, gy - 0.5, 0.0);
-    final pRight = _project(gx + 0.5, gy - 0.5, 0.0);
-    final pBottom = _project(gx + 0.5, gy + 0.5, 0.0);
-    final pLeft = _project(gx - 0.5, gy + 0.5, 0.0);
-    final path = Path();
-    path.moveTo(pTop.dx, pTop.dy);
-    path.lineTo(pRight.dx, pRight.dy);
-    path.lineTo(pBottom.dx, pBottom.dy);
-    path.lineTo(pLeft.dx, pLeft.dy);
-    path.close();
-    return path;
-  }
-
-  void _drawVectorCar(Canvas canvas, VectorCar car) {
-    double gx = 0.0;
-    double gy = 0.0;
-    if (car.roadDirection == 0) {
-      gx = -3.0 + car.progress * 6.0;
-    } else {
-      gy = -3.0 + car.progress * 6.0;
-    }
-    final carPos = _project(gx, gy, 0.05);
-
-    final pCar = Paint()..color = car.color..style = PaintingStyle.fill;
-    final pWindow = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
-    
-    canvas.drawRect(Rect.fromCenter(center: carPos, width: 14, height: 8), pCar);
-    canvas.drawRect(Rect.fromLTWH(carPos.dx - 3, carPos.dy - 5, 6, 4), pWindow);
-
-    final pHeadlight = Paint()..color = AppTheme.yellow.withAlpha(180)..strokeWidth = 1.5;
-    if (car.roadDirection == 0) {
-      canvas.drawLine(carPos, Offset(carPos.dx + 16, carPos.dy + 4), pHeadlight);
-      canvas.drawLine(carPos, Offset(carPos.dx + 16, carPos.dy - 4), pHeadlight);
-    } else {
-      canvas.drawLine(carPos, Offset(carPos.dx - 16, carPos.dy + 4), pHeadlight);
-      canvas.drawLine(carPos, Offset(carPos.dx - 16, carPos.dy - 4), pHeadlight);
-    }
-  }
-
-  void _drawTree(Canvas canvas, Offset base, double wobble, bool isFlashing) {
-    final trunkPath = Path();
-    trunkPath.moveTo(base.dx - 3, base.dy);
-    trunkPath.lineTo(base.dx - 3, base.dy - 12);
-    trunkPath.lineTo(base.dx + 3, base.dy - 12);
-    trunkPath.lineTo(base.dx + 3, base.dy);
-    trunkPath.close();
-
-    canvas.drawPath(trunkPath, Paint()..color = const Color(0xFF8B5A2B));
-
-    final leafPath = Path();
-    final Offset leafCenter = Offset(base.dx + math.sin(wobble) * 8, base.dy - 20);
-    final double r = 12.0;
-
-    leafPath.moveTo(leafCenter.dx, leafCenter.dy - r);
-    leafPath.lineTo(leafCenter.dx + r * 1.3, leafCenter.dy);
-    leafPath.lineTo(leafCenter.dx, leafCenter.dy + r);
-    leafPath.lineTo(leafCenter.dx - r * 1.3, leafCenter.dy);
-    leafPath.close();
-
-    final Color leafColor = isFlashing ? AppTheme.appleRed : AppTheme.mintGreen;
-    canvas.drawPath(leafPath, Paint()..color = leafColor);
-    canvas.drawPath(
-      leafPath, 
-      Paint()..color = isFlashing ? AppTheme.darkAppleRed : AppTheme.darkMintGreen..style = PaintingStyle.stroke..strokeWidth = 2.0,
-    );
-  }
-
-  void _drawDetailedBuilding(Canvas canvas, Offset base, double r, double h, Color color, int rows, int cols, double wobble, bool isFlashing) {
-    final center = Offset(base.dx + math.sin(wobble) * 12, base.dy - h);
-    final drawColor = isFlashing ? AppTheme.pastelRed : color;
-    
-    _drawArchitecture(canvas, center, r, h, drawColor, ArchitectureType.wall, 0.0, 0.0, wobble);
-
-    final Offset pLeft = Offset(center.dx - r * 0.433, center.dy + h * 0.5);
-    final Offset pRight = Offset(center.dx + r * 0.433, center.dy + h * 0.5);
-    final pWindow = Paint()..color = isFlashing ? AppTheme.appleRed : AppTheme.yellow..style = PaintingStyle.fill;
-
-    for (int rIdx = 0; rIdx < rows; rIdx++) {
-      for (int cIdx = 0; cIdx < cols; cIdx++) {
-        final double wx = pLeft.dx - 6 + (cIdx * 7) + math.sin(wobble) * 10;
-        final double wy = pLeft.dy - h + 14 + (rIdx * 12);
-        canvas.drawRect(Rect.fromLTWH(wx, wy, 4, 6), pWindow);
-      }
-    }
-    for (int rIdx = 0; rIdx < rows; rIdx++) {
-      for (int cIdx = 0; cIdx < cols; cIdx++) {
-        final double wx = pRight.dx - 6 + (cIdx * 7) + math.sin(wobble) * 10;
-        final double wy = pRight.dy - h + 14 + (rIdx * 12);
-        canvas.drawRect(Rect.fromLTWH(wx, wy, 4, 6), pWindow);
-      }
-    }
-
-    final pAntenna = Paint()..color = AppTheme.darkPurpleBorder..strokeWidth = 2.0;
-    final topCenter = Offset(center.dx + math.sin(wobble) * 12, center.dy - r * 0.5);
-    canvas.drawLine(topCenter, Offset(topCenter.dx, topCenter.dy - 18), pAntenna);
-    canvas.drawCircle(Offset(topCenter.dx, topCenter.dy - 18), 3.0, Paint()..color = AppTheme.appleRed);
-  }
-
-  void _drawArchitecture(Canvas canvas, Offset center, double r, double h, Color color, ArchitectureType type, double rotX, double rotY, double rotZ) {
-    switch (type) {
-      case ArchitectureType.wall:
-        _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
-        break;
-      case ArchitectureType.column:
-        _drawColumn(canvas, center, r, h, color, rotX, rotY, rotZ);
-        break;
-      case ArchitectureType.arch:
-        _drawArch(canvas, center, r, h, color, rotX, rotY, rotZ);
-        break;
-      case ArchitectureType.dome:
-        _drawDome(canvas, center, r, h, color, rotX, rotY, rotZ);
-        break;
-    }
-  }
-
-  void _drawWall(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    final colors = _getShadedColors(color);
-    
-    Offset pTop = Offset(center.dx, center.dy - r * 0.5);
-    Offset pRight = Offset(center.dx + r * 0.866, center.dy);
-    Offset pBottom = Offset(center.dx, center.dy + r * 0.5);
-    Offset pLeft = Offset(center.dx - r * 0.866, center.dy);
-
-    pTop = _rotateOffset3D(pTop, center, rotX, rotY, rotZ);
-    pRight = _rotateOffset3D(pRight, center, rotX, rotY, rotZ);
-    pBottom = _rotateOffset3D(pBottom, center, rotX, rotY, rotZ);
-    pLeft = _rotateOffset3D(pLeft, center, rotX, rotY, rotZ);
-
-    final topPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pLeft.dx, pLeft.dy)..close();
-    
-    Offset pBottomLeft = _rotateOffset3D(Offset(center.dx - r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
-    Offset pBottomCenter = _rotateOffset3D(Offset(center.dx, center.dy + r * 0.5 + h), center, rotX, rotY, rotZ);
-    Offset pBottomRight = _rotateOffset3D(Offset(center.dx + r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
-
-    final leftPath = Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomLeft.dx, pBottomLeft.dy)..close();
-    final rightPath = Path()..moveTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomRight.dx, pBottomRight.dy)..close();
-
-    final fill = Paint()..style = PaintingStyle.fill;
-    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(topPath, fill..color = colors[0]);
-    canvas.drawPath(topPath, stroke);
-    canvas.drawPath(leftPath, fill..color = colors[1]);
-    canvas.drawPath(leftPath, stroke);
-    canvas.drawPath(rightPath, fill..color = colors[2]);
-    canvas.drawPath(rightPath, stroke);
-
-    final pBrick = Paint()..color = colors[3].withAlpha(80)..strokeWidth = 1.0;
-    for (int i = 1; i <= 3; i++) {
-      final double frac = i / 4.0;
-      final Offset l1 = Offset(pLeft.dx + (pBottomLeft.dx - pLeft.dx) * frac, pLeft.dy + (pBottomLeft.dy - pLeft.dy) * frac);
-      final Offset l2 = Offset(pBottom.dx + (pBottomCenter.dx - pBottom.dx) * frac, pBottom.dy + (pBottomCenter.dy - pBottom.dy) * frac);
-      canvas.drawLine(l1, l2, pBrick);
-
-      final Offset r1 = Offset(pRight.dx + (pBottomRight.dx - pRight.dx) * frac, pRight.dy + (pBottomRight.dy - pRight.dy) * frac);
-      canvas.drawLine(l2, r1, pBrick);
-    }
-  }
-
-  void _drawColumn(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    final colors = _getShadedColors(color);
-    final double colR = r * 0.6;
-    
-    Offset topC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5), center, rotX, rotY, rotZ);
-    Offset baseC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5 + h), center, rotX, rotY, rotZ);
-
-    final path = Path();
-    path.moveTo(topC.dx - colR, topC.dy);
-    path.lineTo(topC.dx + colR, topC.dy);
-    path.lineTo(baseC.dx + colR, baseC.dy);
-    path.lineTo(baseC.dx - colR, baseC.dy);
-    path.close();
-
-    final gradient = LinearGradient(colors: [colors[1], colors[0], colors[2]], stops: const [0.0, 0.4, 1.0]);
-    final fill = Paint()..shader = gradient.createShader(Rect.fromPoints(Offset(topC.dx - colR, topC.dy), Offset(baseC.dx + colR, baseC.dy)));
-    canvas.drawPath(path, fill);
-
-    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
-    canvas.drawPath(path, stroke);
-
-    final topRect = Rect.fromCenter(center: topC, width: colR * 2, height: colR * 0.8);
-    canvas.drawOval(topRect, Paint()..color = colors[0]..style = PaintingStyle.fill);
-    canvas.drawOval(topRect, stroke);
-    
-    final baseRect = Rect.fromCenter(center: baseC, width: colR * 2, height: colR * 0.8);
-    canvas.drawArc(baseRect, 0, math.pi, false, stroke); 
-  }
-
-  void _drawArch(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    final colors = _getShadedColors(color);
-    _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
-
-    Offset pLeft = Offset(center.dx - r * 0.866, center.dy);
-    Offset pBottom = Offset(center.dx, center.dy + r * 0.5);
-    Offset pBottomLeft = Offset(pLeft.dx, pLeft.dy + h);
-    Offset pBottomCenter = Offset(pBottom.dx, pBottom.dy + h);
-
-    pLeft = _rotateOffset3D(pLeft, center, rotX, rotY, rotZ);
-    pBottom = _rotateOffset3D(pBottom, center, rotX, rotY, rotZ);
-    pBottomLeft = _rotateOffset3D(pBottomLeft, center, rotX, rotY, rotZ);
-    pBottomCenter = _rotateOffset3D(pBottomCenter, center, rotX, rotY, rotZ);
-
-    final double pad = 0.25;
-    Offset cBL = Offset(pBottomLeft.dx + (pBottomCenter.dx - pBottomLeft.dx) * pad, pBottomLeft.dy + (pBottomCenter.dy - pBottomLeft.dy) * pad);
-    Offset cBR = Offset(pBottomLeft.dx + (pBottomCenter.dx - pBottomLeft.dx) * (1 - pad), pBottomLeft.dy + (pBottomCenter.dy - pBottomLeft.dy) * (1 - pad));
-    
-    Offset cTL = Offset(pLeft.dx + (pBottom.dx - pLeft.dx) * pad, pLeft.dy + (pBottom.dy - pLeft.dy) * pad + h * 0.3);
-    Offset cTR = Offset(pLeft.dx + (pBottom.dx - pLeft.dx) * (1 - pad), pLeft.dy + (pBottom.dy - pLeft.dy) * (1 - pad) + h * 0.3);
-
-    final cutoutPath = Path();
-    cutoutPath.moveTo(cBL.dx, cBL.dy);
-    cutoutPath.lineTo(cTL.dx, cTL.dy);
-    cutoutPath.quadraticBezierTo(
-      cTL.dx + (cTR.dx - cTL.dx) / 2, cTL.dy - h * 0.4, 
-      cTR.dx, cTR.dy
-    );
-    cutoutPath.lineTo(cBR.dx, cBR.dy);
-    cutoutPath.close();
-
-    canvas.drawPath(cutoutPath, Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.fill);
-    
-    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 2.0;
-    canvas.drawPath(cutoutPath, stroke);
-  }
-
-  void _drawDome(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    final colors = _getShadedColors(color);
-    _drawWall(canvas, center, r * 0.9, h * 0.3, color, rotX, rotY, rotZ);
-
-    final domeCenter = _rotateOffset3D(Offset(center.dx, center.dy - r * 0.3), center, rotX, rotY, rotZ);
-    final double domeR = r * 0.8;
-
-    final gradient = RadialGradient(
-      center: Alignment(-0.3, -0.3), 
-      radius: 0.8,
-      colors: [AppTheme.white, colors[0], colors[1], colors[3]],
-      stops: const [0.0, 0.3, 0.7, 1.0],
-    );
-
-    final fill = Paint()..shader = gradient.createShader(Rect.fromCircle(center: domeCenter, radius: domeR));
-    canvas.drawCircle(domeCenter, domeR, fill);
-
-    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
-    canvas.drawCircle(domeCenter, domeR, stroke);
-
-    final Offset finialTop = _rotateOffset3D(Offset(center.dx, center.dy - r * 0.3 - domeR - 10), center, rotX, rotY, rotZ);
-    canvas.drawLine(domeCenter, finialTop, stroke);
-    canvas.drawCircle(finialTop, 3.0, Paint()..color = AppTheme.yellow);
-  }
-
-  List<Color> _getShadedColors(Color color) {
-    if (color == AppTheme.mandarin) {
-      return [const Color(0xFFFF8E66), const Color(0xFFFF6B35), const Color(0xFFD44810), const Color(0xFF9E2E04)];
-    } else if (color == AppTheme.marineBlue) {
-      return [const Color(0xFF5CD5FF), const Color(0xFF00A8E8), const Color(0xFF0082B4), const Color(0xFF00587A)];
-    } else if (color == AppTheme.mintGreen) {
-      return [const Color(0xFF56F1C5), const Color(0xFF06D6A0), const Color(0xFF049E75), const Color(0xFF026D51)];
-    } else {
-      return [const Color(0xFFFFDF7A), const Color(0xFFFFB627), const Color(0xFFD8920E), const Color(0xFF9C6500)];
-    }
-  }
-
-  Offset _rotateOffset3D(Offset point, Offset center, double ax, double ay, double az) {
-    double x = point.dx - center.dx;
-    double y = point.dy - center.dy;
-    double cosZ = math.cos(az);
-    double sinZ = math.sin(az);
-    double x1 = x * cosZ - y * sinZ;
-    double y1 = x * sinZ + y * cosZ;
-    double cosX = math.cos(ax);
-    double y2 = y1 * cosX;
-    double cosY = math.cos(ay);
-    double x3 = x1 * cosY;
-    return Offset(center.dx + x3, center.dy + y2);
-  }
-
-  void _drawCraneSystem(Canvas canvas, Size size) {
-    final pSupport = Paint()..color = AppTheme.darkPurpleBorder..strokeWidth = 6.0..strokeCap = StrokeCap.round;
-    final double craneTowerX = size.width - 40;
-    canvas.drawLine(Offset(craneTowerX, 40), Offset(craneTowerX, size.height - 100), pSupport);
-    canvas.drawLine(Offset(craneTowerX - 300, 40), Offset(craneTowerX + 30, 40), pSupport);
-
-    final pTruss = Paint()..color = AppTheme.mandarin..strokeWidth = 2.0;
-    for (double x = craneTowerX - 280; x < craneTowerX; x += 40) {
-      canvas.drawLine(Offset(x, 40), Offset(x + 20, 25), pTruss);
-      canvas.drawLine(Offset(x + 20, 25), Offset(x + 40, 40), pTruss);
-    }
-
-    final pCable = Paint()..color = AppTheme.darkPurpleBorder..strokeWidth = 2.0;
-    if (!isDropping) {
-      final Offset cableEnd = Offset(craneTrolleyX + craneCableLength * math.sin(citadelTiltAngle), 40 + craneCableLength * math.cos(citadelTiltAngle));
-      canvas.drawLine(Offset(craneTrolleyX, 40), cableEnd, pCable);
-      canvas.drawCircle(cableEnd, 5.0, pSupport);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// =========================================================================
-// ISOMETRIC PUZZLE GAME TAB SCREEN OVERHAUL
-// =========================================================================
 class BuildingGameTab extends StatefulWidget {
   final AppState appState;
   const BuildingGameTab({super.key, required this.appState});
@@ -611,6 +171,8 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   bool _isDropping = false;
   Color _currentColor = AppTheme.marineBlue;
   ArchitectureType _currentType = ArchitectureType.column;
+  
+  // Game Material Tycoon state
   GameBuildingMaterial _selectedMaterial = GameBuildingMaterial.brick;
 
   final List<GameParticle> _particles = [];
@@ -684,25 +246,37 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
     super.dispose();
   }
 
+  // --- MATERIAL SCIENCE TYCOON CONSTANTS ---
   double _getMaterialWeight() {
     switch (_selectedMaterial) {
       case GameBuildingMaterial.brick:
-        return 2.0;
+        return 2.5; // High mass
       case GameBuildingMaterial.wood:
-        return 0.8;
-      case GameBuildingMaterial.clay:
-        return 1.4;
+        return 1.0; // Low mass
+      case GameBuildingMaterial.stone:
+        return 4.0; // Immense mass
     }
   }
 
   double _getMaterialElasticity() {
     switch (_selectedMaterial) {
       case GameBuildingMaterial.brick:
-        return 0.25;
+        return 0.1; // Brittle
       case GameBuildingMaterial.wood:
-        return 0.70;
-      case GameBuildingMaterial.clay:
-        return 0.15;
+        return 0.6; // High elasticity
+      case GameBuildingMaterial.stone:
+        return 0.05; // Rigid
+    }
+  }
+
+  double _getStaticFriction() {
+    switch (_selectedMaterial) {
+      case GameBuildingMaterial.brick:
+        return 0.5;
+      case GameBuildingMaterial.wood:
+        return 0.3;
+      case GameBuildingMaterial.stone:
+        return 0.9; // Immense static friction
     }
   }
 
@@ -715,19 +289,24 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       final double centerOffset = screenWidth / 2;
       final double sweepWidth = screenWidth * 0.28;
 
-      _craneTrolleyX = centerOffset + math.sin(_timeElapsed * 1.8) * sweepWidth;
+      // Variable crane kinetic sway based on material mass
+      final double mass = _getMaterialWeight();
+      final double swayPeriod = 1.8 / math.sqrt(mass); // Heavier objects sway slower due to momentum inertia
+      _craneTrolleyX = centerOffset + math.sin(_timeElapsed * swayPeriod) * sweepWidth;
+
       final double trolleyAcc = (_craneTrolleyX - _lastTrolleyX) / dt;
       _lastTrolleyX = _craneTrolleyX;
 
       final double gravityTerm = - (320.0 / _cableLength) * math.sin(_ropeAngle);
       final double accTerm = - (trolleyAcc / _cableLength) * math.cos(_ropeAngle);
-      final double damping = - 1.8 * _ropeAngularVelocity;
+      final double damping = - (1.8 / mass) * _ropeAngularVelocity;
+      
       _ropeAngularVelocity += (gravityTerm + accTerm + damping) * dt;
       _ropeAngle += _ropeAngularVelocity * dt;
 
       if (_isDropping) {
-        // Drop speed based on material weight
-        final double gValue = 600.0 + _getMaterialWeight() * 200.0;
+        // Drop speed based on material weight/gravity acceleration
+        final double gValue = 600.0 + mass * 200.0;
         _dropVelY += gValue * dt;
         _dropPos = Offset(_dropPos.dx, _dropPos.dy + _dropVelY * dt);
         final double targetY = _projectTargetLandingY();
@@ -844,12 +423,18 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
     final double centerOffset = screenWidth / 2;
     final double drift = _dropPos.dx - centerOffset;
     
-    // Weight multiplier adjusts drift impact
+    // Torque drift offset adjusted by mass and static friction
+    final double friction = _getStaticFriction();
     final double weightMultiplier = _getMaterialWeight();
-    _cumulativeDrift += drift * (weightMultiplier / 1.4);
+    
+    // Static friction limits drift slippage impact
+    final double effectiveDrift = drift * (weightMultiplier / (friction * 10.0 + 1.0));
+    _cumulativeDrift += effectiveDrift;
     
     final double absImbalance = _cumulativeDrift.abs();
-    final bool isCritical = absImbalance > 100.0;
+    
+    // Critical torque threshold breaches balance limit
+    final bool isCritical = absImbalance > 90.0;
 
     setState(() {
       _isDropping = false;
@@ -861,7 +446,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
         material: _selectedMaterial,
       ));
 
-      _alignmentDeviationMeter = math.min(1.0, absImbalance / 100.0);
+      _alignmentDeviationMeter = math.min(1.0, absImbalance / 90.0);
       _citadelTiltAngle = _cumulativeDrift * 0.0025;
       
       _wobbleTime = 2.5;
@@ -898,6 +483,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   void _triggerStructuralCollapse() {
     final groundLevel = MediaQuery.of(context).size.height - 140;
     
+    // 3D Matrix Rotational shatter collapse
     for (final b in _blocks) {
       final basePos = _projectCoord(0.0, 0.0, 0.6 + b.index);
       final Offset blockCenter = Offset(basePos.dx + b.driftX, basePos.dy);
@@ -905,12 +491,12 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       _debris.add(TumblingComponent(
         pos: blockCenter,
         vel: Offset(
-          -150 + math.Random().nextDouble() * 300, 
-          -100 - math.Random().nextDouble() * 200,
+          -180 + math.Random().nextDouble() * 360, 
+          -120 - math.Random().nextDouble() * 250,
         ),
-        angularVelX: -3.0 + math.Random().nextDouble() * 6.0,
-        angularVelY: -3.0 + math.Random().nextDouble() * 6.0,
-        angularVelZ: -3.0 + math.Random().nextDouble() * 6.0,
+        angularVelX: -6.0 + math.Random().nextDouble() * 12.0,
+        angularVelY: -6.0 + math.Random().nextDouble() * 12.0,
+        angularVelZ: -6.0 + math.Random().nextDouble() * 12.0,
         type: b.type,
         color: b.color,
         groundLevel: groundLevel - (math.Random().nextDouble() * 15),
@@ -927,8 +513,6 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: AppTheme.white,
       appBar: AppBar(
@@ -958,115 +542,71 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                 children: [
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: UltraPhysicsCityPainter(
+                      painter: IsometricCityBackgroundPainter(
+                        blocksCount: _blocks.length,
+                        tiltAngle: _citadelTiltAngle,
+                        wobbleOffset: _towerWobbleOffset,
                         blocks: _blocks,
-                        auxBuildings: _auxBuildings,
-                        trees: _trees,
                         particles: _particles,
                         debris: _debris,
                         cars: _cars,
-                        centerOrigin: Offset(screenWidth / 2, MediaQuery.of(context).size.height * 0.62),
-                        scaleSize: 38.0,
-                        isDropping: _isDropping,
-                        droppingBlockPos: _dropPos,
-                        droppingColor: _currentColor,
-                        droppingType: _currentType,
-                        craneTrolleyX: _craneTrolleyX,
-                        craneCableLength: _cableLength,
-                        citadelTiltAngle: _citadelTiltAngle,
-                        towerWobbleOffset: _towerWobbleOffset,
+                        auxBuildings: _auxBuildings,
+                        trees: _trees,
+                        material: _selectedMaterial,
                       ),
                     ),
                   ),
+
+                  // Hanging crane rope & hook
+                  if (!_isCollapsed && !_showBriefing)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      height: 380,
+                      child: CustomPaint(
+                        painter: CranePainter(
+                          trolleyX: _craneTrolleyX,
+                          ropeAngle: _ropeAngle,
+                          cableLength: _cableLength,
+                          isDropping: _isDropping,
+                          dropPos: _dropPos,
+                          currentType: _currentType,
+                          currentColor: _currentColor,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
 
-          // Material Science Selector
-          if (!_isCollapsed)
-            Positioned(
-              right: 16,
-              top: 24,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: AppTheme.vibrant3DBoxDecoration(
-                  color: AppTheme.white,
-                  radius: 16,
-                  borderWidth: 2,
-                  shadowOffset: const Offset(2, 2),
-                ),
-                child: Column(
-                  children: [
-                    Text("Material", style: AppTheme.bodySmall),
-                    const SizedBox(height: 6),
-                    _buildMaterialSelectBtn(GameBuildingMaterial.brick, "G'isht"),
-                    const SizedBox(height: 6),
-                    _buildMaterialSelectBtn(GameBuildingMaterial.wood, "Yog'och"),
-                    const SizedBox(height: 6),
-                    _buildMaterialSelectBtn(GameBuildingMaterial.clay, "Sopol"),
-                  ],
-                ),
-              ),
-            ),
-
-          // Sidebar Stats
-          if (!_isCollapsed)
-            Positioned(
-              left: 16,
-              top: 24,
-              child: Column(
+          // Alignment Imbalance warning meter
+          Positioned(
+            left: 20,
+            right: 20,
+            top: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white.withAlpha(220), radius: 18),
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: AppTheme.white,
-                      radius: 16,
-                      borderWidth: 2,
-                      shadowOffset: const Offset(2, 2),
-                    ),
+                  const Icon(Icons.warning_amber_rounded, color: AppTheme.mandarin, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Qavatlar", style: AppTheme.bodySmall),
-                        Text("${_blocks.length} / 5", style: AppTheme.headerMedium.copyWith(color: AppTheme.marineBlue)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    width: 76,
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: AppTheme.white,
-                      radius: 16,
-                      borderWidth: 2,
-                      shadowOffset: const Offset(2, 2),
-                    ),
-                    child: Column(
-                      children: [
-                        Text("Muvozanat", style: AppTheme.bodySmall.copyWith(fontSize: 8)),
-                        const SizedBox(height: 8),
+                        Text("Torque Og'ish Ko'rsatkichi", style: AppTheme.headerSmall.copyWith(fontSize: 12)),
+                        const SizedBox(height: 4),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 14,
-                            height: 80,
-                            color: AppTheme.porcelain,
-                            child: Stack(
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                FractionallySizedBox(
-                                  heightFactor: _alignmentDeviationMeter,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: _alignmentDeviationMeter > 0.75 
-                                          ? AppTheme.appleRed 
-                                          : (_alignmentDeviationMeter > 0.4 ? AppTheme.yellow : AppTheme.mintGreen),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          child: LinearProgressIndicator(
+                            value: _alignmentDeviationMeter,
+                            minHeight: 10,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _alignmentDeviationMeter > 0.7 ? AppTheme.appleRed : AppTheme.mandarin,
                             ),
                           ),
                         ),
@@ -1076,37 +616,64 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                 ],
               ),
             ),
+          ),
 
-          // Action trigger
-          if (!_isCollapsed)
+          // MATERIAL TYCOON SELECTOR CONTROLS
+          if (!_isDropping && !_isCollapsed && !_showBriefing)
             Positioned(
-              bottom: 30,
-              left: 24,
-              right: 24,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _dropHangingBlock,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: AppTheme.vibrant3DBoxDecoration(
-                          color: _isDropping ? Colors.grey.shade300 : AppTheme.mandarin,
-                          borderColor: _isDropping ? Colors.grey : AppTheme.darkMandarin,
-                          shadowColor: _isDropping ? Colors.grey.shade400 : AppTheme.darkMandarin,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _isDropping ? "QURILMOQDA..." : "QISM YUBORISH!",
-                          style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
-                        ),
-                      ),
+              left: 16,
+              right: 16,
+              bottom: 120,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 24, borderWidth: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("Seysmik Material Sinovi:", style: AppTheme.headerSmall.copyWith(fontSize: 13, color: AppTheme.darkPurple)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildMaterialSelectBtn(GameBuildingMaterial.brick, "Pishiq G'isht"),
+                        _buildMaterialSelectBtn(GameBuildingMaterial.wood, "Yog'och Sinchi"),
+                        _buildMaterialSelectBtn(GameBuildingMaterial.stone, "Poydevor Tosh"),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
+          // Bouncy Drop Action Button
+          if (!_isCollapsed && !_showBriefing)
+            Positioned(
+              bottom: 24,
+              left: 20,
+              right: 20,
+              child: GestureDetector(
+                onTap: _dropHangingBlock,
+                child: Container(
+                  height: 64,
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.mintGreen,
+                    borderColor: AppTheme.darkMintGreen,
+                    shadowColor: AppTheme.darkMintGreen,
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.download_rounded, color: AppTheme.white, size: 24),
+                      const SizedBox(width: 8),
+                      Text("BLOKNI TUSHIRISH", style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 16)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Amir Temur Briefing Overlay with pulse ring animations
           if (_showBriefing)
             _buildTemurBriefingOverlay(),
         ],
@@ -1140,11 +707,11 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   Widget _buildTemurBriefingOverlay() {
     String postMortem = "Bino barpo etishda poydevor kengligi va og‘irlik markazi (center of gravity) o‘ta muhimdir. ";
     if (_selectedMaterial == GameBuildingMaterial.wood) {
-      postMortem += "Siz tanlagan 'Yog'och Sinchi' juda yengil va elastik, ammo massasi yetarli bo'lmagani uchun eng kichik siljish ham minorani ag'dardi.";
+      postMortem += "Siz tanlagan 'Yog'och Sinchi' elastik va yengil, ammo massasi yetarli bo'lmagani uchun eng kichik shamolda minorani ag'dardi.";
     } else if (_selectedMaterial == GameBuildingMaterial.brick) {
-      postMortem += "Siz tanlagan 'Pishiq G'isht' o'ta og'ir va mustahkam, biroq elastiklik yetishmasligi sababli seysmik zarbaga bardosh berolmay chort-kesildi.";
+      postMortem += "Siz tanlagan 'Pishiq G'isht' og'ir va baquvvat, biroq elastiklik yetishmasligi sababli seysmik silkinishda chort-kesilib sindi.";
     } else {
-      postMortem += "Siz tanlagan 'Sopol' material yuqori ishqalanishga ega bo'lsa-da, uning mo'rtligi va poydevor chuqurligi yetarli emasligi sababli quladi.";
+      postMortem += "Siz tanlagan 'Poydevor Tosh' o'ta mustahkam va massasi yuqori, poydevor ishqalanishi yuqoriligi sabab minorani uzoqroq ushlab turdi!";
     }
 
     return AnimatedPositioned(
@@ -1251,7 +818,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    "O'z Imperiyangni Qaytadan Qur 🏗️",
+                    "Qayta Qurish 🏗️",
                     style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
                   ),
                 ),
@@ -1309,4 +876,447 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       }
     });
   }
+}
+
+// =========================================================================
+// CRANE ROPE & ATTACHED BLOCK PAINTER
+// =========================================================================
+class CranePainter extends CustomPainter {
+  final double trolleyX;
+  final double ropeAngle;
+  final double cableLength;
+  final bool isDropping;
+  final Offset dropPos;
+  final ArchitectureType currentType;
+  final Color currentColor;
+
+  CranePainter({
+    required this.trolleyX,
+    required this.ropeAngle,
+    required this.cableLength,
+    required this.isDropping,
+    required this.dropPos,
+    required this.currentType,
+    required this.currentColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pMetal = Paint()
+      ..color = AppTheme.darkPurpleBorder
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+
+    final pCable = Paint()
+      ..color = Colors.grey.shade600
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    // Drawing top horizontal support girder
+    canvas.drawLine(const Offset(0, 40), Offset(size.width, 40), pMetal);
+
+    final double hookX = trolleyX + cableLength * math.sin(ropeAngle);
+    final double hookY = 40 + cableLength * math.cos(ropeAngle);
+
+    if (!isDropping) {
+      // Girder to hook cable
+      canvas.drawLine(Offset(trolleyX, 40), Offset(hookX, hookY), pCable);
+      
+      // Hook
+      canvas.drawCircle(Offset(hookX, hookY), 6.0, Paint()..color = AppTheme.darkPurpleBorder);
+      
+      // Hanging target component preview
+      _drawComponentPreview(canvas, Offset(hookX, hookY + 20), currentType, currentColor);
+    } else {
+      // Trolley hook remains
+      canvas.drawLine(Offset(trolleyX, 40), Offset(trolleyX, 60), pCable);
+      canvas.drawCircle(Offset(trolleyX, 60), 6.0, Paint()..color = AppTheme.darkPurpleBorder);
+      
+      // Dropping block itself
+      _drawComponentPreview(canvas, dropPos, currentType, currentColor);
+    }
+  }
+
+  void _drawComponentPreview(Canvas canvas, Offset pos, ArchitectureType type, Color color) {
+    final double r = 16.0;
+    final double h = 26.0;
+    final colors = _getShadedColors(color);
+    final fill = Paint()..style = PaintingStyle.fill;
+    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 2.0;
+
+    if (type == ArchitectureType.wall) {
+      final path = Path()
+        ..moveTo(pos.dx - r, pos.dy - h / 2)
+        ..lineTo(pos.dx + r, pos.dy - h / 2)
+        ..lineTo(pos.dx + r, pos.dy + h / 2)
+        ..lineTo(pos.dx - r, pos.dy + h / 2)
+        ..close();
+      canvas.drawPath(path, fill..color = colors[0]);
+      canvas.drawPath(path, stroke);
+    } else if (type == ArchitectureType.column) {
+      final path = Path()
+        ..moveTo(pos.dx - r * 0.6, pos.dy - h / 2)
+        ..lineTo(pos.dx + r * 0.6, pos.dy - h / 2)
+        ..lineTo(pos.dx + r * 0.6, pos.dy + h / 2)
+        ..lineTo(pos.dx - r * 0.6, pos.dy + h / 2)
+        ..close();
+      canvas.drawPath(path, fill..color = colors[1]);
+      canvas.drawPath(path, stroke);
+    } else if (type == ArchitectureType.arch) {
+      final path = Path()
+        ..moveTo(pos.dx - r, pos.dy - h / 2)
+        ..lineTo(pos.dx + r, pos.dy - h / 2)
+        ..lineTo(pos.dx + r, pos.dy + h / 2)
+        ..lineTo(pos.dx - r, pos.dy + h / 2)
+        ..close();
+      canvas.drawPath(path, fill..color = colors[2]);
+      canvas.drawPath(path, stroke);
+    } else {
+      canvas.drawCircle(pos, r, fill..color = colors[0]);
+      canvas.drawCircle(pos, r, stroke);
+    }
+  }
+
+  List<Color> _getShadedColors(Color base) {
+    return [base, base.withAlpha(200), base.withAlpha(140), AppTheme.darkPurpleBorder];
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// =========================================================================
+// ISOMETRIC 3D CITY AND BLOCKS RENDERING PIPELINE
+// =========================================================================
+class IsometricCityBackgroundPainter extends CustomPainter {
+  final int blocksCount;
+  final double tiltAngle;
+  final double wobbleOffset;
+  final List<StackedComponent> blocks;
+  final List<GameParticle> particles;
+  final List<TumblingComponent> debris;
+  final List<VectorCar> cars;
+  final List<AuxiliaryBuilding> auxBuildings;
+  final List<CityTree> trees;
+  final GameBuildingMaterial material;
+
+  IsometricCityBackgroundPainter({
+    required this.blocksCount,
+    required this.tiltAngle,
+    required this.wobbleOffset,
+    required this.blocks,
+    required this.particles,
+    required this.debris,
+    required this.cars,
+    required this.auxBuildings,
+    required this.trees,
+    required this.material,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+
+    // 1. Draw Porcelain Sky and Sun
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFFF9FBFB));
+    canvas.drawCircle(Offset(w * 0.15, h * 0.12), 40, Paint()..color = AppTheme.yellow.withAlpha(120));
+
+    // 2. Draw ground grid paths
+    _drawGridNetwork(canvas, size);
+
+    // 3. Draw surrounding buildings
+    for (final aux in auxBuildings) {
+      _drawAuxiliaryBuilding(canvas, aux, size);
+    }
+
+    // 4. Draw trees
+    for (final tree in trees) {
+      _drawCityTree(canvas, tree, size);
+    }
+
+    // 5. Draw stacked citadel components
+    _drawCitadelTower(canvas, size);
+
+    // 6. Draw shattered tumbling debris (Multi-axis rotation collapse)
+    for (final frag in debris) {
+      _drawTumblingComponent(canvas, frag);
+    }
+
+    // 7. Draw vector particles
+    for (final p in particles) {
+      canvas.drawCircle(p.pos, p.size, Paint()..color = p.color.withAlpha((p.opacity * 255).round()));
+    }
+  }
+
+  void _drawGridNetwork(Canvas canvas, Size size) {
+    final pRoad = Paint()
+      ..color = Colors.grey.shade200
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 20.0
+      ..strokeCap = StrokeCap.round;
+
+    final Offset pLeft = _projectCoord(-4.0, 0.0, 0.0);
+    final Offset pRight = _projectCoord(4.0, 0.0, 0.0);
+    final Offset pTop = _projectCoord(0.0, -4.0, 0.0);
+    final Offset pBottom = _projectCoord(0.0, 4.0, 0.0);
+
+    canvas.drawLine(pLeft, pRight, pRoad);
+    canvas.drawLine(pTop, pBottom, pRoad);
+
+    // Draw cars
+    final pCar = Paint()..style = PaintingStyle.fill;
+    for (final car in cars) {
+      Offset carPos;
+      if (car.roadDirection == 0) {
+        carPos = Offset(pLeft.dx + (pRight.dx - pLeft.dx) * car.progress, pLeft.dy + (pRight.dy - pLeft.dy) * car.progress);
+      } else {
+        carPos = Offset(pTop.dx + (pBottom.dx - pTop.dx) * car.progress, pTop.dy + (pBottom.dy - pTop.dy) * car.progress);
+      }
+      canvas.drawRect(Rect.fromCenter(center: carPos, width: 12, height: 8), pCar..color = car.color);
+    }
+  }
+
+  void _drawAuxiliaryBuilding(Canvas canvas, AuxiliaryBuilding aux, Size size) {
+    final Offset base = _projectCoord(aux.gridX, aux.gridY, 0.0);
+    final double h = aux.height;
+    final double r = 18.0;
+
+    canvas.save();
+    canvas.translate(base.dx, base.dy);
+    canvas.rotate(aux.wobbleAngle);
+
+    final colors = [aux.color, aux.color.withAlpha(200), aux.color.withAlpha(140), AppTheme.darkPurpleBorder];
+    final fill = Paint()..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = aux.isFlashing ? AppTheme.appleRed : colors[3]
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    // Draw Isometric Box
+    final pathFront = Path()
+      ..moveTo(-r, 0)
+      ..lineTo(0, r * 0.5)
+      ..lineTo(0, r * 0.5 - h)
+      ..lineTo(-r, -h)
+      ..close();
+
+    final pathSide = Path()
+      ..moveTo(0, r * 0.5)
+      ..lineTo(r, 0)
+      ..lineTo(r, -h)
+      ..lineTo(0, r * 0.5 - h)
+      ..close();
+
+    final pathTop = Path()
+      ..moveTo(-r, -h)
+      ..lineTo(0, r * 0.5 - h)
+      ..lineTo(r, -h)
+      ..lineTo(0, -r * 0.5 - h)
+      ..close();
+
+    canvas.drawPath(pathFront, fill..color = colors[1]);
+    canvas.drawPath(pathFront, stroke);
+    canvas.drawPath(pathSide, fill..color = colors[2]);
+    canvas.drawPath(pathSide, stroke);
+    canvas.drawPath(pathTop, fill..color = colors[0]);
+    canvas.drawPath(pathTop, stroke);
+
+    canvas.restore();
+  }
+
+  void _drawCityTree(Canvas canvas, CityTree tree, Size size) {
+    final Offset base = _projectCoord(tree.gridX, tree.gridY, 0.0);
+    canvas.save();
+    canvas.translate(base.dx, base.dy);
+    canvas.rotate(tree.wobbleAngle);
+
+    final pTrunk = Paint()..color = const Color(0xFF6E473B)..style = PaintingStyle.fill;
+    final pLeaves = Paint()..color = tree.isFlashing ? AppTheme.appleRed : AppTheme.mintGreen..style = PaintingStyle.fill;
+    final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 1.5;
+
+    // Draw simple isometric tree
+    canvas.drawRect(const Rect.fromLTWH(-2.5, -15, 5, 15), pTrunk);
+    canvas.drawRect(const Rect.fromLTWH(-2.5, -15, 5, 15), pBorder);
+    
+    canvas.drawCircle(const Offset(0, -22), 11, pLeaves);
+    canvas.drawCircle(const Offset(0, -22), 11, pBorder);
+
+    canvas.restore();
+  }
+
+  void _drawCitadelTower(Canvas canvas, Size size) {
+    final double citadelHeight = scaleHeight() * 0.6;
+    final double originY = size.height * 0.62;
+    final double cx = size.width / 2;
+
+    // Base foundation citadel
+    final Offset pTop = Offset(cx + wobbleOffset, originY - citadelHeight);
+    final Offset pRight = Offset(cx + 42 + wobbleOffset, originY);
+    final Offset pBottom = Offset(cx + wobbleOffset, originY + 22);
+    final Offset pLeft = Offset(cx - 42 + wobbleOffset, originY);
+
+    final topPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pLeft.dx, pLeft.dy)..close();
+    
+    final frontPath = Path()
+      ..moveTo(pLeft.dx, pLeft.dy)
+      ..lineTo(pBottom.dx, pBottom.dy)
+      ..lineTo(pBottom.dx, pBottom.dy + 25)
+      ..lineTo(pLeft.dx, pLeft.dx + 25)
+      ..close();
+
+    final pCitadel = Paint()..color = const Color(0xFFE2DDD7)..style = PaintingStyle.fill;
+    final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
+
+    canvas.drawPath(topPath, pCitadel);
+    canvas.drawPath(topPath, pBorder);
+    canvas.drawPath(frontPath, Paint()..color = const Color(0xFFD6CFC8));
+    canvas.drawPath(frontPath, pBorder);
+
+    // Render stacked components
+    for (int i = 0; i < blocks.length; i++) {
+      final block = blocks[i];
+      final double zOffset = citadelHeight + i * scaleHeight();
+      final Offset center = Offset(cx + block.driftX + wobbleOffset, originY - zOffset);
+      
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(tiltAngle);
+
+      _drawComponent(canvas, Offset.zero, 34.0, scaleHeight(), block.color, block.type, 0.0, 0.0, 0.0);
+
+      canvas.restore();
+    }
+  }
+
+  void _drawTumblingComponent(Canvas canvas, TumblingComponent frag) {
+    _drawComponent(canvas, frag.pos, 32.0, scaleHeight(), frag.color, frag.type, frag.rotX, frag.rotY, frag.rotZ);
+  }
+
+  void _drawComponent(Canvas canvas, Offset center, double r, double h, Color color, ArchitectureType type, double rotX, double rotY, double rotZ) {
+    switch (type) {
+      case ArchitectureType.wall:
+        _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
+        break;
+      case ArchitectureType.column:
+        _drawColumn(canvas, center, r, h, color, rotX, rotY, rotZ);
+        break;
+      case ArchitectureType.arch:
+        _drawArch(canvas, center, r, h, color, rotX, rotY, rotZ);
+        break;
+      case ArchitectureType.dome:
+        _drawDome(canvas, center, r, h, color, rotX, rotY, rotZ);
+        break;
+    }
+  }
+
+  void _drawWall(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
+    final colors = _getShadedColors(color);
+    
+    Offset pTop = Offset(center.dx, center.dy - r * 0.5);
+    Offset pRight = Offset(center.dx + r * 0.866, center.dy);
+    Offset pBottom = Offset(center.dx, center.dy + r * 0.5);
+    Offset pLeft = Offset(center.dx - r * 0.866, center.dy);
+
+    pTop = _rotateOffset3D(pTop, center, rotX, rotY, rotZ);
+    pRight = _rotateOffset3D(pRight, center, rotX, rotY, rotZ);
+    pBottom = _rotateOffset3D(pBottom, center, rotX, rotY, rotZ);
+    pLeft = _rotateOffset3D(pLeft, center, rotX, rotY, rotZ);
+
+    final topPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pLeft.dx, pLeft.dy)..close();
+    
+    Offset pBottomLeft = _rotateOffset3D(Offset(center.dx - r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
+    Offset pBottomCenter = _rotateOffset3D(Offset(center.dx, center.dy + r * 0.5 + h), center, rotX, rotY, rotZ);
+    Offset pBottomRight = _rotateOffset3D(Offset(center.dx + r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
+
+    final leftPath = Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomLeft.dx, pBottomLeft.dy)..close();
+    final rightPath = Path()..moveTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomRight.dx, pBottomRight.dy)..close();
+
+    final fill = Paint()..style = PaintingStyle.fill;
+    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(topPath, fill..color = colors[0]);
+    canvas.drawPath(topPath, stroke);
+    canvas.drawPath(leftPath, fill..color = colors[1]);
+    canvas.drawPath(leftPath, stroke);
+    canvas.drawPath(rightPath, fill..color = colors[2]);
+    canvas.drawPath(rightPath, stroke);
+  }
+
+  void _drawColumn(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
+    final colors = _getShadedColors(color);
+    final double colR = r * 0.6;
+    
+    Offset topC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5), center, rotX, rotY, rotZ);
+    Offset baseC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5 + h), center, rotX, rotY, rotZ);
+
+    final path = Path();
+    path.moveTo(topC.dx - colR, topC.dy);
+    path.lineTo(topC.dx + colR, topC.dy);
+    path.lineTo(baseC.dx + colR, baseC.dy);
+    path.lineTo(baseC.dx - colR, baseC.dy);
+    path.close();
+
+    final gradient = LinearGradient(colors: [colors[1], colors[0], colors[2]], stops: const [0.0, 0.4, 1.0]);
+    final fill = Paint()..shader = gradient.createShader(Rect.fromPoints(Offset(topC.dx - colR, topC.dy), Offset(baseC.dx + colR, baseC.dy)));
+    canvas.drawPath(path, fill);
+
+    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawArch(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
+    _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
+  }
+
+  void _drawDome(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
+    final colors = _getShadedColors(color);
+    
+    Offset pTop = _rotateOffset3D(Offset(center.dx, center.dy - r), center, rotX, rotY, rotZ);
+    Offset pBase = _rotateOffset3D(Offset(center.dx, center.dy + h * 0.2), center, rotX, rotY, rotZ);
+
+    final path = Path()
+      ..moveTo(pBase.dx - r, pBase.dy)
+      ..quadraticBezierTo(pTop.dx, pTop.dy - 10, pBase.dx + r, pBase.dy)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = colors[0]);
+    canvas.drawPath(path, Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0);
+  }
+
+  Offset _rotateOffset3D(Offset point, Offset origin, double rx, double ry, double rz) {
+    double x = point.dx - origin.dx;
+    double y = point.dy - origin.dy;
+    double z = 0.0;
+
+    // Y rotation
+    double x1 = x * math.cos(ry) + z * math.sin(ry);
+    double z1 = -x * math.sin(ry) + z * math.cos(ry);
+
+    // X rotation
+    double y2 = y * math.cos(rx) - z1 * math.sin(rx);
+
+    // Z rotation
+    double x3 = x1 * math.cos(rz) - y2 * math.sin(rz);
+    double y3 = x1 * math.sin(rz) + y2 * math.cos(rz);
+
+    return Offset(x3 + origin.dx, y3 + origin.dy);
+  }
+
+  List<Color> _getShadedColors(Color base) {
+    return [base, base.withAlpha(200), base.withAlpha(140), AppTheme.darkPurpleBorder];
+  }
+
+  double scaleHeight() => 38.0 * 0.98;
+
+  Offset _projectCoord(double gx, double gy, double gz) {
+    final double cos30 = math.cos(math.pi / 6);
+    final double sin30 = math.sin(math.pi / 6);
+    final double screenX = (200) + (gx - gy) * 38.0 * cos30;
+    final double screenY = (380) + (gx + gy) * 38.0 * sin30 - gz * (38.0 * 0.95);
+    return Offset(screenX, screenY);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
