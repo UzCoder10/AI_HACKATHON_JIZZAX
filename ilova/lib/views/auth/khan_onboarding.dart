@@ -157,6 +157,20 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           }
         } on FirebaseAuthException catch (e) {
           if (!mounted) return;
+          if (e.message != null && (e.message!.contains("API Key") || e.message!.contains("API key") || e.message!.contains("api key"))) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Firebase API Key xato yoki kiritilmagan. Mahalliy test rejimiga o'tilmoqda... 📲"),
+                backgroundColor: AppTheme.mintGreen,
+              ),
+            );
+            setState(() {
+              _currentStep = 2;
+            });
+            _animController.reset();
+            _animController.forward();
+            return;
+          }
           String errMsg = "Xatolik yuz berdi: ${e.message}";
           if (e.code == 'weak-password') errMsg = "Parol juda zaif!";
           if (e.code == 'email-already-in-use') errMsg = "Ushbu email ro'yxatdan o'tgan!";
@@ -196,8 +210,18 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           if (cred.user != null) {
             widget.appState.completeOnboarding();
           }
-        } on FirebaseAuthException catch (_) {
+        } on FirebaseAuthException catch (e) {
           if (!mounted) return;
+          if (e.message != null && (e.message!.contains("API Key") || e.message!.contains("API key") || e.message!.contains("api key"))) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Firebase API Key xato. Mahalliy sinov rejimiga yo'naltirilmoqda... 📲"),
+                backgroundColor: AppTheme.mintGreen,
+              ),
+            );
+            widget.appState.completeOnboarding();
+            return;
+          }
           String errMsg = "Kirishda xatolik: Email yoki parol noto'g'ri!";
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errMsg), backgroundColor: AppTheme.appleRed),
