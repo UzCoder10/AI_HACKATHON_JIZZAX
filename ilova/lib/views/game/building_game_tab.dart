@@ -1018,54 +1018,122 @@ class IsometricCityBackgroundPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    // 1. Draw Porcelain Sky and Sun
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFFF9FBFB));
-    canvas.drawCircle(Offset(w * 0.15, h * 0.12), 40, Paint()..color = AppTheme.yellow.withAlpha(120));
+    // 1. Draw Sky Gradient and Sun
+    final skyGrad = LinearGradient(
+      colors: [const Color(0xFFE8F1F2), const Color(0xFFF9FBFB)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..shader = skyGrad.createShader(Rect.fromLTWH(0, 0, w, h)));
+    
+    // Glowing Sun
+    canvas.drawCircle(Offset(w * 0.15, h * 0.12), 48, Paint()..color = AppTheme.yellow.withAlpha(50));
+    canvas.drawCircle(Offset(w * 0.15, h * 0.12), 36, Paint()..color = AppTheme.yellow.withAlpha(150));
 
-    // 2. Draw ground grid paths
+    // 2. Draw Grassy Base Diamond Plate (Isometric Land)
+    _drawBaseDiamondPlate(canvas, size);
+
+    // 3. Draw ground grid paths & cobblestone patterns
     _drawGridNetwork(canvas, size);
 
-    // 3. Draw surrounding buildings
+    // 4. Draw surrounding buildings (with window details)
     for (final aux in auxBuildings) {
       _drawAuxiliaryBuilding(canvas, aux, size);
     }
 
-    // 4. Draw trees
+    // 5. Draw trees
     for (final tree in trees) {
       _drawCityTree(canvas, tree, size);
     }
 
-    // 5. Draw stacked citadel components
+    // 6. Draw stacked citadel components
     _drawCitadelTower(canvas, size);
 
-    // 6. Draw shattered tumbling debris (Multi-axis rotation collapse)
+    // 7. Draw shattered tumbling debris (Multi-axis rotation collapse)
     for (final frag in debris) {
       _drawTumblingComponent(canvas, frag);
     }
 
-    // 7. Draw vector particles
+    // 8. Draw vector particles
     for (final p in particles) {
       canvas.drawCircle(p.pos, p.size, Paint()..color = p.color.withAlpha((p.opacity * 255).round()));
     }
   }
 
+  void _drawBaseDiamondPlate(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height * 0.62;
+
+    final baseDiamond = Path()
+      ..moveTo(cx, cy - 250)
+      ..lineTo(cx + 340, cy + 50)
+      ..lineTo(cx, cy + 300)
+      ..lineTo(cx - 340, cy + 50)
+      ..close();
+
+    // Soft Grass Gradient
+    final grassGrad = LinearGradient(
+      colors: [const Color(0xFF63B978), const Color(0xFF4FA865)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+
+    canvas.drawPath(baseDiamond, Paint()..shader = grassGrad.createShader(Rect.fromLTWH(cx - 340, cy - 250, 680, 550)));
+    canvas.drawPath(baseDiamond, Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 4.0);
+
+    // Ambient occlusion shadow under the central citadel base
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy + 12), width: 140, height: 60),
+      Paint()..color = Colors.black.withAlpha(45)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+  }
+
   void _drawGridNetwork(Canvas canvas, Size size) {
     final pRoad = Paint()
-      ..color = Colors.grey.shade200
+      ..color = const Color(0xFF7A7F85)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20.0
+      ..strokeWidth = 24.0
       ..strokeCap = StrokeCap.round;
 
-    final Offset pLeft = _projectCoord(-4.0, 0.0, 0.0);
-    final Offset pRight = _projectCoord(4.0, 0.0, 0.0);
-    final Offset pTop = _projectCoord(0.0, -4.0, 0.0);
-    final Offset pBottom = _projectCoord(0.0, 4.0, 0.0);
+    final pRoadBorder = Paint()
+      ..color = AppTheme.darkPurpleBorder
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 28.0
+      ..strokeCap = StrokeCap.round;
 
+    final Offset pLeft = _projectCoord(-4.2, 0.0, 0.0);
+    final Offset pRight = _projectCoord(4.2, 0.0, 0.0);
+    final Offset pTop = _projectCoord(0.0, -4.2, 0.0);
+    final Offset pBottom = _projectCoord(0.0, 4.2, 0.0);
+
+    // Road Borders
+    canvas.drawLine(pLeft, pRight, pRoadBorder);
+    canvas.drawLine(pTop, pBottom, pRoadBorder);
+
+    // Road Center
     canvas.drawLine(pLeft, pRight, pRoad);
     canvas.drawLine(pTop, pBottom, pRoad);
 
+    // Road dashed lane dividers
+    final pDash = Paint()
+      ..color = AppTheme.white.withAlpha(180)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (double i = 0.08; i < 0.92; i += 0.12) {
+      final p1 = Offset.lerp(pLeft, pRight, i)!;
+      final p2 = Offset.lerp(pLeft, pRight, i + 0.06)!;
+      canvas.drawLine(p1, p2, pDash);
+
+      final p3 = Offset.lerp(pTop, pBottom, i)!;
+      final p4 = Offset.lerp(pTop, pBottom, i + 0.06)!;
+      canvas.drawLine(p3, p4, pDash);
+    }
+
     // Draw cars
     final pCar = Paint()..style = PaintingStyle.fill;
+    final pCarBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 1.5;
+
     for (final car in cars) {
       Offset carPos;
       if (car.roadDirection == 0) {
@@ -1073,7 +1141,20 @@ class IsometricCityBackgroundPainter extends CustomPainter {
       } else {
         carPos = Offset(pTop.dx + (pBottom.dx - pTop.dx) * car.progress, pTop.dy + (pBottom.dy - pTop.dy) * car.progress);
       }
-      canvas.drawRect(Rect.fromCenter(center: carPos, width: 12, height: 8), pCar..color = car.color);
+
+      // Draw shadow
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(carPos.dx, carPos.dy + 4), width: 14, height: 8),
+        Paint()..color = Colors.black.withAlpha(60),
+      );
+
+      // Draw car body
+      final carRect = Rect.fromCenter(center: carPos, width: 14, height: 9);
+      canvas.drawRRect(RRect.fromRectAndRadius(carRect, const Radius.circular(4)), pCar..color = car.color);
+      canvas.drawRRect(RRect.fromRectAndRadius(carRect, const Radius.circular(4)), pCarBorder);
+
+      // Headlights
+      canvas.drawCircle(Offset(carPos.dx + (car.roadDirection == 0 ? 5 : 0), carPos.dy - 3), 1.5, Paint()..color = AppTheme.yellow);
     }
   }
 
@@ -1081,6 +1162,12 @@ class IsometricCityBackgroundPainter extends CustomPainter {
     final Offset base = _projectCoord(aux.gridX, aux.gridY, 0.0);
     final double h = aux.height;
     final double r = 18.0;
+
+    // Drop Shadow on ground
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(base.dx - 4, base.dy + 8), width: r * 2.2, height: r * 1.1),
+      Paint()..color = Colors.black.withAlpha(50),
+    );
 
     canvas.save();
     canvas.translate(base.dx, base.dy);
@@ -1093,7 +1180,7 @@ class IsometricCityBackgroundPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    // Draw Isometric Box
+    // Isometric Front, Side, Top paths
     final pathFront = Path()
       ..moveTo(-r, 0)
       ..lineTo(0, r * 0.5)
@@ -1122,25 +1209,60 @@ class IsometricCityBackgroundPainter extends CustomPainter {
     canvas.drawPath(pathTop, fill..color = colors[0]);
     canvas.drawPath(pathTop, stroke);
 
+    // Glowing cyan/yellow window details on Front and Side Facades
+    final pWindow = Paint()..color = const Color(0xFF6BEFFC)..style = PaintingStyle.fill;
+    final pWindowBorder = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 1.0;
+
+    for (int row = 0; row < aux.windowRows; row++) {
+      final double dy = -10.0 - (row * (h - 20) / aux.windowRows);
+      
+      // Front window (Left)
+      final pWL = Path()
+        ..moveTo(-r * 0.7, dy)
+        ..lineTo(-r * 0.3, dy + r * 0.2)
+        ..lineTo(-r * 0.3, dy + r * 0.2 - 6)
+        ..lineTo(-r * 0.7, dy - 6)
+        ..close();
+      canvas.drawPath(pWL, pWindow);
+      canvas.drawPath(pWL, pWindowBorder);
+
+      // Side window (Right)
+      final pWR = Path()
+        ..moveTo(r * 0.3, dy + r * 0.2)
+        ..lineTo(r * 0.7, dy)
+        ..lineTo(r * 0.7, dy - 6)
+        ..lineTo(r * 0.3, dy + r * 0.2 - 6)
+        ..close();
+      canvas.drawPath(pWR, pWindow);
+      canvas.drawPath(pWR, pWindowBorder);
+    }
+
     canvas.restore();
   }
 
   void _drawCityTree(Canvas canvas, CityTree tree, Size size) {
     final Offset base = _projectCoord(tree.gridX, tree.gridY, 0.0);
+
+    // Shadow drop under tree
+    canvas.drawCircle(Offset(base.dx - 3, base.dy + 3), 10, Paint()..color = Colors.black.withAlpha(45));
+
     canvas.save();
     canvas.translate(base.dx, base.dy);
     canvas.rotate(tree.wobbleAngle);
 
     final pTrunk = Paint()..color = const Color(0xFF6E473B)..style = PaintingStyle.fill;
     final pLeaves = Paint()..color = tree.isFlashing ? AppTheme.appleRed : AppTheme.mintGreen..style = PaintingStyle.fill;
+    final pLeavesShadow = Paint()..color = const Color(0xFF337D50)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 1.5;
 
-    // Draw simple isometric tree
+    // Draw tree trunk
     canvas.drawRect(const Rect.fromLTWH(-2.5, -15, 5, 15), pTrunk);
     canvas.drawRect(const Rect.fromLTWH(-2.5, -15, 5, 15), pBorder);
     
-    canvas.drawCircle(const Offset(0, -22), 11, pLeaves);
-    canvas.drawCircle(const Offset(0, -22), 11, pBorder);
+    // Draw shaded foliage layers (Isometric Sphere look)
+    canvas.drawCircle(const Offset(0, -22), 12, pLeavesShadow);
+    canvas.drawCircle(const Offset(0, -24), 10, pLeaves);
+    canvas.drawCircle(const Offset(0, -24), 10, pBorder);
 
     canvas.restore();
   }
@@ -1152,9 +1274,9 @@ class IsometricCityBackgroundPainter extends CustomPainter {
 
     // Base foundation citadel
     final Offset pTop = Offset(cx + wobbleOffset, originY - citadelHeight);
-    final Offset pRight = Offset(cx + 42 + wobbleOffset, originY);
-    final Offset pBottom = Offset(cx + wobbleOffset, originY + 22);
-    final Offset pLeft = Offset(cx - 42 + wobbleOffset, originY);
+    final Offset pRight = Offset(cx + 46 + wobbleOffset, originY);
+    final Offset pBottom = Offset(cx + wobbleOffset, originY + 24);
+    final Offset pLeft = Offset(cx - 46 + wobbleOffset, originY);
 
     final topPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pLeft.dx, pLeft.dy)..close();
     
@@ -1165,13 +1287,18 @@ class IsometricCityBackgroundPainter extends CustomPainter {
       ..lineTo(pLeft.dx, pLeft.dx + 25)
       ..close();
 
-    final pCitadel = Paint()..color = const Color(0xFFE2DDD7)..style = PaintingStyle.fill;
+    final pCitadel = Paint()..color = const Color(0xFFECE7E1)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
 
     canvas.drawPath(topPath, pCitadel);
     canvas.drawPath(topPath, pBorder);
-    canvas.drawPath(frontPath, Paint()..color = const Color(0xFFD6CFC8));
+    canvas.drawPath(frontPath, Paint()..color = const Color(0xFFDCD6CF));
     canvas.drawPath(frontPath, pBorder);
+
+    // Brick texture lines on Citadel base
+    final pBrickLines = Paint()..color = Colors.black.withAlpha(35)..strokeWidth = 1.0;
+    canvas.drawLine(Offset(pLeft.dx + 15, pLeft.dy + 8), Offset(pBottom.dx - 15, pBottom.dy + 8), pBrickLines);
+    canvas.drawLine(Offset(pBottom.dx + 15, pBottom.dy + 8), Offset(pRight.dx - 15, pRight.dy + 8), pBrickLines);
 
     // Render stacked components
     for (int i = 0; i < blocks.length; i++) {
@@ -1183,7 +1310,7 @@ class IsometricCityBackgroundPainter extends CustomPainter {
       canvas.translate(center.dx, center.dy);
       canvas.rotate(tiltAngle);
 
-      _drawComponent(canvas, Offset.zero, 34.0, scaleHeight(), block.color, block.type, 0.0, 0.0, 0.0);
+      _drawComponent(canvas, Offset.zero, 36.0, scaleHeight(), block.color, block.type, 0.0, 0.0, 0.0);
 
       canvas.restore();
     }
@@ -1241,15 +1368,28 @@ class IsometricCityBackgroundPainter extends CustomPainter {
     canvas.drawPath(leftPath, stroke);
     canvas.drawPath(rightPath, fill..color = colors[2]);
     canvas.drawPath(rightPath, stroke);
+
+    // Highly detailed masonry stone block texture lines
+    final pGrout = Paint()..color = colors[3].withAlpha(90)..strokeWidth = 1.0;
+    for (int i = 1; i <= 3; i++) {
+      final double frac = i / 4.0;
+      final Offset l1 = Offset(pLeft.dx + (pBottomLeft.dx - pLeft.dx) * frac, pLeft.dy + (pBottomLeft.dy - pLeft.dy) * frac);
+      final Offset l2 = Offset(pBottom.dx + (pBottomCenter.dx - pBottom.dx) * frac, pBottom.dy + (pBottomCenter.dy - pBottom.dy) * frac);
+      canvas.drawLine(l1, l2, pGrout);
+
+      final Offset r1 = Offset(pRight.dx + (pBottomRight.dx - pRight.dx) * frac, pRight.dy + (pBottomRight.dy - pRight.dy) * frac);
+      canvas.drawLine(l2, r1, pGrout);
+    }
   }
 
   void _drawColumn(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
     final colors = _getShadedColors(color);
-    final double colR = r * 0.6;
+    final double colR = r * 0.65;
     
     Offset topC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5), center, rotX, rotY, rotZ);
     Offset baseC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5 + h), center, rotX, rotY, rotZ);
 
+    // Draw Column main cylinder body
     final path = Path();
     path.moveTo(topC.dx - colR, topC.dy);
     path.lineTo(topC.dx + colR, topC.dy);
@@ -1263,25 +1403,127 @@ class IsometricCityBackgroundPainter extends CustomPainter {
 
     final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
     canvas.drawPath(path, stroke);
+
+    // Doric fluting ridges vertical lines
+    final pRidge = Paint()..color = colors[3].withAlpha(70)..strokeWidth = 1.5;
+    canvas.drawLine(Offset(topC.dx - colR * 0.4, topC.dy), Offset(baseC.dx - colR * 0.4, baseC.dy), pRidge);
+    canvas.drawLine(Offset(topC.dx, topC.dy), Offset(baseC.dx, baseC.dy), pRidge);
+    canvas.drawLine(Offset(topC.dx + colR * 0.4, topC.dy), Offset(baseC.dx + colR * 0.4, baseC.dy), pRidge);
+
+    // Capital (pedestal top cap block)
+    final capRect = Rect.fromCenter(center: topC, width: colR * 2.4, height: colR * 0.6);
+    canvas.drawRRect(RRect.fromRectAndRadius(capRect, const Radius.circular(3)), Paint()..color = colors[0]);
+    canvas.drawRRect(RRect.fromRectAndRadius(capRect, const Radius.circular(3)), stroke);
+
+    // Base pedestal block
+    final baseRect = Rect.fromCenter(center: baseC, width: colR * 2.4, height: colR * 0.6);
+    canvas.drawRRect(RRect.fromRectAndRadius(baseRect, const Radius.circular(3)), Paint()..color = colors[2]);
+    canvas.drawRRect(RRect.fromRectAndRadius(baseRect, const Radius.circular(3)), stroke);
   }
 
   void _drawArch(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
+    final colors = _getShadedColors(color);
+    
+    // An arch has left and right pillars, plus a rounded top.
+    Offset pTop = Offset(center.dx, center.dy - r * 0.5);
+    Offset pRight = Offset(center.dx + r * 0.866, center.dy);
+    Offset pBottom = Offset(center.dx, center.dy + r * 0.5);
+    Offset pLeft = Offset(center.dx - r * 0.866, center.dy);
+
+    pTop = _rotateOffset3D(pTop, center, rotX, rotY, rotZ);
+    pRight = _rotateOffset3D(pRight, center, rotX, rotY, rotZ);
+    pBottom = _rotateOffset3D(pBottom, center, rotX, rotY, rotZ);
+    pLeft = _rotateOffset3D(pLeft, center, rotX, rotY, rotZ);
+
+    Offset pBottomLeft = _rotateOffset3D(Offset(center.dx - r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
+    Offset pBottomCenter = _rotateOffset3D(Offset(center.dx, center.dy + r * 0.5 + h), center, rotX, rotY, rotZ);
+    Offset pBottomRight = _rotateOffset3D(Offset(center.dx + r * 0.866, center.dy + h), center, rotX, rotY, rotZ);
+
+    final leftPath = Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomLeft.dx, pBottomLeft.dy)..close();
+    final rightPath = Path()..moveTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottomCenter.dx, pBottomCenter.dy)..lineTo(pBottomRight.dx, pBottomRight.dy)..close();
+
+    final fill = Paint()..style = PaintingStyle.fill;
+    final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeJoin = StrokeJoin.round;
+
+    // Draw main wall backing
+    canvas.drawPath(leftPath, fill..color = colors[1]);
+    canvas.drawPath(leftPath, stroke);
+    canvas.drawPath(rightPath, fill..color = colors[2]);
+    canvas.drawPath(rightPath, stroke);
+
+    // Draw detailed inner arch cutout
+    final cutoutPath = Path()
+      ..moveTo(pBottomLeft.dx + r * 0.3, pBottomLeft.dy)
+      ..lineTo(pBottomLeft.dx + r * 0.3, pBottomLeft.dy - h * 0.6)
+      ..quadraticBezierTo(pBottom.dx, pBottom.dy + h * 0.1, pBottomRight.dx - r * 0.3, pBottomRight.dy - h * 0.6)
+      ..lineTo(pBottomRight.dx - r * 0.3, pBottomRight.dy)
+      ..close();
+
+    // Dark void inside arch
+    canvas.drawPath(cutoutPath, Paint()..color = const Color(0xFF1E1C2B));
+    canvas.drawPath(cutoutPath, stroke);
+
+    // Keystone block at the top center of the arch
+    final Offset keyCenter = Offset(pBottom.dx, pBottom.dy + h * 0.05);
+    final keyPath = Path()
+      ..moveTo(keyCenter.dx - 6, keyCenter.dy + 8)
+      ..lineTo(keyCenter.dx + 6, keyCenter.dy + 8)
+      ..lineTo(keyCenter.dx + 9, keyCenter.dy - 6)
+      ..lineTo(keyCenter.dx - 9, keyCenter.dy - 6)
+      ..close();
+    canvas.drawPath(keyPath, Paint()..color = AppTheme.pastelGold);
+    canvas.drawPath(keyPath, stroke);
   }
 
   void _drawDome(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
     final colors = _getShadedColors(color);
     
-    Offset pTop = _rotateOffset3D(Offset(center.dx, center.dy - r), center, rotX, rotY, rotZ);
-    Offset pBase = _rotateOffset3D(Offset(center.dx, center.dy + h * 0.2), center, rotX, rotY, rotZ);
+    Offset pTop = _rotateOffset3D(Offset(center.dx, center.dy - r * 1.15), center, rotX, rotY, rotZ);
+    Offset pBaseLeft = _rotateOffset3D(Offset(center.dx - r * 0.9, center.dy + h * 0.25), center, rotX, rotY, rotZ);
+    Offset pBaseRight = _rotateOffset3D(Offset(center.dx + r * 0.9, center.dy + h * 0.25), center, rotX, rotY, rotZ);
 
+    // Ribbed Samarkand-style onion dome path shape
     final path = Path()
-      ..moveTo(pBase.dx - r, pBase.dy)
-      ..quadraticBezierTo(pTop.dx, pTop.dy - 10, pBase.dx + r, pBase.dy)
+      ..moveTo(pBaseLeft.dx, pBaseLeft.dy)
+      ..cubicTo(
+        pBaseLeft.dx - r * 0.45, pBaseLeft.dy - r * 0.75, 
+        pTop.dx - r * 0.7, pTop.dy + r * 0.1, 
+        pTop.dx, pTop.dy
+      )
+      ..cubicTo(
+        pTop.dx + r * 0.7, pTop.dy + r * 0.1, 
+        pBaseRight.dx + r * 0.45, pBaseRight.dy - r * 0.75, 
+        pBaseRight.dx, pBaseRight.dy
+      )
       ..close();
 
-    canvas.drawPath(path, Paint()..color = colors[0]);
+    // Ribbed gradient stripes
+    final domeGrad = LinearGradient(colors: [colors[1], const Color(0xFF32C1D6), colors[0], colors[2]]);
+    canvas.drawPath(path, Paint()..shader = domeGrad.createShader(Rect.fromPoints(pBaseLeft, pBaseRight)));
     canvas.drawPath(path, Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0);
+
+    // Dome rib lines
+    final pRib = Paint()..color = colors[3].withAlpha(80)..style = PaintingStyle.stroke..strokeWidth = 1.5;
+    canvas.drawLine(pTop, pBaseLeft, pRib);
+    canvas.drawLine(pTop, Offset((pBaseLeft.dx + pBaseRight.dx) / 2, (pBaseLeft.dy + pBaseRight.dy) / 2), pRib);
+    canvas.drawLine(pTop, pBaseRight, pRib);
+
+    // Spire (finial) spire at the very top of dome
+    final pSpire = Paint()..color = AppTheme.pastelGold..style = PaintingStyle.fill;
+    final strokeGold = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 2.0;
+
+    final spirePath = Path()
+      ..moveTo(pTop.dx, pTop.dy)
+      ..lineTo(pTop.dx - 3, pTop.dy - 12)
+      ..lineTo(pTop.dx + 3, pTop.dy - 12)
+      ..close();
+    canvas.drawPath(spirePath, pSpire);
+    canvas.drawPath(spirePath, strokeGold);
+    
+    // Golden spheres on spire
+    canvas.drawCircle(Offset(pTop.dx, pTop.dy - 14), 3.5, pSpire);
+    canvas.drawCircle(Offset(pTop.dx, pTop.dy - 14), 3.5, strokeGold);
+    canvas.drawCircle(Offset(pTop.dx, pTop.dy - 20), 2.0, pSpire);
   }
 
   Offset _rotateOffset3D(Offset point, Offset origin, double rx, double ry, double rz) {
