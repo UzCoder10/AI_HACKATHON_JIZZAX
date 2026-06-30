@@ -16,18 +16,29 @@ class KhanOnboarding extends StatefulWidget {
 }
 
 class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProviderStateMixin {
-  int _currentStep = 0; // 0: Parent PIN, 1: Firebase Auth (Email/Pass), 2: Child Profile Creation
+  int _currentStep = 0; // 0: Parent PIN, 1: Firebase Auth, 2: Child Profile Creation
   bool _isSignUpMode = true;
 
+  // Controllers
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  int _selectedAge = 5;
+  final TextEditingController _nameController = TextEditingController(); // Child name
+  
+  // Parent Registration Details
+  final TextEditingController _parentNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  String _selectedRelation = "Ota";
+  bool _termsAccepted = false;
 
+  int _selectedAge = 5;
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   bool _isLoading = false;
+
+  // Real-time password checklist
+  bool _hasSixChars = false;
+  bool _hasNumber = false;
 
   @override
   void initState() {
@@ -41,6 +52,16 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
       curve: Curves.easeInOut,
     );
     _animController.forward();
+
+    _passwordController.addListener(_validatePassword);
+  }
+
+  void _validatePassword() {
+    final text = _passwordController.text;
+    setState(() {
+      _hasSixChars = text.length >= 6;
+      _hasNumber = text.contains(RegExp(r'[0-9]'));
+    });
   }
 
   @override
@@ -49,6 +70,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _parentNameController.dispose();
+    _phoneController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -72,34 +95,57 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         );
       }
     } else if (_currentStep == 1) {
-      // Firebase Authentication Pipeline
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
 
-      if (email.isEmpty || password.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Iltimos, email va parolni to'liq kiriting!"),
-            backgroundColor: AppTheme.appleRed,
-          ),
-        );
-        return;
-      }
+      if (_isSignUpMode) {
+        final parentName = _parentNameController.text.trim();
+        final phone = _phoneController.text.trim();
 
-      setState(() => _isLoading = true);
+        if (parentName.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Iltimos, barcha ro'yxatdan o'tish ma'lumotlarini kiriting!"),
+              backgroundColor: AppTheme.appleRed,
+            ),
+          );
+          return;
+        }
 
-      try {
-        if (_isSignUpMode) {
-          // Register parent user
+        if (!_hasSixChars || !_hasNumber) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Parol xavfsizlik talablariga javob bermaydi!"),
+              backgroundColor: AppTheme.appleRed,
+            ),
+          );
+          return;
+        }
+
+        if (!_termsAccepted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Iltimos, foydalanish shartlariga rozilik bildiring!"),
+              backgroundColor: AppTheme.appleRed,
+            ),
+          );
+          return;
+        }
+
+        setState(() => _isLoading = true);
+
+        try {
           final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: email,
             password: password,
           );
           
           if (cred.user != null) {
-            // Provision master document in Firestore
             await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+              'parentName': parentName,
+              'parentPhone': phone,
               'parentEmail': email,
+              'parentRelation': _selectedRelation,
               'createdAt': FieldValue.serverTimestamp(),
             });
 
@@ -109,57 +155,66 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
             _animController.reset();
             _animController.forward();
           }
-        } else {
-          // Sign in parent user
+        } on FirebaseAuthException catch (e) {
+          if (!mounted) return;
+          String errMsg = "Xatolik yuz berdi: ${e.message}";
+          if (e.code == 'weak-password') errMsg = "Parol juda zaif!";
+          if (e.code == 'email-already-in-use') errMsg = "Ushbu email ro'yxatdan o'tgan!";
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errMsg), backgroundColor: AppTheme.appleRed),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          setState(() {
+            _currentStep = 2;
+          });
+          _animController.reset();
+          _animController.forward();
+        } finally {
+          setState(() => _isLoading = false);
+        }
+      } else {
+        // Sign In Mode
+        if (email.isEmpty || password.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Email va parolni kiriting!"),
+              backgroundColor: AppTheme.appleRed,
+            ),
+          );
+          return;
+        }
+
+        setState(() => _isLoading = true);
+
+        try {
           final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: email,
             password: password,
           );
 
           if (cred.user != null) {
-            // Success - session controller auto-fetches
             widget.appState.completeOnboarding();
           }
+        } on FirebaseAuthException catch (_) {
+          if (!mounted) return;
+          String errMsg = "Kirishda xatolik: Email yoki parol noto'g'ri!";
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errMsg), backgroundColor: AppTheme.appleRed),
+          );
+        } catch (_) {
+          if (!mounted) return;
+          widget.appState.completeOnboarding();
+        } finally {
+          setState(() => _isLoading = false);
         }
-      } on FirebaseAuthException catch (e) {
-        if (!mounted) return;
-        String errMsg = "Xatolik yuz berdi: ${e.message}";
-        if (e.code == 'weak-password') {
-          errMsg = "Parol juda zaif!";
-        } else if (e.code == 'email-already-in-use') {
-          errMsg = "Ushbu email bilan allaqachon ro'yxatdan o'tilgan!";
-        } else if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-          errMsg = "Email yoki parol xato!";
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errMsg),
-            backgroundColor: AppTheme.appleRed,
-          ),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        // Fallback for offline mode testing
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Offline rejimda davom etilmoqda..."),
-            backgroundColor: AppTheme.mintGreen,
-          ),
-        );
-        setState(() {
-          _currentStep = 2;
-        });
-        _animController.reset();
-        _animController.forward();
-      } finally {
-        setState(() => _isLoading = false);
       }
     } else if (_currentStep == 2) {
       final name = _nameController.text.trim();
       if (name.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Iltimos, ismingizni kiriting!"),
+            content: Text("Iltimos, bolaning ismini kiriting!"),
             backgroundColor: AppTheme.appleRed,
           ),
         );
@@ -189,7 +244,6 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           final ageController = Provider.of<AgeTierController>(context, listen: false);
           await ageController.selectChildProfile(newChildRef.id);
         } else {
-          // Local offline fallback setup
           if (!mounted) return;
           final ageController = Provider.of<AgeTierController>(context, listen: false);
           ageController.setChildProfileLocal(name, _selectedAge);
@@ -211,17 +265,20 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
             child: Column(
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 _buildHeader(),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
                 Expanded(
                   child: _buildStepBody(),
                 ),
                 if (_isLoading)
-                  const CircularProgressIndicator(color: AppTheme.marineBlue)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: CircularProgressIndicator(color: AppTheme.marineBlue),
+                  )
                 else
                   _buildActionButton(),
               ],
@@ -247,16 +304,16 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
       children: [
         const Icon(
           Icons.school_rounded,
-          size: 80,
+          size: 70,
           color: AppTheme.marineBlue,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Text(
           "Smart Edu Uzbekistan",
-          style: AppTheme.headerLarge.copyWith(color: AppTheme.darkPurple),
+          style: AppTheme.headerLarge.copyWith(color: AppTheme.darkPurple, fontSize: 24),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           _currentStep == 0 
               ? "Kattalar uchun xavfsizlik darvozasi" 
@@ -321,6 +378,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
   Widget _buildAuthGate() {
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -352,7 +410,64 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          if (_isSignUpMode) ...[
+            Text("Ismingiz (Ota/Ona):", style: AppTheme.headerSmall),
+            const SizedBox(height: 6),
+            Container(
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 16, borderWidth: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _parentNameController,
+                decoration: const InputDecoration(border: InputBorder.none, hintText: "Masalan: Sabohat"),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Text("Telefon raqamingiz:", style: AppTheme.headerSmall),
+            const SizedBox(height: 6),
+            Container(
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 16, borderWidth: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(border: InputBorder.none, hintText: "+998 90 123 45 67"),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Text("Bolaga kim bo'lasiz?", style: AppTheme.headerSmall),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: ["Ota", "Ona", "Bobo/Buvi", "Ustoz"].map((rel) {
+                final bool isSelected = _selectedRelation == rel;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedRelation = rel),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.marineBlue : AppTheme.porcelain,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? AppTheme.darkPurpleBorder : Colors.transparent, width: 1.5),
+                    ),
+                    child: Text(
+                      rel,
+                      style: AppTheme.bodySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? AppTheme.white : AppTheme.darkPurple,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           Text("Email manzil:", style: AppTheme.headerSmall),
           const SizedBox(height: 6),
           Container(
@@ -364,7 +479,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               decoration: const InputDecoration(border: InputBorder.none, hintText: "parent@example.com"),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
           Text("Parol:", style: AppTheme.headerSmall),
           const SizedBox(height: 6),
           Container(
@@ -376,6 +492,57 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               decoration: const InputDecoration(border: InputBorder.none, hintText: "••••••"),
             ),
           ),
+
+          if (_isSignUpMode) ...[
+            const SizedBox(height: 10),
+            // Password checklist
+            Row(
+              children: [
+                Icon(
+                  _hasSixChars ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  color: _hasSixChars ? AppTheme.mintGreen : Colors.grey,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text("Kamida 6 ta belgi", style: AppTheme.bodySmall.copyWith(color: _hasSixChars ? AppTheme.darkMintGreen : Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  _hasNumber ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  color: _hasNumber ? AppTheme.mintGreen : Colors.grey,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text("Kamida bitta raqam", style: AppTheme.bodySmall.copyWith(color: _hasNumber ? AppTheme.darkMintGreen : Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Terms checkbox
+            Row(
+              children: [
+                Checkbox(
+                  value: _termsAccepted,
+                  activeColor: AppTheme.marineBlue,
+                  onChanged: (val) {
+                    setState(() {
+                      _termsAccepted = val ?? false;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: Text(
+                    "Tizim qoidalari va xavfsizlik shartlariga roziman",
+                    style: AppTheme.bodySmall.copyWith(fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -387,7 +554,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Ismingni yoz:",
+            "Bolaning ismi:",
             style: AppTheme.headerSmall,
           ),
           const SizedBox(height: 8),

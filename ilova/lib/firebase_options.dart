@@ -22,25 +22,25 @@ class DefaultFirebaseOptions {
     apiKey: 'mock-api-key-idx-supercell',
     appId: '1:123456789:web:1234abcd',
     messagingSenderId: '123456789',
-    projectId: 'SmartEdu',
-    authDomain: 'smartedu.firebaseapp.com',
-    storageBucket: 'smartedu.appspot.com',
+    projectId: 'smartedu-5d27b',
+    authDomain: 'smartedu-5d27b.firebaseapp.com',
+    storageBucket: 'smartedu-5d27b.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'mock-api-key-idx-supercell',
     appId: '1:123456789:android:1234abcd',
     messagingSenderId: '123456789',
-    projectId: 'SmartEdu',
-    storageBucket: 'smartedu.appspot.com',
+    projectId: 'smartedu-5d27b',
+    storageBucket: 'smartedu-5d27b.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'mock-api-key-idx-supercell',
     appId: '1:123456789:ios:1234abcd',
     messagingSenderId: '123456789',
-    projectId: 'SmartEdu',
-    storageBucket: 'smartedu.appspot.com',
+    projectId: 'smartedu-5d27b',
+    storageBucket: 'smartedu-5d27b.appspot.com',
     iosBundleId: 'com.example.smartEduUzbekistan',
   );
 }
