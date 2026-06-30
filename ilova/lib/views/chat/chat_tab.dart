@@ -4,6 +4,152 @@ import '../../core/theme.dart';
 import '../../models/data_models.dart';
 import '../../controllers/app_state.dart';
 
+// =========================================================================
+// REUSABLE FLOATING WIDGET
+// =========================================================================
+class FloatingWidget extends StatefulWidget {
+  final Widget child;
+  final int delayMs;
+
+  const FloatingWidget({super.key, required this.child, this.delayMs = 0});
+
+  @override
+  State<FloatingWidget> createState() => _FloatingWidgetState();
+}
+
+class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _animation = Tween<double>(begin: 0, end: -8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delayMs), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _animation.value),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+// =========================================================================
+// PULSING RADAR RADIAL RIPPLE AVATAR
+// =========================================================================
+class PulseRadarAvatar extends StatefulWidget {
+  final Scholar scholar;
+  const PulseRadarAvatar({super.key, required this.scholar});
+
+  @override
+  State<PulseRadarAvatar> createState() => _PulseRadarAvatarState();
+}
+
+class _PulseRadarAvatarState extends State<PulseRadarAvatar> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Concentric ripple ring 1
+            Container(
+              width: 38 + (24 * _controller.value),
+              height: 38 + (24 * _controller.value),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: widget.scholar.solidColor.withOpacity(1.0 - _controller.value),
+                  width: 2.5,
+                ),
+              ),
+            ),
+            // Concentric ripple ring 2
+            if (_controller.value > 0.5)
+              Container(
+                width: 38 + (24 * (_controller.value - 0.5) * 2),
+                height: 38 + (24 * (_controller.value - 0.5) * 2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.scholar.solidColor.withOpacity(1.0 - (_controller.value - 0.5) * 2),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            child!,
+          ],
+        );
+      },
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: widget.scholar.solidColor,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppTheme.getBorderColorFor(widget.scholar.solidColor),
+            width: 2.5,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          widget.scholar.initials,
+          style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// CHATTAB WIDGET
+// =========================================================================
 class ChatTab extends StatefulWidget {
   final AppState appState;
 
@@ -13,29 +159,13 @@ class ChatTab extends StatefulWidget {
   State<ChatTab> createState() => _ChatTabState();
 }
 
-class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
+class _ChatTabState extends State<ChatTab> {
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
   String _lastScholarResponse = "";
 
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 3.0, end: 12.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-  }
-
   @override
   void dispose() {
-    _pulseController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -172,44 +302,14 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
         backgroundColor: AppTheme.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.darkBlue),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.darkPurple),
           onPressed: () => state.selectScholar(null),
         ),
         title: Row(
           children: [
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: scholar.solidColor.withAlpha(80),
-                        blurRadius: _pulseAnimation.value,
-                        spreadRadius: _pulseAnimation.value / 4,
-                      )
-                    ],
-                  ),
-                  child: child,
-                );
-              },
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: scholar.solidColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.darkBlue, width: 2),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  scholar.initials,
-                  style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 12),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
+            // Pulse radar custom animated avatar
+            PulseRadarAvatar(scholar: scholar),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +337,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
         actions: [
           Row(
             children: [
-              const Icon(Icons.subtitles_rounded, color: AppTheme.darkBlue, size: 18),
+              const Icon(Icons.subtitles_rounded, color: AppTheme.darkPurple, size: 18),
               Switch(
                 value: state.inclusiveMode,
                 activeTrackColor: AppTheme.mandarin,
@@ -249,19 +349,19 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
       ),
       body: Column(
         children: [
-          // Non-Companion Guardrail Display
+          // Guardrail Display
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppTheme.pastelPeach,
             child: Row(
               children: [
-                const Icon(Icons.shield_rounded, color: AppTheme.darkBlue, size: 16),
+                const Icon(Icons.shield_rounded, color: AppTheme.darkPurpleBorder, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     "Eslatma: Men kompyuter yordamchisiman, do‘st emasman. Savollarni oilada muhokama qiling!",
-                    style: AppTheme.bodySmall.copyWith(fontSize: 10),
+                    style: AppTheme.bodySmall.copyWith(fontSize: 10, color: AppTheme.darkPurple),
                   ),
                 ),
               ],
@@ -288,7 +388,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                     bottom: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: AppTheme.vibrantDecoration(
+                      decoration: AppTheme.vibrant3DBoxDecoration(
                         color: AppTheme.white,
                         radius: 16,
                         borderWidth: 2,
@@ -331,7 +431,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: AppTheme.darkBlue, width: 2),
+                      side: BorderSide(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 2),
                     ),
                     onPressed: () => _onSendMessage(q),
                   ),
@@ -340,15 +440,16 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
             ),
           ),
 
-          // Inclusive Mode High Contrast Subtitle Box (Deep contrasted black box + 24pt bold yellow text)
+          // Inclusive Mode Banner (Deep contrasted purple block + bright yellow text + borders)
           if (state.inclusiveMode && _lastScholarResponse.isNotEmpty)
             Container(
               width: double.infinity,
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrantDecoration(
-                color: AppTheme.darkBlue,
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.darkPurple,
                 radius: 20,
+                borderColor: AppTheme.yellow,
                 shadowColor: AppTheme.mandarin,
               ),
               child: Column(
@@ -382,7 +483,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   onTap: _simulateCamera,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: AppTheme.vibrantDecoration(color: AppTheme.marineBlue, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
+                    decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.marineBlue, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
                     child: const Icon(Icons.camera_alt_rounded, color: AppTheme.white, size: 20),
                   ),
                 ),
@@ -391,14 +492,14 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   onTap: _simulateMic,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: AppTheme.vibrantDecoration(color: AppTheme.mandarin, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
+                    decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.mandarin, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
                     child: const Icon(Icons.mic_rounded, color: AppTheme.white, size: 20),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Container(
-                    decoration: AppTheme.vibrantDecoration(color: AppTheme.white, radius: 24, borderWidth: 2.5, shadowOffset: const Offset(3, 3)),
+                    decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 24, borderWidth: 2.5, shadowOffset: const Offset(3, 3)),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: TextField(
                       textInputAction: TextInputAction.send,
@@ -445,52 +546,55 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
               ),
               itemBuilder: (context, index) {
                 final s = scholarsList[index];
-                return GestureDetector(
-                  onTap: () => widget.appState.selectScholar(s),
-                  child: Container(
-                    decoration: AppTheme.vibrantDecoration(
-                      color: s.pastelColor,
-                      radius: 24,
-                    ),
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: s.solidColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.darkBlue, width: 2.5),
+                return FloatingWidget(
+                  delayMs: index * 120,
+                  child: GestureDetector(
+                    onTap: () => widget.appState.selectScholar(s),
+                    child: Container(
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: s.pastelColor,
+                        radius: 24,
+                        borderColor: AppTheme.getBorderColorFor(s.solidColor),
+                        shadowColor: s.solidColor,
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: s.solidColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.getBorderColorFor(s.solidColor),
+                                width: 2.5,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              s.iconData,
+                              color: AppTheme.white,
+                              size: 24,
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            s.iconData,
-                            color: AppTheme.white,
-                            size: 24,
+                          const SizedBox(height: 10),
+                          Text(
+                            s.name,
+                            style: AppTheme.headerSmall.copyWith(fontSize: 14),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          s.name,
-                          style: AppTheme.headerSmall.copyWith(fontSize: 14),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          s.field,
-                          style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.greyText),
-                          textAlign: TextAlign.center,
-                        ),
-                        Text(
-                          s.years,
-                          style: AppTheme.bodySmall.copyWith(fontSize: 8, color: AppTheme.darkBlue.withAlpha(150)),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            s.field,
+                            style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.greyText),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -504,6 +608,9 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
 
   Widget _buildChatBubble(ChatMessage msg, Scholar scholar) {
     final isUser = msg.isUser;
+    final resolvedBorderColor = isUser ? AppTheme.darkMarineBlue : AppTheme.getBorderColorFor(scholar.solidColor);
+    final resolvedShadowColor = isUser ? AppTheme.marineBlue : scholar.solidColor;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -517,7 +624,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: scholar.solidColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.darkBlue, width: 1.5),
+                border: Border.all(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 1.5),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -530,21 +637,11 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
           Flexible(
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isUser ? AppTheme.white : scholar.solidColor, // Scholar bubble is filled with their bright signature layout token
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isUser ? 20 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 20),
-                ),
-                border: Border.all(color: AppTheme.darkBlue, width: 2.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppTheme.darkBlue,
-                    offset: Offset(3, 3),
-                  )
-                ],
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: isUser ? AppTheme.white : scholar.solidColor, // Scholar is filled with their primary theme
+                borderColor: resolvedBorderColor,
+                shadowColor: resolvedShadowColor,
+                radius: 20,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,7 +659,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                       width: 140,
                       height: 100,
                       margin: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: AppTheme.vibrantDecoration(
+                      decoration: AppTheme.vibrant3DBoxDecoration(
                         color: AppTheme.white,
                         radius: 12,
                         borderWidth: 2,
@@ -572,7 +669,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.brush_rounded, color: AppTheme.darkBlue, size: 24),
+                          const Icon(Icons.brush_rounded, color: AppTheme.darkPurple, size: 24),
                           const SizedBox(height: 4),
                           Text("Chizgan rasmingiz", style: AppTheme.bodySmall),
                         ],
@@ -582,7 +679,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   Text(
                     msg.text,
                     style: AppTheme.bodyMedium.copyWith(
-                      color: isUser ? AppTheme.darkBlue : AppTheme.white,
+                      color: isUser ? AppTheme.darkPurple : AppTheme.white,
                     ),
                   ),
                 ],

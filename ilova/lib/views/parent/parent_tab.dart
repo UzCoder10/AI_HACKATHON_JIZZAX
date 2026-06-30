@@ -94,7 +94,7 @@ class _ParentTabState extends State<ParentTab> {
                     decoration: BoxDecoration(
                       color: isFilled ? AppTheme.mandarin : Colors.grey.shade200,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.darkBlue, width: 2),
+                      border: Border.all(color: AppTheme.darkPurpleBorder, width: 2),
                     ),
                   );
                 }),
@@ -107,7 +107,7 @@ class _ParentTabState extends State<ParentTab> {
                 ),
               const SizedBox(height: 32),
 
-              // Keyboard Layout (White circles with vibrant mandarin numbers and borders)
+              // Keyboard Layout (White circular keys wrapped in Mandarin Orange 3D offset shadows)
               Container(
                 constraints: const BoxConstraints(maxWidth: 320),
                 child: GridView.builder(
@@ -128,15 +128,16 @@ class _ParentTabState extends State<ParentTab> {
                       return _buildPinKeyButton("0");
                     }
                     if (index == 11) {
-                      // Delete
+                      // Delete key
                       return GestureDetector(
                         onTap: _onDeleteTap,
                         child: Container(
-                          decoration: AppTheme.vibrantDecoration(
+                          decoration: AppTheme.vibrant3DBoxDecoration(
                             color: AppTheme.white,
                             radius: 16,
-                            borderWidth: 2,
-                            shadowOffset: const Offset(2, 2),
+                            borderWidth: 2.5,
+                            shadowOffset: const Offset(3, 3),
+                            borderColor: AppTheme.darkMandarin,
                             shadowColor: AppTheme.mandarin,
                           ),
                           alignment: Alignment.center,
@@ -161,11 +162,12 @@ class _ParentTabState extends State<ParentTab> {
     return GestureDetector(
       onTap: () => _onPinKeyTap(val),
       child: Container(
-        decoration: AppTheme.vibrantDecoration(
+        decoration: AppTheme.vibrant3DBoxDecoration(
           color: AppTheme.white,
           radius: 16,
           borderWidth: 2.5,
-          shadowOffset: const Offset(2, 2),
+          shadowOffset: const Offset(3, 3),
+          borderColor: AppTheme.darkMandarin,
           shadowColor: AppTheme.mandarin,
         ),
         alignment: Alignment.center,
@@ -190,7 +192,7 @@ class _ParentTabState extends State<ParentTab> {
         title: Text("Tahlil va Hisobotlar", style: AppTheme.headerMedium),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppTheme.darkBlue),
+            icon: const Icon(Icons.logout_rounded, color: AppTheme.darkPurple),
             onPressed: () {
               setState(() {
                 _isUnlocked = false;
@@ -205,12 +207,13 @@ class _ParentTabState extends State<ParentTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Safe Alert Escalation Banner (High-contrast appleRed box)
+            // Safe Alert Escalation Banner (No black, cherry borders/shadows)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrantDecoration(
+              decoration: AppTheme.vibrant3DBoxDecoration(
                 color: AppTheme.pastelRed,
+                borderColor: AppTheme.darkAppleRed,
                 shadowColor: AppTheme.appleRed,
               ),
               child: Row(
@@ -228,7 +231,7 @@ class _ParentTabState extends State<ParentTab> {
                         const SizedBox(height: 2),
                         Text(
                           "Farzandingiz shu haftada ba‘zi suhbatlarda yolg‘izlikni his qildi. Allomalar unga faqat sabr va ilm haqida maslahat berdilar (AI do‘st emas, maslahatchi).",
-                          style: AppTheme.bodySmall,
+                          style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple),
                         ),
                       ],
                     ),
@@ -238,12 +241,13 @@ class _ParentTabState extends State<ParentTab> {
             ),
             const SizedBox(height: 20),
 
-            // Premium check
+            // Premium Check
             if (!state.isPremiumSubscribed) ...[
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: AppTheme.vibrantDecoration(
+                decoration: AppTheme.vibrant3DBoxDecoration(
                   color: AppTheme.yellow,
+                  borderColor: AppTheme.darkYellow,
                   shadowColor: AppTheme.mandarin,
                 ),
                 child: Column(
@@ -255,8 +259,13 @@ class _ParentTabState extends State<ParentTab> {
                     const SizedBox(height: 12),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.darkBlue,
+                        backgroundColor: AppTheme.darkPurple,
                         foregroundColor: AppTheme.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: AppTheme.darkPurpleBorder, width: 1.5),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.of(context).push(
@@ -273,36 +282,40 @@ class _ParentTabState extends State<ParentTab> {
               const SizedBox(height: 20),
             ],
 
-            // Weekly Mood Metrics (Vibrant fills: Marine Blue, Mint Green, Mandarin Orange)
+            // Weekly Mood Metrics (Fills: Marine Blue, Mint Green, Mandarin Orange, borders: dark versions)
             Text("Haftalik Emotsional Holat (Kayfiyat)", style: AppTheme.headerMedium),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrantDecoration(color: AppTheme.white),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.white,
+                borderColor: AppTheme.darkPurpleBorder,
+                shadowColor: AppTheme.pastelBlue,
+              ),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _buildGraphBar("Du", 0.8, AppTheme.marineBlue),
-                      _buildGraphBar("Se", 0.6, AppTheme.mandarin),
-                      _buildGraphBar("Ch", 0.9, AppTheme.yellow),
-                      _buildGraphBar("Pa", 0.4, AppTheme.mintGreen),
-                      _buildGraphBar("Ju", 0.7, AppTheme.marineBlue),
-                      _buildGraphBar("Sh", 0.5, AppTheme.mandarin),
-                      _buildGraphBar("Ya", 0.95, AppTheme.mintGreen),
+                      _buildGraphBar("Du", 0.8, AppTheme.marineBlue, AppTheme.darkMarineBlue),
+                      _buildGraphBar("Se", 0.6, AppTheme.mandarin, AppTheme.darkMandarin),
+                      _buildGraphBar("Ch", 0.9, AppTheme.yellow, AppTheme.darkYellow),
+                      _buildGraphBar("Pa", 0.4, AppTheme.mintGreen, AppTheme.darkMintGreen),
+                      _buildGraphBar("Ju", 0.7, AppTheme.marineBlue, AppTheme.darkMarineBlue),
+                      _buildGraphBar("Sh", 0.5, AppTheme.mandarin, AppTheme.darkMandarin),
+                      _buildGraphBar("Ya", 0.95, AppTheme.mintGreen, AppTheme.darkMintGreen),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildLegendCircle(AppTheme.marineBlue, "Xursand"),
+                      _buildLegendCircle(AppTheme.marineBlue, AppTheme.darkMarineBlue, "Xursand"),
                       const SizedBox(width: 14),
-                      _buildLegendCircle(AppTheme.mandarin, "Oddiy"),
+                      _buildLegendCircle(AppTheme.mandarin, AppTheme.darkMandarin, "Oddiy"),
                       const SizedBox(width: 14),
-                      _buildLegendCircle(AppTheme.yellow, "Xafa"),
+                      _buildLegendCircle(AppTheme.yellow, AppTheme.darkYellow, "Xafa"),
                     ],
                   ),
                 ],
@@ -315,7 +328,11 @@ class _ParentTabState extends State<ParentTab> {
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrantDecoration(color: AppTheme.pastelBlue, shadowColor: AppTheme.marineBlue),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.pastelBlue, 
+                borderColor: AppTheme.darkMarineBlue,
+                shadowColor: AppTheme.marineBlue,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -324,7 +341,7 @@ class _ParentTabState extends State<ParentTab> {
                     decoration: BoxDecoration(
                       color: fav.solidColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.darkBlue, width: 2),
+                      border: Border.all(color: AppTheme.getBorderColorFor(fav.solidColor), width: 2),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -341,7 +358,7 @@ class _ParentTabState extends State<ParentTab> {
                         Text(fav.name, style: AppTheme.headerSmall),
                         Text(
                           "Asosiy yo‘nalishi: ${fav.field}",
-                          style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold),
+                          style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
                         ),
                       ],
                     ),
@@ -356,7 +373,7 @@ class _ParentTabState extends State<ParentTab> {
     );
   }
 
-  Widget _buildGraphBar(String day, double heightFactor, Color barColor) {
+  Widget _buildGraphBar(String day, double heightFactor, Color barColor, Color borderColor) {
     return Column(
       children: [
         Container(
@@ -364,17 +381,17 @@ class _ParentTabState extends State<ParentTab> {
           width: 16,
           decoration: BoxDecoration(
             color: barColor,
-            border: Border.all(color: AppTheme.darkBlue, width: 1.5),
+            border: Border.all(color: borderColor, width: 2.0),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
         const SizedBox(height: 6),
-        Text(day, style: AppTheme.bodySmall),
+        Text(day, style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple)),
       ],
     );
   }
 
-  Widget _buildLegendCircle(Color color, String text) {
+  Widget _buildLegendCircle(Color color, Color borderColor, String text) {
     return Row(
       children: [
         Container(
@@ -383,11 +400,11 @@ class _ParentTabState extends State<ParentTab> {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.darkBlue, width: 1),
+            border: Border.all(color: borderColor, width: 1.5),
           ),
         ),
         const SizedBox(width: 4),
-        Text(text, style: AppTheme.bodySmall),
+        Text(text, style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple)),
       ],
     );
   }

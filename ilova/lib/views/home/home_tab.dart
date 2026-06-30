@@ -5,6 +5,65 @@ import '../../controllers/app_state.dart';
 import 'drawing_quest_screen.dart';
 import 'scholar_wiki_screen.dart';
 
+// =========================================================================
+// REUSABLE FLOATING MOTION WIDGET
+// =========================================================================
+class FloatingWidget extends StatefulWidget {
+  final Widget child;
+  final int delayMs;
+
+  const FloatingWidget({super.key, required this.child, this.delayMs = 0});
+
+  @override
+  State<FloatingWidget> createState() => _FloatingWidgetState();
+}
+
+class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _animation = Tween<double>(begin: 0, end: -8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delayMs), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _animation.value),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+// =========================================================================
+// HOMETAB CHILD VIEW
+// =========================================================================
 class HomeTab extends StatefulWidget {
   final AppState appState;
 
@@ -48,7 +107,7 @@ class _HomeTabState extends State<HomeTab> {
     final themeAccent = AppTheme.getThemeAccent(state.activeThemeName);
 
     return Scaffold(
-      backgroundColor: AppTheme.porcelain, // Ultra-clean light porcelain background
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
         backgroundColor: AppTheme.white,
         elevation: 0,
@@ -56,7 +115,7 @@ class _HomeTabState extends State<HomeTab> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: AppTheme.vibrantDecoration(
+              decoration: AppTheme.vibrant3DBoxDecoration(
                 color: themeAccent,
                 radius: 12,
                 borderWidth: 2,
@@ -64,7 +123,7 @@ class _HomeTabState extends State<HomeTab> {
               ),
               child: Icon(
                 state.getAvatarIcon(state.selectedAvatarRole),
-                color: AppTheme.darkBlue,
+                color: AppTheme.darkPurple,
                 size: 20,
               ),
             ),
@@ -79,7 +138,7 @@ class _HomeTabState extends State<HomeTab> {
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: AppTheme.vibrantDecoration(
+            decoration: AppTheme.vibrant3DBoxDecoration(
               color: AppTheme.yellow,
               radius: 16,
               borderWidth: 2,
@@ -87,7 +146,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.star_rounded, color: AppTheme.darkBlue, size: 16),
+                const Icon(Icons.star_rounded, color: AppTheme.darkPurple, size: 16),
                 const SizedBox(width: 4),
                 Text(
                   "${state.stars}",
@@ -107,7 +166,7 @@ class _HomeTabState extends State<HomeTab> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: AppTheme.vibrantDecoration(
+              decoration: AppTheme.vibrant3DBoxDecoration(
                 color: themeBg,
               ),
               child: Row(
@@ -133,22 +192,22 @@ class _HomeTabState extends State<HomeTab> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: AppTheme.marineBlue,
+                      color: AppTheme.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.darkBlue, width: 2.5),
+                      border: Border.all(color: AppTheme.darkPurpleBorder, width: 2.5),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.face_rounded, color: AppTheme.darkBlue, size: 28),
+                    child: const Icon(Icons.face_rounded, color: AppTheme.mandarin, size: 28),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Modern Mood Tracker (Emoji-free, Vector icon buttons)
+            // Modern Mood Tracker (Emoji-free, Vector icon buttons, 3D interactive indentation)
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.vibrantDecoration(
+              decoration: AppTheme.vibrant3DBoxDecoration(
                 color: AppTheme.white,
               ),
               child: Column(
@@ -175,7 +234,7 @@ class _HomeTabState extends State<HomeTab> {
                         decoration: BoxDecoration(
                           color: AppTheme.porcelain,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.darkBlue, width: 2),
+                          border: Border.all(color: AppTheme.darkPurpleBorder, width: 2),
                         ),
                         child: Text(
                           _unlockedMessage,
@@ -190,60 +249,62 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // Daily Quest Activity Card (Mandarin Orange/Sunny Yellow Gaming Card)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: AppTheme.vibrantDecoration(
-                color: AppTheme.yellow,
-                shadowColor: AppTheme.mandarin,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.brush_rounded, color: AppTheme.darkBlue, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Bugungi Topshiriq",
-                        style: AppTheme.headerMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Yer sayyorasi yoki yulduzlar rasmini chizib, allomalarga yuboring va 5 yulduzcha yutib oling!",
-                    style: AppTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 14),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => DrawingQuestScreen(appState: widget.appState),
+            // Daily Quest Activity Card (Floating Up & Down Motion)
+            FloatingWidget(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: AppTheme.yellow,
+                  shadowColor: AppTheme.darkMandarin,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.brush_rounded, color: AppTheme.darkPurple, size: 24),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Bugungi Topshiriq",
+                          style: AppTheme.headerMedium,
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.darkBlue,
-                      foregroundColor: AppTheme.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: AppTheme.darkBlue, width: 1.5),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Yer sayyorasi yoki yulduzlar rasmini chizib, allomalarga yuboring va 5 yulduzcha yutib oling!",
+                      style: AppTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 14),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => DrawingQuestScreen(appState: widget.appState),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.darkPurple,
+                        foregroundColor: AppTheme.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: const BorderSide(color: AppTheme.darkPurpleBorder, width: 1.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Text(
+                        "Chizishni boshlash",
+                        style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
+                      ),
                     ),
-                    child: Text(
-                      "Chizishni boshlash",
-                      style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Scholars list
             Text(
@@ -263,81 +324,84 @@ class _HomeTabState extends State<HomeTab> {
               ),
               itemBuilder: (context, index) {
                 final scholar = scholarsList[index];
-                return GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                        title: Text(scholar.name, style: AppTheme.headerSmall),
-                        content: Text("Allomaning hayotiy ensiklopediyasini ko‘rmoqchimisiz yoki to‘g‘ridan-to‘g‘ri suhbatlashasizmi?", style: AppTheme.bodyMedium),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => ScholarWikiScreen(scholar: scholar, appState: state),
-                                ),
-                              );
-                            },
-                            child: const Text("Hayot yo‘li"),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: scholar.solidColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                return FloatingWidget(
+                  delayMs: index * 100,
+                  child: GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          title: Text(scholar.name, style: AppTheme.headerSmall),
+                          content: Text("Allomaning hayotiy ensiklopediyasini ko‘rmoqchimisiz yoki to‘g‘ridan-to‘g‘ri suhbatlashasizmi?", style: AppTheme.bodyMedium),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ScholarWikiScreen(scholar: scholar, appState: state),
+                                  ),
+                                );
+                              },
+                              child: const Text("Hayot yo‘li"),
                             ),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              state.selectScholar(scholar);
-                              state.changeTab(1); // Chat tab
-                            },
-                            child: Text("Suhbat", style: AppTheme.bodySmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                          )
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: scholar.solidColor,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                state.selectScholar(scholar);
+                                state.changeTab(1); // Chat tab
+                              },
+                              child: Text("Suhbat", style: AppTheme.bodySmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: scholar.pastelColor,
+                        radius: 20,
+                        borderWidth: 2.5,
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: scholar.solidColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 2),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              scholar.initials,
+                              style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            scholar.name,
+                            style: AppTheme.headerSmall.copyWith(fontSize: 12),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            scholar.field,
+                            style: AppTheme.bodySmall.copyWith(fontSize: 9, color: AppTheme.greyText),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
-                    );
-                  },
-                  child: Container(
-                    decoration: AppTheme.vibrantDecoration(
-                      color: scholar.pastelColor,
-                      radius: 20,
-                      borderWidth: 2.5,
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: scholar.solidColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.darkBlue, width: 2),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            scholar.initials,
-                            style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          scholar.name,
-                          style: AppTheme.headerSmall.copyWith(fontSize: 12),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          scholar.field,
-                          style: AppTheme.bodySmall.copyWith(fontSize: 9, color: AppTheme.greyText),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
                     ),
                   ),
                 );
@@ -351,37 +415,32 @@ class _HomeTabState extends State<HomeTab> {
 
   Widget _buildMoodBtn(MoodType mood, IconData icon, String text, Color activeColor) {
     final bool isSelected = widget.appState.loggedMoodToday == mood;
+    final double borderThickness = isSelected ? 3.5 : 2.5;
+    final Color resolvedBorderColor = isSelected ? AppTheme.getBorderColorFor(activeColor) : AppTheme.darkPurpleBorder;
+    final Offset resolvedShadowOffset = isSelected ? const Offset(1, 1) : const Offset(4, 4);
 
     return GestureDetector(
       onTap: () => _onMoodTap(mood),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-        decoration: BoxDecoration(
+        decoration: AppTheme.vibrant3DBoxDecoration(
           color: isSelected ? activeColor : AppTheme.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.darkBlue,
-            width: isSelected ? 3 : 2,
-          ),
-          boxShadow: isSelected
-              ? const [
-                  BoxShadow(
-                    color: AppTheme.darkBlue,
-                    offset: Offset(3, 3),
-                  )
-                ]
-              : null,
+          borderColor: resolvedBorderColor,
+          shadowOffset: resolvedShadowOffset,
+          shadowColor: isSelected ? resolvedBorderColor : AppTheme.darkPurpleBorder,
+          borderWidth: borderThickness,
         ),
         child: Column(
           children: [
-            Icon(icon, size: 28, color: isSelected ? AppTheme.white : AppTheme.darkBlue),
+            Icon(icon, size: 28, color: isSelected ? AppTheme.white : AppTheme.darkPurple),
             const SizedBox(height: 4),
             Text(
               text,
               style: AppTheme.headerSmall.copyWith(
                 fontSize: 10,
-                color: isSelected ? AppTheme.white : AppTheme.darkBlue,
+                color: isSelected ? AppTheme.white : AppTheme.darkPurple,
               ),
             ),
           ],

@@ -99,7 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   onPressed: () => widget.appState.completeOnboarding(),
                   child: Text(
                     "O‘tkazib yuborish",
-                    style: AppTheme.bodyMedium.copyWith(color: AppTheme.magenta),
+                    style: AppTheme.bodyMedium.copyWith(color: AppTheme.mandarin),
                   ),
                 ),
               ),
@@ -116,19 +116,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   itemCount: _slides.length,
                   itemBuilder: (context, index) {
                     final slide = _slides[index];
+                    final activeColor = index == 0
+                        ? AppTheme.cyan
+                        : index == 1
+                            ? AppTheme.yellow
+                            : AppTheme.magenta;
+
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
                           width: 80,
                           height: 80,
-                          decoration: AppTheme.neonDecoration(
-                            color: index == 0
-                                ? AppTheme.cyan
-                                : index == 1
-                                    ? AppTheme.yellow
-                                    : AppTheme.magenta,
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: activeColor,
                             radius: 24,
+                            borderColor: AppTheme.getBorderColorFor(activeColor),
+                            shadowColor: AppTheme.getBorderColorFor(activeColor),
                           ),
                           child: Icon(
                             index == 0
@@ -136,7 +140,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 : index == 1
                                     ? Icons.forum_rounded
                                     : Icons.shield_rounded,
-                            color: AppTheme.darkBlue,
+                            color: AppTheme.white,
                             size: 38,
                           ),
                         ),
@@ -169,9 +173,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: isActive ? 24 : 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: isActive ? AppTheme.magenta : Colors.grey.shade300,
+                      color: isActive ? AppTheme.mandarin : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: AppTheme.darkBlue, width: 1.5),
+                      border: Border.all(color: AppTheme.darkPurpleBorder, width: 1.5),
                     ),
                   );
                 }),
@@ -193,13 +197,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: AppTheme.neonDecoration(
+                  decoration: AppTheme.vibrant3DBoxDecoration(
                     color: _currentIndex == _slides.length - 1 ? AppTheme.cyan : AppTheme.white,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _currentIndex == _slides.length - 1 ? "Boshlash!" : "Keyingisi",
-                    style: AppTheme.headerMedium,
+                    style: AppTheme.headerMedium.copyWith(
+                      color: _currentIndex == _slides.length - 1 ? AppTheme.white : AppTheme.darkPurple,
+                    ),
                   ),
                 ),
               ),
@@ -222,6 +228,7 @@ class MainNavigationLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.porcelain,
       body: Column(
         children: [
           Expanded(
@@ -245,8 +252,8 @@ class MainNavigationLayout extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: const BoxDecoration(
-        color: AppTheme.darkBlue,
-        border: Border(top: BorderSide(color: AppTheme.magenta, width: 4)),
+        color: AppTheme.white,
+        border: Border(top: BorderSide(color: AppTheme.pastelPeach, width: 3)),
       ),
       child: SafeArea(
         top: false,
@@ -278,16 +285,21 @@ class MainNavigationLayout extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-        decoration: BoxDecoration(
-          color: isActive ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: isActive ? Border.all(color: AppTheme.darkBlue, width: 2) : null,
-        ),
+        decoration: isActive
+            ? AppTheme.vibrant3DBoxDecoration(
+                color: activeColor,
+                radius: 16,
+                borderWidth: 2,
+                shadowOffset: const Offset(2, 2),
+                borderColor: AppTheme.getBorderColorFor(activeColor),
+                shadowColor: AppTheme.getBorderColorFor(activeColor),
+              )
+            : const BoxDecoration(color: Colors.transparent),
         child: Row(
           children: [
             Icon(
               icon,
-              color: isActive ? AppTheme.darkBlue : Colors.white70,
+              color: isActive ? AppTheme.white : AppTheme.darkPurple.withOpacity(0.7),
               size: 20,
             ),
             if (isActive) ...[
@@ -296,7 +308,7 @@ class MainNavigationLayout extends StatelessWidget {
                 label,
                 style: AppTheme.fontHeader.copyWith(
                   fontSize: 11,
-                  color: AppTheme.darkBlue,
+                  color: AppTheme.white,
                 ),
               ),
             ]
