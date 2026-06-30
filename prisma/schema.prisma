@@ -1,0 +1,223 @@
+// SafarAI — PostgreSQL (safarai schema via DATABASE_URL ?schema=safarai)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SafetySeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SafetySource {
+  INPUT
+  OUTPUT
+  CRISIS
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ENDED
+}
+
+enum ConversationMode {
+  STANDARD
+  GREAT_FIGURE
+}
+
+enum InsightAlertType {
+  PROLONGED_LOW_MOOD
+  MOOD_DECLINE
+  GENERAL
+}
+
+enum InsightSeverity {
+  LOW
+  MEDIUM
+}
+
+enum PaymentProvider {
+  PAYME
+  CLICK
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+model GreatFigure {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  nameUz        String
+  nameRu        String
+  field         String
+  era           String?
+  personaPrompt String   @db.Text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  conversations Conversation[]
+
+  @@index([slug])
+}
+
+model Conversation {
+  id        String             @id @default(cuid())
+  childId   String
+  childName String?
+  childAge  Int
+  language  String
+  mode      ConversationMode   @default(STANDARD)
+  figureId  String?
+  status    ConversationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  figure   GreatFigure? @relation(fields: [figureId], references: [id])
+  messages Message[]
+
+  @@index([childId])
+  @@index([status])
+  @@index([figureId])
+  @@index([mode])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  filtered       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model SafetyEvent {
+  id        String         @id @default(cuid())
+  childId   String?
+  sessionId String?
+  source    SafetySource
+  severity  SafetySeverity
+  category  String?
+  summary   String
+  createdAt DateTime       @default(now())
+
+  @@index([childId])
+  @@index([createdAt])
+}
+
+model MoodEntry {
+  id        String   @id @default(cuid())
+  childId   String
+  emoji     String
+  score     Int
+  note      String?
+  entryDate DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([childId, entryDate])
+  @@index([childId])
+  @@index([entryDate])
+}
+
+model InsightAlert {
+  id           String           @id @default(cuid())
+  childId      String
+  type         InsightAlertType
+  severity     InsightSeverity
+  summary      String
+  periodStart  DateTime
+  periodEnd    DateTime
+  acknowledged Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+
+  @@index([childId])
+  @@index([createdAt])
+}
+
+model InsightReport {
+  id              String   @id @default(cuid())
+  childId         String
+  periodStart     DateTime
+  periodEnd       DateTime
+  moodTrend       String
+  moodSummary     String
+  interests       String[]
+  activitySummary String
+  summary         String   @db.Text
+  recommendations String[]
+  createdAt       DateTime @default(now())
+
+  @@index([childId])
+  @@index([periodStart])
+}
+
+model Parent {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  pinHash      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  children Child[]
+  settings ParentSettings?
+}
+
+model Child {
+  id        String   @id @default(cuid())
+  parentId  String
+  name      String
+  age       Int
+  language  String   @default("uz")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+}
+
+model ParentSettings {
+  id                    String    @id @default(cuid())
+  parentId              String    @unique
+  screenTimeMinutes     Int       @default(60)
+  contentLevel          String    @default("standard")
+  subscriptionPlan      String    @default("free")
+  subscriptionActive    Boolean   @default(false)
+  subscriptionExpiresAt DateTime?
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+}
+
+model PaymentTransaction {
+  id              String          @id @default(cuid())
+  parentId        String
+  provider        PaymentProvider
+  plan            String
+  amount          Int
+  merchantTransId String          @unique
+  providerTransId String?
+  status          PaymentStatus   @default(PENDING)
+  paidAt          DateTime?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([parentId])
+  @@index([status])
+}
