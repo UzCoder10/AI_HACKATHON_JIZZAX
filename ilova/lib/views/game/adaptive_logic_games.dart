@@ -358,6 +358,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   void _winGame(int rewardStars) {
     final state = Provider.of<AppState>(context, listen: false);
     state.awardStars(rewardStars);
+    Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(rewardStars);
 
     showDialog(
       context: context,

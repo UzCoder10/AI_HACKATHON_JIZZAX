@@ -337,7 +337,6 @@ class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateM
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Outer circular progress ring
               CircularProgressIndicator(
                 value: percent / 100.0,
                 strokeWidth: 4.5,
@@ -345,7 +344,6 @@ class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateM
                 valueColor: AlwaysStoppedAnimation<Color>(widget.isLocked ? Colors.grey : AppTheme.mintGreen),
               ),
 
-              // Solid inner capsule
               Container(
                 width: 58,
                 height: 58,
@@ -463,7 +461,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Soha: ${scholar.field}", style: AppTheme.bodySmall.copyWith(color: AppTheme.mandarin, fontWeight: FontWeight.bold)),
+            Text("Soha: ${scholar.field}", style: AppTheme.bodySmall.copyWith(color: scholar.solidColor, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Text(scholar.automatedGreeting, style: AppTheme.bodyLarge),
           ],
@@ -492,7 +490,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
     final tier = ageController.activeTier;
     final accentColor = ageController.getAccentColor();
     final size = MediaQuery.of(context).size;
-    final double roadmapHeight = size.height * 1.05;
+    final double roadmapHeight = size.height * 1.15;
 
     return Scaffold(
       backgroundColor: ageController.getBiomeBgColor(),
@@ -543,6 +541,14 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                       _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy"),
                       _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino"),
                       _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek"),
+
+                      // RECOMMENDED SHORTS BANNER CARD AT THE BOTTOM OF ROADMAP
+                      Positioned(
+                        bottom: 24,
+                        left: 20,
+                        right: 20,
+                        child: _buildShortsRecommendationCard(accentColor),
+                      ),
                     ],
                   ),
                 ),
@@ -619,7 +625,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Kodi Sayohati",
+                  controller.activeChildName,
                   style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
                 ),
                 Text(
@@ -630,26 +636,79 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
             ),
           ),
           
-          // Cheat / advance progression button
-          GestureDetector(
-            onTap: () {
-              controller.advanceNode();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: AppTheme.vibrant3DBoxDecoration(
-                color: AppTheme.mintGreen,
-                radius: 16,
-                borderWidth: 2,
-                shadowOffset: const Offset(2, 2),
-              ),
-              child: Row(
-                children: [
-                  Text("Keyingi", style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 12)),
-                  const Icon(Icons.arrow_forward_rounded, color: AppTheme.white, size: 16),
-                ],
-              ),
+          // High-dopamine Live Star Count slot
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: AppTheme.vibrant3DBoxDecoration(
+              color: AppTheme.yellow,
+              radius: 16,
+              borderWidth: 2,
+              shadowOffset: const Offset(2, 2),
             ),
+            child: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: AppTheme.darkPurple, size: 20),
+                const SizedBox(width: 4),
+                Text(
+                  "${controller.starsCount}",
+                  style: AppTheme.headerMedium.copyWith(fontSize: 16, color: AppTheme.darkPurple),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortsRecommendationCard(Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.vibrant3DBoxDecoration(
+        color: AppTheme.white,
+        radius: 24,
+        borderColor: AppTheme.getBorderColorFor(accentColor),
+        shadowOffset: const Offset(3, 3),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: AppTheme.vibrant3DBoxDecoration(
+              color: accentColor.withAlpha(50),
+              radius: 18,
+              borderWidth: 2,
+              borderColor: accentColor,
+            ),
+            child: Icon(Icons.play_circle_fill_rounded, color: accentColor, size: 36),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Kunning qiziqarli kashfiyoti",
+                  style: AppTheme.headerSmall.copyWith(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                Text(
+                  "Astronomiya va yulduzlar olami",
+                  style: AppTheme.headerMedium.copyWith(fontSize: 14, color: AppTheme.darkPurple),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
+            ),
+            onPressed: () {
+              widget.appState.changeTab(2); // Navigate directly to Shorts tab
+            },
+            child: Text("Ko'rish", style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 11)),
           ),
         ],
       ),

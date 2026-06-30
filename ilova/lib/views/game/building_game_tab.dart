@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../controllers/app_state.dart';
+import '../../controllers/age_tier_controller.dart';
 
 enum ArchitectureType { column, arch, wall, dome }
 
@@ -1236,6 +1238,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
               GestureDetector(
                 onTap: () {
                   widget.appState.awardStars(100);
+                  Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
                   _rebuildEmpire();
                 },
                 child: Container(

@@ -149,6 +149,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void completeOnboarding() {
+    hasOnboarded = true;
+    notifyListeners();
+  }
+
   void changeTab(int index) {
     activeTab = index;
     notifyListeners();

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'controllers/app_state.dart';
 import 'controllers/age_tier_controller.dart';
@@ -10,7 +12,16 @@ import 'views/shorts/educational_feed.dart';
 import 'views/achievements/achievements_tab.dart';
 import 'views/parent/parent_tab.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e. Running in offline/fallback mode.");
+  }
+  
   runApp(
     MultiProvider(
       providers: [
@@ -27,8 +38,6 @@ class SmartEduApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = Provider.of<AppState>(context);
-    
     return MaterialApp(
       title: "Smart Edu Uzbekistan",
       debugShowCheckedModeBanner: false,
@@ -36,10 +45,28 @@ class SmartEduApp extends StatelessWidget {
         scaffoldBackgroundColor: AppTheme.white,
         useMaterial3: true,
       ),
-      home: appState.hasOnboarded
-          ? MainNavigationLayout(appState: appState)
-          : KhanOnboarding(appState: appState),
+      home: const AuthWrapper(),
     );
+  }
+}
+
+// =========================================================================
+// GLOBAL SESSION MANAGEMENT AUTH WRAPPER
+// =========================================================================
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ageController = Provider.of<AgeTierController>(context);
+    final appState = Provider.of<AppState>(context);
+
+    // If parent is not authenticated and hasn't onboarded local profiles, show onboarding
+    if (!ageController.isAuthenticated && !appState.hasOnboarded) {
+      return KhanOnboarding(appState: appState);
+    }
+    
+    return MainNavigationLayout(appState: appState);
   }
 }
 
