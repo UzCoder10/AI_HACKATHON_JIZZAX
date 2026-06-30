@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,32 +16,46 @@ import 'drawing_quest_screen.dart';
 class KodiPainter extends CustomPainter {
   final double blinkVal;
   final double waveVal;
+  final double breatheOffset;
+  final double earTwitch;
   final AgeTier tier;
 
   KodiPainter({
     required this.blinkVal,
     required this.waveVal,
+    required this.breatheOffset,
+    required this.earTwitch,
     required this.tier,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final double cx = size.width / 2;
-    final double cy = size.height / 2 + 10;
+    // Apply floating vertical offset to the whole center point of the bear
+    final double cy = size.height / 2 + 10 + breatheOffset;
     final double r = size.width * 0.35;
 
     final pBear = Paint()..color = const Color(0xFFC78248)..style = PaintingStyle.fill;
     final pMuzzle = Paint()..color = const Color(0xFFF3C598)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
 
-    // Ears
-    canvas.drawCircle(Offset(cx - r * 0.8, cy - r * 0.8), r * 0.35, pBear);
-    canvas.drawCircle(Offset(cx - r * 0.8, cy - r * 0.8), r * 0.35, pBorder);
-    canvas.drawCircle(Offset(cx - r * 0.8, cy - r * 0.8), r * 0.18, pMuzzle);
+    // Left Ear (With custom earTwitch rotation)
+    canvas.save();
+    canvas.translate(cx - r * 0.8, cy - r * 0.8);
+    canvas.rotate(earTwitch);
+    canvas.drawCircle(Offset.zero, r * 0.35, pBear);
+    canvas.drawCircle(Offset.zero, r * 0.35, pBorder);
+    canvas.drawCircle(Offset.zero, r * 0.18, pMuzzle);
+    canvas.restore();
 
-    canvas.drawCircle(Offset(cx + r * 0.8, cy - r * 0.8), r * 0.35, pBear);
-    canvas.drawCircle(Offset(cx + r * 0.8, cy - r * 0.8), r * 0.35, pBorder);
-    canvas.drawCircle(Offset(cx + r * 0.8, cy - r * 0.8), r * 0.18, pMuzzle);
+    // Right Ear (With opposite earTwitch rotation)
+    canvas.save();
+    canvas.translate(cx + r * 0.8, cy - r * 0.8);
+    canvas.rotate(-earTwitch);
+    canvas.drawCircle(Offset.zero, r * 0.35, pBear);
+    canvas.drawCircle(Offset.zero, r * 0.35, pBorder);
+    canvas.drawCircle(Offset.zero, r * 0.18, pMuzzle);
+    canvas.restore();
 
     // Head
     canvas.drawCircle(Offset(cx, cy), r, pBear);
@@ -128,19 +143,41 @@ class AnimatedKodiAvatar extends StatefulWidget {
 class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProviderStateMixin {
   late final AnimationController _blinkController;
   late final AnimationController _waveController;
+  late final AnimationController _breatheController;
+  late final AnimationController _earController;
+  Timer? _waveTimer;
 
   @override
   void initState() {
     super.initState();
     _blinkController = AnimationController(vsync: this, duration: const Duration(seconds: 4))
       ..repeat();
+      
     _waveController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    
+    _breatheController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))
+      ..repeat(reverse: true);
+
+    _earController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))
+      ..repeat(reverse: true);
+
+    // Welcome wave auto-triggers
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _triggerWave();
+    });
+
+    _waveTimer = Timer.periodic(const Duration(seconds: 8), (t) {
+      if (mounted) _triggerWave();
+    });
   }
 
   @override
   void dispose() {
     _blinkController.dispose();
     _waveController.dispose();
+    _breatheController.dispose();
+    _earController.dispose();
+    _waveTimer?.cancel();
     super.dispose();
   }
 
@@ -155,17 +192,24 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
     return GestureDetector(
       onTap: _triggerWave,
       child: AnimatedBuilder(
-        animation: Listenable.merge([_blinkController, _waveController]),
+        animation: Listenable.merge([_blinkController, _waveController, _breatheController, _earController]),
         builder: (context, child) {
           double blinkVal = 0.0;
           if (_blinkController.value > 0.93) {
             blinkVal = 1.0;
           }
+          // Calculate gentle head breathe translation offset
+          final double breatheOffset = math.sin(_breatheController.value * math.pi * 2) * 3.5;
+          // Calculate ear twitch rotation offset
+          final double earTwitch = math.sin(_earController.value * math.pi * 2) * 0.08;
+
           return CustomPaint(
             size: const Size(110, 100),
             painter: KodiPainter(
               blinkVal: blinkVal,
               waveVal: _waveController.value,
+              breatheOffset: breatheOffset,
+              earTwitch: earTwitch,
               tier: widget.tier,
             ),
           );
@@ -194,93 +238,91 @@ class RoadmapPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    // Drawing the Winding Roadmap Path
+    // Draw winding sand roadmap path
     final path = Path();
     path.moveTo(w * 0.25, h * 0.9);
-    path.cubicTo(w * 0.85, h * 0.76, w * 0.85, h * 0.64, w * 0.35, h * 0.54);
-    path.cubicTo(w * 0.02, h * 0.42, w * 0.42, h * 0.26, w * 0.78, h * 0.2);
-    path.lineTo(w * 0.5, h * 0.08);
+    path.quadraticBezierTo(w * 0.65, h * 0.85, w * 0.76, h * 0.72);
+    path.quadraticBezierTo(w * 0.85, h * 0.62, w * 0.35, h * 0.54);
+    path.quadraticBezierTo(w * 0.05, h * 0.44, w * 0.74, h * 0.3);
+    path.quadraticBezierTo(w * 0.95, h * 0.20, w * 0.5, h * 0.08);
 
-    // Dynamic Biome road coloring
-    Color roadColor = const Color(0xFFFFECE5);
-    Color dashedColor = AppTheme.mandarin;
-    if (tier == AgeTier.toddler) {
-      roadColor = const Color(0xFFCEF5E8);
-      dashedColor = AppTheme.mintGreen;
-    } else if (tier == AgeTier.intermediate) {
-      roadColor = const Color(0xFFD6F2FE);
-      dashedColor = AppTheme.marineBlue;
+    final pPathShadow = Paint()
+      ..color = const Color(0xFFE4C39E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 34.0
+      ..strokeCap = StrokeCap.round;
+
+    final pPath = Paint()
+      ..color = const Color(0xFFFBE4C9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 30.0
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, pPathShadow);
+    canvas.drawPath(path, pPath);
+
+    // Draw dotted lane marks
+    final pDotted = Paint()
+      ..color = const Color(0xFFDCA776)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    // Draw dash pattern along the road
+    for (double i = 0.05; i < 0.95; i += 0.06) {
+      final p1 = _getPointOnBezier(i, w, h);
+      final p2 = _getPointOnBezier(i + 0.03, w, h);
+      canvas.drawLine(p1, p2, pDotted);
     }
 
-    final pShadow = Paint()
-      ..color = AppTheme.getBorderColorFor(roadColor)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 32.0
-      ..strokeCap = StrokeCap.round;
-
-    final pRoad = Paint()
-      ..color = roadColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 26.0
-      ..strokeCap = StrokeCap.round;
-
-    final pDashed = Paint()
-      ..color = dashedColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawPath(path, pShadow);
-    canvas.drawPath(path, pRoad);
-
-    final pathMetrics = path.computeMetrics();
-    for (final metric in pathMetrics) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final extract = metric.extractPath(distance, distance + 8);
-        canvas.drawPath(extract, pDashed);
-        distance += 24.0;
-      }
-    }
-
-    _drawBiomeDecorations(canvas, size);
+    // Dynamic Biome path decorations based on selected focusAreas
+    _drawFocusDecorations(canvas, w, h);
   }
 
-  void _drawBiomeDecorations(Canvas canvas, Size size) {
-    final random = math.Random(42);
+  void _drawFocusDecorations(Canvas canvas, double w, double h) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    List<String> emojis = [];
     for (final area in focusAreas) {
-      if (area.contains("Math")) {
-        emojis.addAll(["➕", "📐", "🧮", "🔢"]);
-      } else if (area.contains("Logic")) {
-        emojis.addAll(["🧩", "💡", "🔍", "⚙️"]);
-      } else if (area.contains("History") || area.contains("Allomalar")) {
-        emojis.addAll(["🏛️", "📜", "🏺", "🕌"]);
+      if (area == "Aniq Fanlar (Math & Geometry)") {
+        _drawEmojiLabel(canvas, "📐", Offset(w * 0.52, h * 0.84), textPainter);
+        _drawEmojiLabel(canvas, "🧮", Offset(w * 0.25, h * 0.49), textPainter);
+      } else if (area == "Tanqidiy Fikr (Logic & Space)") {
+        _drawEmojiLabel(canvas, "⚙️", Offset(w * 0.82, h * 0.67), textPainter);
+        _drawEmojiLabel(canvas, "🧠", Offset(w * 0.48, h * 0.26), textPainter);
+      } else if (area == "Allomalar Tarixi (History & Architecture)") {
+        _drawEmojiLabel(canvas, "📜", Offset(w * 0.15, h * 0.58), textPainter);
+        _drawEmojiLabel(canvas, "🕌", Offset(w * 0.80, h * 0.35), textPainter);
       }
     }
-    
-    // Default fallback decorations
-    if (emojis.isEmpty) {
-      if (tier == AgeTier.toddler) emojis = ["🌲", "🍓", "🍎", "🌸"];
-      if (tier == AgeTier.intermediate) emojis = ["🏛️", "📜", "🎒", "🏺"];
-      if (tier == AgeTier.advanced) emojis = ["🪐", "🚀", "🛰️", "🛸"];
-    }
+  }
 
-    for (int i = 0; i < 15; i++) {
-      final double rx = random.nextDouble() * size.width;
-      final double ry = random.nextDouble() * size.height;
+  void _drawEmojiLabel(Canvas canvas, String emoji, Offset pos, TextPainter painter) {
+    painter.text = TextSpan(
+      text: emoji,
+      style: const TextStyle(fontSize: 24),
+    );
+    painter.layout();
+    painter.paint(canvas, Offset(pos.dx - painter.width / 2, pos.dy - painter.height / 2));
+  }
 
-      // Ensure decorations don't sit directly on the roadmap line center
-      if ((rx - size.width * 0.5).abs() < 60) continue;
+  Offset _getPointOnBezier(double t, double w, double h) {
+    final p0 = Offset(w * 0.25, h * 0.9);
+    final p1 = Offset(w * 0.76, h * 0.72);
+    final p2 = Offset(w * 0.35, h * 0.54);
+    final p3 = Offset(w * 0.74, h * 0.3);
+    final p4 = Offset(w * 0.5, h * 0.08);
 
-      textPainter.text = TextSpan(
-        text: emojis[i % emojis.length],
-        style: const TextStyle(fontSize: 24),
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(rx, ry));
+    if (t < 0.25) {
+      final double localT = t / 0.25;
+      return Offset.lerp(p0, p1, localT)!;
+    } else if (t < 0.5) {
+      final double localT = (t - 0.25) / 0.25;
+      return Offset.lerp(p1, p2, localT)!;
+    } else if (t < 0.75) {
+      final double localT = (t - 0.5) / 0.25;
+      return Offset.lerp(p2, p3, localT)!;
+    } else {
+      final double localT = (t - 0.75) / 0.25;
+      return Offset.lerp(p3, p4, localT)!;
     }
   }
 
@@ -289,7 +331,7 @@ class RoadmapPainter extends CustomPainter {
 }
 
 // =========================================================================
-// LIVING NODE WIDGET WITH PULSE & PROGRESS
+// LIVING ROADMAP NODE WITH RADAR PULSES
 // =========================================================================
 class LivingNode extends StatefulWidget {
   final int index;
@@ -312,78 +354,79 @@ class LivingNode extends StatefulWidget {
 }
 
 class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseController;
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
+    _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
     if (widget.isActive) {
-      _pulseController.repeat(reverse: true);
+      _controller.repeat();
     }
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final double percent = widget.isLocked ? 0.0 : (widget.isActive ? 50.0 : 100.0);
+    final Color nodeBg = widget.isLocked 
+        ? Colors.grey.shade300 
+        : (widget.isActive ? widget.activeColor : AppTheme.white);
+    final Color labelColor = widget.isLocked 
+        ? Colors.grey 
+        : (widget.isActive ? AppTheme.white : AppTheme.darkPurple);
+    final Color borderColor = widget.isLocked 
+        ? Colors.grey.shade400 
+        : AppTheme.getBorderColorFor(widget.activeColor);
 
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, child) {
-        double scale = 1.0;
-        if (widget.isActive) {
-          scale = 1.0 + _pulseController.value * 0.12;
-        }
-        return Transform.scale(
-          scale: scale,
-          child: child,
-        );
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: SizedBox(
-          width: 72,
-          height: 72,
-          child: Stack(
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Stack(
             alignment: Alignment.center,
             children: [
-              CircularProgressIndicator(
-                value: percent / 100.0,
-                strokeWidth: 4.5,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(widget.isLocked ? Colors.grey : AppTheme.mintGreen),
-              ),
-
-              Container(
-                width: 58,
-                height: 58,
-                decoration: AppTheme.vibrant3DBoxDecoration(
-                  color: widget.isLocked
-                      ? Colors.grey.shade300
-                      : (widget.isActive ? AppTheme.yellow : widget.activeColor),
-                  radius: 24,
-                  borderWidth: 2,
-                  shadowOffset: const Offset(2, 2),
+              if (widget.isActive)
+                Container(
+                  width: 72 + (24 * _controller.value),
+                  height: 72 + (24 * _controller.value),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.activeColor.withAlpha(((1.0 - _controller.value) * 255).round()),
+                      width: 3.0,
+                    ),
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: widget.isLocked
-                    ? const Icon(Icons.lock_rounded, color: Colors.grey, size: 22)
-                    : Text(
-                        "${widget.index + 1}",
-                        style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 18),
-                      ),
-              ),
+              child!,
             ],
+          );
+        },
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: AppTheme.vibrant3DBoxDecoration(
+            color: nodeBg,
+            radius: 36,
+            borderWidth: widget.isActive ? 4 : 3,
+            borderColor: borderColor,
+            shadowColor: widget.isLocked ? Colors.transparent : widget.activeColor,
           ),
+          alignment: Alignment.center,
+          child: widget.isLocked
+              ? const Icon(Icons.lock_rounded, color: Colors.grey, size: 28)
+              : Text(
+                  "${widget.index + 1}",
+                  style: AppTheme.headerMedium.copyWith(color: labelColor, fontSize: 26),
+                ),
         ),
       ),
     );
@@ -391,7 +434,7 @@ class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateM
 }
 
 // =========================================================================
-// ADAPTIVE HOME TAB SCREEN OVERHAUL
+// MAIN ROADMAP COMPONENT
 // =========================================================================
 class AdaptiveHomeTab extends StatefulWidget {
   final AppState appState;
@@ -452,10 +495,8 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
     } else {
       if (index == 0) {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => BuildingGameTab(appState: widget.appState)));
-      } else if (index == 1) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Imperiya qurildi!")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi 3D kvest kutilmoqda!")));
       }
     }
   }
@@ -521,56 +562,56 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
 
             Expanded(
               child: SingleChildScrollView(
-                child: SizedBox(
-                  height: roadmapHeight,
-                  width: double.infinity,
-                  child: Stack(
-                    children: [
-                      // Continuous roadmap CustomPainter
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: RoadmapPainter(
-                            tier: tier,
-                            activeIndex: ageController.activeNodeIndex,
-                            focusAreas: ageController.focusAreas,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: roadmapHeight,
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          // Continuous roadmap CustomPainter
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: RoadmapPainter(
+                                tier: tier,
+                                activeIndex: ageController.activeNodeIndex,
+                                focusAreas: ageController.focusAreas,
+                              ),
+                            ),
                           ),
-                        ),
+
+                          // Circular Activity Nodes
+                          ...List.generate(5, (index) {
+                            final pos = _getNodeOffset(index, Size(size.width, roadmapHeight));
+                            final bool isLocked = index > ageController.activeNodeIndex;
+                            final bool isActive = index == ageController.activeNodeIndex;
+
+                            return Positioned(
+                              left: pos.dx - 36,
+                              top: pos.dy - 36,
+                              child: LivingNode(
+                                index: index,
+                                isLocked: isLocked,
+                                isActive: isActive,
+                                activeColor: accentColor,
+                                onTap: () => _onNodeTap(index, tier),
+                              ),
+                            );
+                          }),
+
+                          // Scholars (Quest Givers) placed along the path
+                          _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy"),
+                          _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy"),
+                          _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino"),
+                          _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek"),
+                        ],
                       ),
-
-                      // Circular Activity Nodes
-                      ...List.generate(5, (index) {
-                        final pos = _getNodeOffset(index, Size(size.width, roadmapHeight));
-                        final bool isLocked = index > ageController.activeNodeIndex;
-                        final bool isActive = index == ageController.activeNodeIndex;
-
-                        return Positioned(
-                          left: pos.dx - 36,
-                          top: pos.dy - 36,
-                          child: LivingNode(
-                            index: index,
-                            isLocked: isLocked,
-                            isActive: isActive,
-                            activeColor: accentColor,
-                            onTap: () => _onNodeTap(index, tier),
-                          ),
-                        );
-                      }),
-
-                      // Scholars (Quest Givers) placed along the path
-                      _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy"),
-                      _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy"),
-                      _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino"),
-                      _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek"),
-
-                      // RECOMMENDED SHORTS BANNER CARD AT THE BOTTOM OF ROADMAP
-                      Positioned(
-                        bottom: 24,
-                        left: 20,
-                        right: 20,
-                        child: _buildShortsRecommendationCard(accentColor),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: _buildShortsRecommendationCard(accentColor),
+                    ),
+                  ],
                 ),
               ),
             ),

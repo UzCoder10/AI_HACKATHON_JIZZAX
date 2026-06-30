@@ -60,8 +60,24 @@ class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProvid
   }
 }
 
+// Helper to get scholar image asset
+String _getScholarImage(String initials) {
+  switch (initials) {
+    case "AX":
+      return "assets/images/xorazmiy.png";
+    case "AB":
+      return "assets/images/beruniy.png";
+    case "IS":
+      return "assets/images/ibnsino.png";
+    case "MU":
+      return "assets/images/ulugbek.png";
+    default:
+      return "assets/images/xorazmiy.png";
+  }
+}
+
 // =========================================================================
-// PULSING RADAR RADIAL RIPPLE AVATAR
+// PULSING RADAR RADIAL RIPPLE AVATAR WITH ACTUAL SCHOLAR PNGS
 // =========================================================================
 class PulseRadarAvatar extends StatefulWidget {
   final Scholar scholar;
@@ -125,20 +141,30 @@ class _PulseRadarAvatarState extends State<PulseRadarAvatar> with SingleTickerPr
         );
       },
       child: Container(
-        width: 42,
-        height: 42,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: widget.scholar.solidColor,
+          color: widget.scholar.pastelColor,
           shape: BoxShape.circle,
           border: Border.all(
             color: AppTheme.getBorderColorFor(widget.scholar.solidColor),
             width: 2.5,
           ),
         ),
-        alignment: Alignment.center,
-        child: Text(
-          widget.scholar.initials,
-          style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Image.asset(
+            _getScholarImage(widget.scholar.initials),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Text(
+                  widget.scholar.initials,
+                  style: AppTheme.headerSmall.copyWith(color: widget.scholar.solidColor, fontSize: 13),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -146,7 +172,131 @@ class _PulseRadarAvatarState extends State<PulseRadarAvatar> with SingleTickerPr
 }
 
 // =========================================================================
-// CHATTAB WIDGET
+// PREMIUM ANIMATED SCHOLAR PORTRAIT WITH DETAILED BLINKING/BOUNCING
+// =========================================================================
+class AnimatedScholarPortrait extends StatefulWidget {
+  final Scholar scholar;
+  const AnimatedScholarPortrait({super.key, required this.scholar});
+
+  @override
+  State<AnimatedScholarPortrait> createState() => _AnimatedScholarPortraitState();
+}
+
+class _AnimatedScholarPortraitState extends State<AnimatedScholarPortrait> with TickerProviderStateMixin {
+  late final AnimationController _bounceController;
+  late final AnimationController _blinkController;
+  bool _isBlinking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+      lowerBound: 0.9,
+      upperBound: 1.1,
+    )..value = 1.0;
+
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+
+    _blinkController.addListener(() {
+      if (_blinkController.value > 0.94) {
+        if (!_isBlinking) {
+          setState(() => _isBlinking = true);
+        }
+      } else {
+        if (_isBlinking) {
+          setState(() => _isBlinking = false);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    _blinkController.dispose();
+    super.dispose();
+  }
+
+  void _triggerBounce() {
+    _bounceController.forward(from: 1.0).then((_) {
+      _bounceController.reverse(from: 1.1);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _triggerBounce,
+      child: AnimatedBuilder(
+        animation: _bounceController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _bounceController.value,
+            child: FloatingWidget(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer glowing rings
+                  Container(
+                    width: 104,
+                    height: 104,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: widget.scholar.solidColor.withAlpha(80), width: 4),
+                    ),
+                  ),
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: widget.scholar.pastelColor,
+                      radius: 32,
+                      borderColor: AppTheme.getBorderColorFor(widget.scholar.solidColor),
+                      shadowColor: widget.scholar.solidColor,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            _getScholarImage(widget.scholar.initials),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
+                                  widget.scholar.initials,
+                                  style: AppTheme.headerMedium.copyWith(color: widget.scholar.solidColor, fontSize: 24),
+                                ),
+                              );
+                            },
+                          ),
+                          // Simulated premium blink overlay
+                          if (_isBlinking)
+                            Container(
+                              color: widget.scholar.solidColor.withAlpha(120),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// CHAT TAB VIEW
 // =========================================================================
 class ChatTab extends StatefulWidget {
   final AppState appState;
@@ -294,7 +444,6 @@ class _ChatTabState extends State<ChatTab> {
 
     final chatLogs = state.chatHistory[scholar.id] ?? [];
     
-    // Proactive opening greeting trigger (Dopamine Flow)
     if (chatLogs.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         state.sendScholarResponse(scholar.id, scholar.automatedGreeting);
@@ -382,8 +531,10 @@ class _ChatTabState extends State<ChatTab> {
                   itemCount: chatLogs.length + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) {
-                      // Render Bouncing Portrait and Lottie/Rive Animation indicator at the top
-                      return _buildBouncingPortrait(scholar);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: AnimatedScholarPortrait(scholar: scholar),
+                      );
                     }
                     final msg = chatLogs[index - 1];
                     return _buildChatBubble(msg, scholar);
@@ -527,49 +678,6 @@ class _ChatTabState extends State<ChatTab> {
     );
   }
 
-  Widget _buildBouncingPortrait(Scholar scholar) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
-        child: FloatingWidget(
-          child: Column(
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: AppTheme.vibrant3DBoxDecoration(
-                  color: scholar.pastelColor,
-                  radius: 32,
-                  borderColor: AppTheme.getBorderColorFor(scholar.solidColor),
-                  shadowColor: scholar.solidColor,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  scholar.iconData,
-                  color: scholar.solidColor,
-                  size: 44,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.white,
-                  border: Border.all(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 1.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  "[Lottie / Rive Visual Animation Live]",
-                  style: AppTheme.bodySmall.copyWith(fontSize: 8, color: scholar.solidColor, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildScholarGrid() {
     return Scaffold(
       backgroundColor: AppTheme.porcelain,
@@ -597,8 +705,6 @@ class _ChatTabState extends State<ChatTab> {
               ),
               itemBuilder: (context, index) {
                 final s = scholarsList[index];
-                
-                // Tier feature lock
                 final bool isLocked = widget.appState.subscriptionTier == ParentSubscriptionTier.mini && index >= 2;
 
                 return FloatingWidget(
@@ -639,8 +745,8 @@ class _ChatTabState extends State<ChatTab> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                width: 50,
-                                height: 50,
+                                width: 64,
+                                height: 64,
                                 decoration: BoxDecoration(
                                   color: isLocked ? Colors.grey.shade300 : s.solidColor,
                                   shape: BoxShape.circle,
@@ -649,11 +755,19 @@ class _ChatTabState extends State<ChatTab> {
                                     width: 2.5,
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  isLocked ? Icons.lock_rounded : s.iconData,
-                                  color: AppTheme.white,
-                                  size: 24,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(32),
+                                  child: isLocked 
+                                      ? const Icon(Icons.lock_rounded, color: AppTheme.white, size: 24)
+                                      : Image.asset(
+                                          _getScholarImage(s.initials),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Center(
+                                              child: Icon(s.iconData, color: AppTheme.white, size: 24),
+                                            );
+                                          },
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -663,7 +777,7 @@ class _ChatTabState extends State<ChatTab> {
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                              ),
+                                  ),
                               const SizedBox(height: 4),
                               Text(
                                 s.field,
@@ -698,17 +812,27 @@ class _ChatTabState extends State<ChatTab> {
         children: [
           if (!isUser) ...[
             Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: scholar.solidColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppTheme.getBorderColorFor(scholar.solidColor), width: 1.5),
               ),
-              alignment: Alignment.center,
-              child: Text(
-                scholar.initials,
-                style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  _getScholarImage(scholar.initials),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Text(
+                        scholar.initials,
+                        style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 10),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 8),
