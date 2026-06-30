@@ -48,6 +48,11 @@ class _ParentTabState extends State<ParentTab> {
     ),
   };
 
+  // Switch options for progress reports
+  bool _telegramBotReports = true;
+  bool _smsReports = false;
+  bool _isPaying = false;
+
   void _onPinKeyTap(String value) {
     setState(() {
       _pinErrorMessage = "";
@@ -85,6 +90,92 @@ class _ParentTabState extends State<ParentTab> {
         ),
       );
     }
+  }
+
+  void _openCheckoutGateway(ParentSubscriptionTier tier, String label, String price) {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            title: Text("To'lov Tizimi (Uzbekistan Gateway)", style: AppTheme.headerMedium),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Tarif: $label\nNarxi: $price",
+                  style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                if (_isPaying)
+                  const CircularProgressIndicator(color: AppTheme.marineBlue)
+                else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Payme Button
+                      GestureDetector(
+                        onTap: () async {
+                          setModalState(() => _isPaying = true);
+                          await Future.delayed(const Duration(seconds: 2));
+                          widget.appState.changeSubscriptionTier(tier);
+                          setModalState(() => _isPaying = false);
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text("Payme orqali to'lov muvaffaqiyatli amalga oshirildi! 💳"),
+                              backgroundColor: AppTheme.mintGreen,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: const Color(0xFF3DC3C9), // Payme brand cyan
+                            radius: 16,
+                          ),
+                          child: Text("Payme", style: AppTheme.headerSmall.copyWith(color: AppTheme.white)),
+                        ),
+                      ),
+
+                      // Click Button
+                      GestureDetector(
+                        onTap: () async {
+                          setModalState(() => _isPaying = true);
+                          await Future.delayed(const Duration(seconds: 2));
+                          widget.appState.changeSubscriptionTier(tier);
+                          setModalState(() => _isPaying = false);
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text("Click orqali to'lov muvaffaqiyatli amalga oshirildi! 💳"),
+                              backgroundColor: AppTheme.mintGreen,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: const Color(0xFF0056C6), // Click brand blue
+                            radius: 16,
+                          ),
+                          child: Text("Click", style: AppTheme.headerSmall.copyWith(color: AppTheme.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -171,7 +262,6 @@ class _ParentTabState extends State<ParentTab> {
                       return _buildPinKeyButton("0");
                     }
                     if (index == 11) {
-                      // Delete key
                       return GestureDetector(
                         onTap: _onDeleteTap,
                         child: Container(
@@ -222,7 +312,7 @@ class _ParentTabState extends State<ParentTab> {
     );
   }
 
-  // Parents Analytics Dashboard
+  // Parents Analytics & Monetization Dashboard
   Widget _buildParentDashboard() {
     final state = widget.appState;
     final fav = state.favoriteScholar;
@@ -250,7 +340,7 @@ class _ParentTabState extends State<ParentTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Safe Alert Escalation Banner
+            // Safe Alert Banner
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -273,7 +363,7 @@ class _ParentTabState extends State<ParentTab> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "Farzandingiz shu haftada ba‘zi suhbatlarda yolg‘izlikni his qildi. Allomalar unga faqat sabr va ilm haqida maslahat berdilar (AI do‘st emas, maslahatchi).",
+                          "Farzandingiz haftalik suhbatlarda va o'yinlarda faol qatnashdi. Seysmik barqarorlik bo'limida poydevor tuzilishini muvozanatlashtirishda qiynaldi.",
                           style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple),
                         ),
                       ],
@@ -284,8 +374,10 @@ class _ParentTabState extends State<ParentTab> {
             ),
             const SizedBox(height: 20),
 
-            // Tiered Subscription Model Selector (Mini, Plus, Max tabs)
-            Text("A‘zolik Tariflari", style: AppTheme.headerMedium),
+            // 1. BUSINESS MONETIZATION GATEWAY
+            Text("Smart Edu Premium: A‘zolik Tariflari", style: AppTheme.headerMedium),
+            const SizedBox(height: 4),
+            Text("Nima uchun sotib olinadi? AI tahlili va haftalik SMS hisobotlar faqat premium tariflarda mavjud.", style: AppTheme.bodySmall),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
@@ -298,13 +390,87 @@ class _ParentTabState extends State<ParentTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildTierTab(ParentSubscriptionTier.mini, "Mini", AppTheme.cyan),
+                      _buildTierTab(ParentSubscriptionTier.mini, "Mini (Tekin)", AppTheme.cyan),
                       _buildTierTab(ParentSubscriptionTier.plus, "Plus", AppTheme.yellow),
-                      _buildTierTab(ParentSubscriptionTier.max, "Max", AppTheme.mandarin),
+                      _buildTierTab(ParentSubscriptionTier.max, "Max Premium", AppTheme.mandarin),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _buildSubscriptionDetails(state.subscriptionTier),
+                  const SizedBox(height: 12),
+                  if (state.subscriptionTier != ParentSubscriptionTier.max)
+                    GestureDetector(
+                      onTap: () {
+                        if (state.subscriptionTier == ParentSubscriptionTier.mini) {
+                          _openCheckoutGateway(ParentSubscriptionTier.plus, "Plus Tarif", "19 000 so'm / oy");
+                        } else {
+                          _openCheckoutGateway(ParentSubscriptionTier.max, "Max Premium Tarif", "39 000 so'm / oy");
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: AppTheme.vibrant3DBoxDecoration(
+                          color: AppTheme.mintGreen,
+                          borderColor: AppTheme.darkMintGreen,
+                          shadowColor: AppTheme.mintGreen,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Hozir Faollashtirish (CLICK/PAYME)",
+                          style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 2. WHY PARENTS BUY: VALUE ADDED REPORT CHANNELS
+            Text("Hisobotlarni Yetkazish Kanallari", style: AppTheme.headerMedium),
+            const SizedBox(height: 4),
+            Text("Har dushanba farzandingiz o'quv faoliyati natijalarini to'g'ridan-to'g'ri Telegram/SMS orqali oling.", style: AppTheme.bodySmall),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: Text("Telegram Bot orqali hisobot", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                    subtitle: Text("Aktiv: @SmartEduUzReportBot", style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple)),
+                    value: _telegramBotReports,
+                    activeTrackColor: AppTheme.marineBlue,
+                    activeThumbColor: AppTheme.white,
+                    onChanged: (val) {
+                      setState(() {
+                        _telegramBotReports = val;
+                      });
+                    },
+                  ),
+                  const Divider(color: AppTheme.porcelain, height: 12),
+                  SwitchListTile(
+                    title: Text("SMS xabarnoma orqali hisobot", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                    subtitle: Text("Farzandingiz kuchsiz sohalari bo'yicha ogohlantirish", style: AppTheme.bodySmall),
+                    value: _smsReports,
+                    activeTrackColor: AppTheme.mandarin,
+                    activeThumbColor: AppTheme.white,
+                    onChanged: (val) {
+                      if (state.subscriptionTier == ParentSubscriptionTier.mini) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("SMS hisobotlar faqat Plus yoki Max tariflarida mavjud!"),
+                            backgroundColor: AppTheme.appleRed,
+                          ),
+                        );
+                        return;
+                      }
+                      setState(() {
+                        _smsReports = val;
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -314,8 +480,8 @@ class _ParentTabState extends State<ParentTab> {
             if (state.subscriptionTier == ParentSubscriptionTier.mini) ...[
               _buildFeatureLockCard("Tahlillar va Ota-ona topshiriqlari bloklangan. Foydalanish uchun tarifingizni Plus yoki Maxga yangilang!")
             ] else ...[
-              // Weekly Mood Chart (Plus Feature)
-              Text("Haftalik Emotsional Holat (Kayfiyat)", style: AppTheme.headerMedium),
+              // Weekly Academic Progress Chart (Plus Feature)
+              Text("O'quv Fanlari Rivojlanishi (Haftalik)", style: AppTheme.headerMedium),
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -330,24 +496,21 @@ class _ParentTabState extends State<ParentTab> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _buildGraphBar("Du", 0.8, AppTheme.marineBlue, AppTheme.darkMarineBlue),
-                        _buildGraphBar("Se", 0.6, AppTheme.mandarin, AppTheme.darkMandarin),
-                        _buildGraphBar("Ch", 0.9, AppTheme.yellow, AppTheme.darkYellow),
-                        _buildGraphBar("Pa", 0.4, AppTheme.mintGreen, AppTheme.darkMintGreen),
-                        _buildGraphBar("Ju", 0.7, AppTheme.marineBlue, AppTheme.darkMarineBlue),
-                        _buildGraphBar("Sh", 0.5, AppTheme.mandarin, AppTheme.darkMandarin),
-                        _buildGraphBar("Ya", 0.95, AppTheme.mintGreen, AppTheme.darkMintGreen),
+                        _buildGraphBar("Math", 0.85, AppTheme.marineBlue, AppTheme.darkMarineBlue),
+                        _buildGraphBar("Logic", 0.60, AppTheme.mandarin, AppTheme.darkMandarin),
+                        _buildGraphBar("History", 0.45, AppTheme.yellow, AppTheme.darkYellow),
+                        _buildGraphBar("Drawing", 0.70, AppTheme.mintGreen, AppTheme.darkMintGreen),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildLegendCircle(AppTheme.marineBlue, AppTheme.darkMarineBlue, "Xursand"),
+                        _buildLegendCircle(AppTheme.marineBlue, AppTheme.darkMarineBlue, "Matematika"),
                         const SizedBox(width: 14),
-                        _buildLegendCircle(AppTheme.mandarin, AppTheme.darkMandarin, "Oddiy"),
+                        _buildLegendCircle(AppTheme.mandarin, AppTheme.darkMandarin, "Mantiq"),
                         const SizedBox(width: 14),
-                        _buildLegendCircle(AppTheme.yellow, AppTheme.darkYellow, "Xafa"),
+                        _buildLegendCircle(AppTheme.yellow, AppTheme.darkYellow, "Tarix"),
                       ],
                     ),
                   ],
@@ -355,8 +518,8 @@ class _ParentTabState extends State<ParentTab> {
               ),
               const SizedBox(height: 24),
 
-              // Academic Interest Profile
-              Text("Qiziqishlar Profili (Academic Profile)", style: AppTheme.headerMedium),
+              // Academic Recommendation Engine
+              Text("Diagnostika va Yo'naltirish (AI Recommend)", style: AppTheme.headerMedium),
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -386,10 +549,10 @@ class _ParentTabState extends State<ParentTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Eng ko‘p suhbatlashgan allomasi:", style: AppTheme.bodySmall),
-                          Text(fav.name, style: AppTheme.headerSmall),
+                          Text("AI Diagnostika Xulosasi:", style: AppTheme.bodySmall),
+                          Text("Mantiqiy minoralar seysmik barqarorligi zaifroq.", style: AppTheme.headerSmall.copyWith(fontSize: 12)),
                           Text(
-                            "Asosiy yo‘nalishi: ${fav.field}",
+                            "Tavsiya: Al-Xorazmiy minoralar topshirig'ini yuboring.",
                             style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
                           ),
                         ],
@@ -531,7 +694,7 @@ class _ParentTabState extends State<ParentTab> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: isSelected
             ? AppTheme.vibrant3DBoxDecoration(
                 color: accent,
@@ -547,7 +710,7 @@ class _ParentTabState extends State<ParentTab> {
         child: Text(
           label,
           style: AppTheme.headerSmall.copyWith(
-            fontSize: 12,
+            fontSize: 11,
             color: isSelected ? AppTheme.white : AppTheme.darkPurple.withAlpha(153),
           ),
         ),
@@ -561,10 +724,11 @@ class _ParentTabState extends State<ParentTab> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Mini Tarif (Tep-tekin)", style: AppTheme.headerSmall.copyWith(fontSize: 14)),
+            Text("Mini Tarif (Tekin)", style: AppTheme.headerSmall.copyWith(fontSize: 14)),
             const SizedBox(height: 4),
             Text("• Allomalardan faqat 2 tasi bilan muloqot (Ulug‘bek, Beruniy).", style: AppTheme.bodySmall),
-            Text("• Haftalik emotsional hisobotlar yopiq.", style: AppTheme.bodySmall),
+            Text("• Haftalik emotsional va o'quv hisobotlari yopiq.", style: AppTheme.bodySmall),
+            Text("• SMS/Telegram xabarnomalar tizimi faolsiz.", style: AppTheme.bodySmall),
           ],
         );
       case ParentSubscriptionTier.plus:
@@ -573,19 +737,20 @@ class _ParentTabState extends State<ParentTab> {
           children: [
             Text("Plus Tarif (19 000 so‘m / oy)", style: AppTheme.headerSmall.copyWith(fontSize: 14, color: AppTheme.yellow)),
             const SizedBox(height: 4),
-            Text("• Barcha allomalar bilan cheksiz muloqot.", style: AppTheme.bodySmall),
-            Text("• Haftalik va oylik emotsional holat tahlil jadvallari.", style: AppTheme.bodySmall),
+            Text("• Barcha allomalar bilan cheksiz muloqot va bilim ulashish.", style: AppTheme.bodySmall),
+            Text("• Haftalik va oylik o'quv rivojlanishi tahlil jadvallari.", style: AppTheme.bodySmall),
+            Text("• Haftalik Telegram Bot xabarnomalari ochiq.", style: AppTheme.bodySmall),
           ],
         );
       case ParentSubscriptionTier.max:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Max Tarif (39 000 so‘m / oy)", style: AppTheme.headerSmall.copyWith(fontSize: 14, color: AppTheme.mandarin)),
+            Text("Max Tarif (39 000 so‘m / oy yoki 190 000 so'm / yil)", style: AppTheme.headerSmall.copyWith(fontSize: 14, color: AppTheme.mandarin)),
             const SizedBox(height: 4),
             Text("• To‘liq allomalar + Ota-onadan maxsus topshiriq yuborish (Assignments).", style: AppTheme.bodySmall),
             Text("• Gemini Vision AI orqali bolaning chizgan rasmini psixologik tahlil qilish.", style: AppTheme.bodySmall),
-            Text("• Farzand faolligi bo‘yicha ustuvor xavfsizlik ogohlantirishlari.", style: AppTheme.bodySmall),
+            Text("• Farzand faolligi bo‘yicha ustuvor xavfsizlik va SMS ogohlantirishlari.", style: AppTheme.bodySmall),
           ],
         );
     }
@@ -620,11 +785,11 @@ class _ParentTabState extends State<ParentTab> {
       children: [
         Container(
           height: 100 * heightFactor,
-          width: 16,
+          width: 24,
           decoration: BoxDecoration(
             color: barColor,
             border: Border.all(color: borderColor, width: 2.0),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
           ),
         ),
         const SizedBox(height: 6),
