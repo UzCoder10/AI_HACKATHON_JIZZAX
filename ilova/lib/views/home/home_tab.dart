@@ -48,15 +48,15 @@ class _HomeTabState extends State<HomeTab> {
     final themeAccent = AppTheme.getThemeAccent(state.activeThemeName);
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain, // Ultra-clean light porcelain background
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: AppTheme.neonDecoration(
+              decoration: AppTheme.vibrantDecoration(
                 color: themeAccent,
                 radius: 12,
                 borderWidth: 2,
@@ -79,7 +79,7 @@ class _HomeTabState extends State<HomeTab> {
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: AppTheme.neonDecoration(
+            decoration: AppTheme.vibrantDecoration(
               color: AppTheme.yellow,
               radius: 16,
               borderWidth: 2,
@@ -107,7 +107,7 @@ class _HomeTabState extends State<HomeTab> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: AppTheme.neonDecoration(
+              decoration: AppTheme.vibrantDecoration(
                 color: themeBg,
               ),
               child: Row(
@@ -128,11 +128,12 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Container(
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: AppTheme.cyan,
+                      color: AppTheme.marineBlue,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppTheme.darkBlue, width: 2.5),
                     ),
@@ -147,8 +148,8 @@ class _HomeTabState extends State<HomeTab> {
             // Modern Mood Tracker (Emoji-free, Vector icon buttons)
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(
-                color: AppTheme.pastelMint,
+              decoration: AppTheme.vibrantDecoration(
+                color: AppTheme.white,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,9 +162,9 @@ class _HomeTabState extends State<HomeTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildMoodBtn(MoodType.happy, Icons.sentiment_very_satisfied_rounded, "Xursand"),
-                      _buildMoodBtn(MoodType.neutral, Icons.sentiment_neutral_rounded, "Oddiy"),
-                      _buildMoodBtn(MoodType.sad, Icons.sentiment_very_dissatisfied_rounded, "Xafa"),
+                      _buildMoodBtn(MoodType.happy, Icons.sentiment_very_satisfied_rounded, "Xursand", AppTheme.marineBlue),
+                      _buildMoodBtn(MoodType.neutral, Icons.sentiment_neutral_rounded, "Oddiy", AppTheme.yellow),
+                      _buildMoodBtn(MoodType.sad, Icons.sentiment_very_dissatisfied_rounded, "Xafa", AppTheme.appleRed),
                     ],
                   ),
                   if (_unlockedMessage.isNotEmpty) ...[
@@ -172,13 +173,13 @@ class _HomeTabState extends State<HomeTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: AppTheme.white,
+                          color: AppTheme.porcelain,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppTheme.darkBlue, width: 2),
                         ),
                         child: Text(
                           _unlockedMessage,
-                          style: AppTheme.bodySmall.copyWith(color: AppTheme.magenta, fontWeight: FontWeight.bold),
+                          style: AppTheme.bodySmall.copyWith(color: AppTheme.mandarin, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -189,13 +190,13 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // Daily Quest Blueprint Card
+            // Daily Quest Activity Card (Mandarin Orange/Sunny Yellow Gaming Card)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: AppTheme.glowDecoration(
+              decoration: AppTheme.vibrantDecoration(
                 color: AppTheme.yellow,
-                glowColor: AppTheme.yellow,
+                shadowColor: AppTheme.mandarin,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +216,7 @@ class _HomeTabState extends State<HomeTab> {
                     "Yer sayyorasi yoki yulduzlar rasmini chizib, allomalarga yuboring va 5 yulduzcha yutib oling!",
                     style: AppTheme.bodyLarge,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -226,13 +227,17 @@ class _HomeTabState extends State<HomeTab> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.darkBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      foregroundColor: AppTheme.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppTheme.darkBlue, width: 1.5),
+                      ),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
                     child: Text(
                       "Chizishni boshlash",
-                      style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 14),
+                      style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
                     ),
                   ),
                 ],
@@ -240,7 +245,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 20),
 
-            // Scholars horizontal list tracking
+            // Scholars list
             Text(
               "Buyuk Siymolar",
               style: AppTheme.headerMedium,
@@ -260,7 +265,6 @@ class _HomeTabState extends State<HomeTab> {
                 final scholar = scholarsList[index];
                 return GestureDetector(
                   onTap: () {
-                    // Navigate to biography or start chat
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -280,20 +284,23 @@ class _HomeTabState extends State<HomeTab> {
                             child: const Text("Hayot yo‘li"),
                           ),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: scholar.solidColor),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: scholar.solidColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                             onPressed: () {
                               Navigator.of(ctx).pop();
                               state.selectScholar(scholar);
                               state.changeTab(1); // Chat tab
                             },
-                            child: Text("Suhbat", style: AppTheme.bodySmall.copyWith(color: Colors.white)),
+                            child: Text("Suhbat", style: AppTheme.bodySmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
                           )
                         ],
                       ),
                     );
                   },
                   child: Container(
-                    decoration: AppTheme.neonDecoration(
+                    decoration: AppTheme.vibrantDecoration(
                       color: scholar.pastelColor,
                       radius: 20,
                       borderWidth: 2.5,
@@ -313,7 +320,7 @@ class _HomeTabState extends State<HomeTab> {
                           alignment: Alignment.center,
                           child: Text(
                             scholar.initials,
-                            style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 14),
+                            style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -326,7 +333,9 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         Text(
                           scholar.field,
-                          style: AppTheme.bodySmall.copyWith(fontSize: 9),
+                          style: AppTheme.bodySmall.copyWith(fontSize: 9, color: AppTheme.greyText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -340,7 +349,7 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildMoodBtn(MoodType mood, IconData icon, String text) {
+  Widget _buildMoodBtn(MoodType mood, IconData icon, String text, Color activeColor) {
     final bool isSelected = widget.appState.loggedMoodToday == mood;
 
     return GestureDetector(
@@ -349,15 +358,15 @@ class _HomeTabState extends State<HomeTab> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.white : Colors.white70,
+          color: isSelected ? activeColor : AppTheme.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.magenta : AppTheme.darkBlue,
+            color: AppTheme.darkBlue,
             width: isSelected ? 3 : 2,
           ),
           boxShadow: isSelected
-              ? [
-                  const BoxShadow(
+              ? const [
+                  BoxShadow(
                     color: AppTheme.darkBlue,
                     offset: Offset(3, 3),
                   )
@@ -366,13 +375,13 @@ class _HomeTabState extends State<HomeTab> {
         ),
         child: Column(
           children: [
-            Icon(icon, size: 28, color: isSelected ? AppTheme.magenta : AppTheme.darkBlue),
+            Icon(icon, size: 28, color: isSelected ? AppTheme.white : AppTheme.darkBlue),
             const SizedBox(height: 4),
             Text(
               text,
               style: AppTheme.headerSmall.copyWith(
                 fontSize: 10,
-                color: isSelected ? AppTheme.magenta : AppTheme.darkBlue,
+                color: isSelected ? AppTheme.white : AppTheme.darkBlue,
               ),
             ),
           ],

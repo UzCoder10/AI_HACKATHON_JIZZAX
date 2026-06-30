@@ -28,7 +28,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 4.0, end: 18.0).animate(
+    _pulseAnimation = Tween<double>(begin: 3.0, end: 12.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -132,7 +132,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                 width: 6,
                 height: 24 + (i % 2 == 0 ? 12 : 0),
                 decoration: BoxDecoration(
-                  color: AppTheme.magenta,
+                  color: AppTheme.mandarin,
                   borderRadius: BorderRadius.circular(4),
                 ),
               )),
@@ -167,9 +167,9 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
     final chatLogs = state.chatHistory[scholar.id] ?? [];
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.darkBlue),
@@ -177,7 +177,6 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
         ),
         title: Row(
           children: [
-            // Pulse Animated Avatar Glow
             AnimatedBuilder(
               animation: _pulseAnimation,
               builder: (context, child) {
@@ -186,9 +185,9 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: scholar.solidColor.withAlpha(100),
+                        color: scholar.solidColor.withAlpha(80),
                         blurRadius: _pulseAnimation.value,
-                        spreadRadius: _pulseAnimation.value / 3,
+                        spreadRadius: _pulseAnimation.value / 4,
                       )
                     ],
                   ),
@@ -206,7 +205,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                 alignment: Alignment.center,
                 child: Text(
                   scholar.initials,
-                  style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 12),
+                  style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 12),
                 ),
               ),
             ),
@@ -222,12 +221,12 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: AppTheme.cyan,
+                          color: AppTheme.mintGreen,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text("tarmoqda", style: AppTheme.bodySmall.copyWith(fontSize: 10, color: AppTheme.cyan)),
+                      Text("tarmoqda", style: AppTheme.bodySmall.copyWith(fontSize: 10, color: AppTheme.mintGreen)),
                     ],
                   ),
                 ],
@@ -241,7 +240,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
               const Icon(Icons.subtitles_rounded, color: AppTheme.darkBlue, size: 18),
               Switch(
                 value: state.inclusiveMode,
-                activeTrackColor: AppTheme.magenta,
+                activeTrackColor: AppTheme.mandarin,
                 onChanged: (val) => state.toggleInclusiveMode(val),
               ),
             ],
@@ -289,7 +288,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                     bottom: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: AppTheme.neonDecoration(
+                      decoration: AppTheme.vibrantDecoration(
                         color: AppTheme.white,
                         radius: 16,
                         borderWidth: 2,
@@ -324,7 +323,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: ActionChip(
-                    backgroundColor: Colors.white,
+                    backgroundColor: AppTheme.white,
                     surfaceTintColor: Colors.transparent,
                     label: Text(
                       q,
@@ -332,7 +331,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: AppTheme.darkBlue, width: 2),
+                      side: const BorderSide(color: AppTheme.darkBlue, width: 2),
                     ),
                     onPressed: () => _onSendMessage(q),
                   ),
@@ -341,17 +340,16 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
             ),
           ),
 
-          // Inclusive Mode High Contrast Subtitle Box
+          // Inclusive Mode High Contrast Subtitle Box (Deep contrasted black box + 24pt bold yellow text)
           if (state.inclusiveMode && _lastScholarResponse.isNotEmpty)
             Container(
               width: double.infinity,
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(
+              decoration: AppTheme.vibrantDecoration(
                 color: AppTheme.darkBlue,
                 radius: 20,
-                glowColor: AppTheme.yellow,
-                hasGlow: true,
+                shadowColor: AppTheme.mandarin,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +367,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 8),
                   Text(
                     _lastScholarResponse,
-                    style: AppTheme.headerMedium.copyWith(color: AppTheme.yellow, fontSize: 22),
+                    style: AppTheme.headerMedium.copyWith(color: AppTheme.yellow, fontSize: 24),
                   ),
                 ],
               ),
@@ -384,8 +382,8 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   onTap: _simulateCamera,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: AppTheme.neonDecoration(color: AppTheme.cyan, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
-                    child: const Icon(Icons.camera_alt_rounded, color: AppTheme.darkBlue, size: 20),
+                    decoration: AppTheme.vibrantDecoration(color: AppTheme.marineBlue, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
+                    child: const Icon(Icons.camera_alt_rounded, color: AppTheme.white, size: 20),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -393,14 +391,14 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   onTap: _simulateMic,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: AppTheme.neonDecoration(color: AppTheme.magenta, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
-                    child: const Icon(Icons.mic_rounded, color: AppTheme.darkBlue, size: 20),
+                    decoration: AppTheme.vibrantDecoration(color: AppTheme.mandarin, radius: 18, borderWidth: 2.5, shadowOffset: const Offset(2, 2)),
+                    child: const Icon(Icons.mic_rounded, color: AppTheme.white, size: 20),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Container(
-                    decoration: AppTheme.neonDecoration(color: AppTheme.white, radius: 24, borderWidth: 2.5, shadowOffset: const Offset(3, 3)),
+                    decoration: AppTheme.vibrantDecoration(color: AppTheme.white, radius: 24, borderWidth: 2.5, shadowOffset: const Offset(3, 3)),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: TextField(
                       textInputAction: TextInputAction.send,
@@ -422,9 +420,9 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
 
   Widget _buildScholarGrid() {
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: Text("Allomalar Dunyosi", style: AppTheme.headerMedium),
       ),
@@ -450,7 +448,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                 return GestureDetector(
                   onTap: () => widget.appState.selectScholar(s),
                   child: Container(
-                    decoration: AppTheme.neonDecoration(
+                    decoration: AppTheme.vibrantDecoration(
                       color: s.pastelColor,
                       radius: 24,
                     ),
@@ -469,7 +467,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                           alignment: Alignment.center,
                           child: Icon(
                             s.iconData,
-                            color: Colors.white,
+                            color: AppTheme.white,
                             size: 24,
                           ),
                         ),
@@ -484,7 +482,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                         const SizedBox(height: 4),
                         Text(
                           s.field,
-                          style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold),
+                          style: AppTheme.bodySmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.greyText),
                           textAlign: TextAlign.center,
                         ),
                         Text(
@@ -524,7 +522,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
               alignment: Alignment.center,
               child: Text(
                 scholar.initials,
-                style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 10),
+                style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 10),
               ),
             ),
             const SizedBox(width: 8),
@@ -533,7 +531,7 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: isUser ? Colors.white : scholar.pastelColor,
+                color: isUser ? AppTheme.white : scholar.solidColor, // Scholar bubble is filled with their bright signature layout token
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -553,7 +551,10 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                 children: [
                   Text(
                     isUser ? "Siz" : scholar.name,
-                    style: AppTheme.headerSmall.copyWith(fontSize: 10, color: isUser ? AppTheme.magenta : scholar.solidColor),
+                    style: AppTheme.headerSmall.copyWith(
+                      fontSize: 10, 
+                      color: isUser ? AppTheme.mandarin : AppTheme.white,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   if (msg.isDrawing) ...[
@@ -561,8 +562,8 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                       width: 140,
                       height: 100,
                       margin: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: AppTheme.neonDecoration(
-                        color: Colors.white,
+                      decoration: AppTheme.vibrantDecoration(
+                        color: AppTheme.white,
                         radius: 12,
                         borderWidth: 2,
                         shadowOffset: const Offset(2, 2),
@@ -580,7 +581,9 @@ class _ChatTabState extends State<ChatTab> with SingleTickerProviderStateMixin {
                   ],
                   Text(
                     msg.text,
-                    style: AppTheme.bodyMedium,
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: isUser ? AppTheme.darkBlue : AppTheme.white,
+                    ),
                   ),
                 ],
               ),

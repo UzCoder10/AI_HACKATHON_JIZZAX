@@ -42,14 +42,14 @@ class AchievementsTab extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: Text("Yutuqlarim", style: AppTheme.headerMedium),
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_bag_rounded, color: AppTheme.magenta, size: 28),
+            icon: const Icon(Icons.shopping_bag_rounded, color: AppTheme.mandarin, size: 28),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -70,7 +70,7 @@ class AchievementsTab extends StatelessWidget {
             // Level progress section
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: AppTheme.neonDecoration(color: AppTheme.pastelBlue),
+              decoration: AppTheme.vibrantDecoration(color: AppTheme.pastelBlue),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -78,7 +78,7 @@ class AchievementsTab extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Darajam", style: AppTheme.headerSmall),
-                      Text("${state.currentLevel}-Level", style: AppTheme.headerMedium.copyWith(color: AppTheme.magenta)),
+                      Text("${state.currentLevel}-Level", style: AppTheme.headerMedium.copyWith(color: AppTheme.mandarin)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -97,7 +97,7 @@ class AchievementsTab extends StatelessWidget {
                         children: [
                           FractionallySizedBox(
                             widthFactor: levelProgress,
-                            child: Container(color: AppTheme.magenta),
+                            child: Container(color: AppTheme.mandarin),
                           ),
                         ],
                       ),
@@ -113,7 +113,7 @@ class AchievementsTab extends StatelessWidget {
             // Continuous Usage Streak
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(color: AppTheme.pastelGold),
+              decoration: AppTheme.vibrantDecoration(color: AppTheme.pastelGold),
               child: Row(
                 children: [
                   const Icon(Icons.bolt_rounded, color: AppTheme.yellow, size: 36),
@@ -144,14 +144,14 @@ class AchievementsTab extends StatelessWidget {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
-                  decoration: AppTheme.neonDecoration(
+                  decoration: AppTheme.vibrantDecoration(
                     color: AppTheme.white,
                     borderWidth: 2,
                     shadowOffset: const Offset(3, 3),
                   ),
                   child: Row(
                     children: [
-                      Icon(quest.iconData, color: quest.isCompleted ? AppTheme.cyan : AppTheme.darkBlue, size: 24),
+                      Icon(quest.iconData, color: quest.isCompleted ? AppTheme.marineBlue : AppTheme.darkBlue, size: 24),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -178,7 +178,7 @@ class AchievementsTab extends StatelessWidget {
                         child: Row(
                           children: [
                             if (quest.isCompleted) ...[
-                              const Icon(Icons.check_rounded, color: AppTheme.cyan, size: 14),
+                              const Icon(Icons.check_rounded, color: AppTheme.marineBlue, size: 14),
                               const SizedBox(width: 4),
                             ],
                             Text(
@@ -213,7 +213,7 @@ class AchievementsTab extends StatelessWidget {
                 final bool isUnlocked = t["req"];
 
                 return Container(
-                  decoration: AppTheme.neonDecoration(
+                  decoration: AppTheme.vibrantDecoration(
                     color: isUnlocked ? AppTheme.pastelMint : Colors.grey.shade100,
                     radius: 20,
                   ),
@@ -224,7 +224,7 @@ class AchievementsTab extends StatelessWidget {
                       Icon(
                         t["icon"],
                         size: 36,
-                        color: isUnlocked ? AppTheme.magenta : Colors.grey.shade400,
+                        color: isUnlocked ? AppTheme.mandarin : Colors.grey.shade400,
                       ),
                       const SizedBox(height: 8),
                       Text(

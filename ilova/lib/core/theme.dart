@@ -2,48 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Hyper-Vibrant Neon Colors
-  static const Color spacePurple = Color(0xFF0C001F);
-  static const Color cyan = Color(0xFF00F0FF);
-  static const Color magenta = Color(0xFFFF007A);
-  static const Color yellow = Color(0xFFFFF500);
+  // Sunny Pop UI Fruity Accent Colors
+  static const Color mandarin = Color(0xFFFF6B35);
+  static const Color yellow = Color(0xFFFFB627);
+  static const Color marineBlue = Color(0xFF00A8E8);
+  static const Color appleRed = Color(0xFFEF476F);
+  static const Color mintGreen = Color(0xFF06D6A0);
+  
+  // Canvas Colors
   static const Color white = Color(0xFFFFFFFF);
-  static const Color darkBlue = Color(0xFF130F26);
-  static const Color greyBg = Color(0xFF1E1938);
+  static const Color porcelain = Color(0xFFF4F6F9);
+  static const Color darkBlue = Color(0xFF1A1A24); // High contrast borders
+  static const Color greyText = Color(0xFF5D5D70);
 
-  // Soft Accent Pastels for Cards
-  static const Color pastelGold = Color(0xFFFFF7DC);
-  static const Color pastelMint = Color(0xFFE3FBF7);
-  static const Color pastelPeach = Color(0xFFFFECE3);
-  static const Color pastelBlue = Color(0xFFECF1FF);
-  static const Color pastelBrown = Color(0xFFF9F1E7);
-  static const Color pastelRed = Color(0xFFFFECEC);
+  // Backward Compatibility Aliases for Sunny Pop UI mapping
+  static const Color cyan = marineBlue;
+  static const Color magenta = mandarin;
 
-  // Glowing Neon BoxShadows
-  static List<BoxShadow> neonGlowShadow({required Color glowColor, double blurRadius = 16.0}) {
-    return [
-      BoxShadow(
-        color: glowColor.withAlpha(160),
-        blurRadius: blurRadius,
-        spreadRadius: 2,
-      ),
-      const BoxShadow(
-        color: darkBlue,
-        offset: Offset(4, 4),
-        blurRadius: 0,
-      ),
-    ];
-  }
+  // Soft Background Pastels (for subtle card backgrounds)
+  static const Color pastelGold = Color(0xFFFFF6E5);
+  static const Color pastelMint = Color(0xFFE6FAF4);
+  static const Color pastelPeach = Color(0xFFFFECE5);
+  static const Color pastelBlue = Color(0xFFE5F6FD);
+  static const Color pastelBrown = Color(0xFFFAF3EC);
+  static const Color pastelRed = Color(0xFFFCEAEF);
 
-  // Neon-Cyber Pop Decoration (Thick Borders + 2.5D shading details + optional glow)
-  static BoxDecoration neonDecoration({
+  // Vibrant Pop UI Decoration (Thick borders + flat offset shadows + no blur/neon lines)
+  static BoxDecoration vibrantDecoration({
     required Color color,
     double radius = 28.0,
-    double borderWidth = 3.5,
-    bool hasGlow = false,
-    Color glowColor = cyan,
+    double borderWidth = 3.0,
+    Offset shadowOffset = const Offset(4, 4),
     Color shadowColor = darkBlue,
-    Offset shadowOffset = const Offset(5, 5),
   }) {
     return BoxDecoration(
       color: color,
@@ -52,26 +42,33 @@ class AppTheme {
         color: darkBlue,
         width: borderWidth,
       ),
-      boxShadow: hasGlow
-          ? [
-              BoxShadow(
-                color: glowColor.withAlpha(150),
-                blurRadius: 18,
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: shadowColor,
-                offset: shadowOffset,
-                blurRadius: 0,
-              ),
-            ]
-          : [
-              BoxShadow(
-                color: shadowColor,
-                offset: shadowOffset,
-                blurRadius: 0,
-              ),
-            ],
+      boxShadow: [
+        BoxShadow(
+          color: shadowColor,
+          offset: shadowOffset,
+          blurRadius: 0,
+          spreadRadius: 0,
+        ),
+      ],
+    );
+  }
+
+  // Aliases for compatibility with other modular views
+  static BoxDecoration neonDecoration({
+    required Color color,
+    double radius = 28.0,
+    double borderWidth = 3.0,
+    bool hasGlow = false,
+    Color glowColor = marineBlue,
+    Color shadowColor = darkBlue,
+    Offset shadowOffset = const Offset(4, 4),
+  }) {
+    return vibrantDecoration(
+      color: color,
+      radius: radius,
+      borderWidth: borderWidth,
+      shadowOffset: shadowOffset,
+      shadowColor: shadowColor,
     );
   }
 
@@ -80,25 +77,10 @@ class AppTheme {
     required Color glowColor,
     double radius = 28.0,
   }) {
-    return BoxDecoration(
+    return vibrantDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(
-        color: darkBlue,
-        width: 3.5,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: glowColor.withAlpha(150),
-          blurRadius: 18,
-          spreadRadius: 2,
-        ),
-        const BoxShadow(
-          color: darkBlue,
-          offset: Offset(5, 5),
-          blurRadius: 0,
-        ),
-      ],
+      radius: radius,
+      shadowColor: darkBlue,
     );
   }
 
@@ -113,15 +95,16 @@ class AppTheme {
         color: darkBlue,
       );
 
-  // High-energy dual-tone typography getters
-  static TextStyle get headerLarge => fontHeader.copyWith(fontSize: 28);
-  static TextStyle get headerMedium => fontHeader.copyWith(fontSize: 22);
-  static TextStyle get headerSmall => fontHeader.copyWith(fontSize: 18);
+  // Shouts and bold friendly headers
+  static TextStyle get headerLarge => fontHeader.copyWith(fontSize: 28, color: darkBlue);
+  static TextStyle get headerMedium => fontHeader.copyWith(fontSize: 22, color: darkBlue);
+  static TextStyle get headerSmall => fontHeader.copyWith(fontSize: 18, color: darkBlue);
 
-  static TextStyle get bodyLarge => fontBody.copyWith(fontSize: 16);
-  static TextStyle get bodyMedium => fontBody.copyWith(fontSize: 14);
-  static TextStyle get bodySmall => fontBody.copyWith(fontSize: 12);
+  static TextStyle get bodyLarge => fontBody.copyWith(fontSize: 16, color: darkBlue);
+  static TextStyle get bodyMedium => fontBody.copyWith(fontSize: 14, color: darkBlue);
+  static TextStyle get bodySmall => fontBody.copyWith(fontSize: 12, color: greyText);
 
+  // Themes Color Maps
   static Color getThemeBg(String themeName) {
     switch (themeName) {
       case "sky-blue":
@@ -137,12 +120,12 @@ class AppTheme {
   static Color getThemeAccent(String themeName) {
     switch (themeName) {
       case "sky-blue":
-        return cyan;
+        return marineBlue;
       case "forest-mint":
-        return yellow;
+        return mintGreen;
       case "neon-cyber":
       default:
-        return magenta;
+        return mandarin;
     }
   }
 }

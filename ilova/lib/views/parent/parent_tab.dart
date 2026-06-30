@@ -56,9 +56,9 @@ class _ParentTabState extends State<ParentTab> {
   // Numeric Keyboard PIN Gate Screen
   Widget _buildPinGate() {
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: Text("Ota-onalar nazorati", style: AppTheme.headerMedium),
       ),
@@ -68,7 +68,7 @@ class _ParentTabState extends State<ParentTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock_rounded, size: 54, color: AppTheme.magenta),
+              const Icon(Icons.lock_rounded, size: 54, color: AppTheme.mandarin),
               const SizedBox(height: 14),
               Text(
                 "Ota-onalar sahifasiga kirish",
@@ -92,7 +92,7 @@ class _ParentTabState extends State<ParentTab> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isFilled ? AppTheme.magenta : Colors.grey.shade200,
+                      color: isFilled ? AppTheme.mandarin : Colors.grey.shade200,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppTheme.darkBlue, width: 2),
                     ),
@@ -103,11 +103,11 @@ class _ParentTabState extends State<ParentTab> {
               if (_pinErrorMessage.isNotEmpty)
                 Text(
                   _pinErrorMessage,
-                  style: AppTheme.bodySmall.copyWith(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: AppTheme.bodySmall.copyWith(color: AppTheme.appleRed, fontWeight: FontWeight.bold),
                 ),
               const SizedBox(height: 32),
 
-              // Keyboard Layout
+              // Keyboard Layout (White circles with vibrant mandarin numbers and borders)
               Container(
                 constraints: const BoxConstraints(maxWidth: 320),
                 child: GridView.builder(
@@ -122,7 +122,6 @@ class _ParentTabState extends State<ParentTab> {
                   ),
                   itemBuilder: (context, index) {
                     if (index == 9) {
-                      // Lock/Empty
                       return const SizedBox.shrink();
                     }
                     if (index == 10) {
@@ -133,14 +132,15 @@ class _ParentTabState extends State<ParentTab> {
                       return GestureDetector(
                         onTap: _onDeleteTap,
                         child: Container(
-                          decoration: AppTheme.neonDecoration(
+                          decoration: AppTheme.vibrantDecoration(
                             color: AppTheme.white,
                             radius: 16,
                             borderWidth: 2,
                             shadowOffset: const Offset(2, 2),
+                            shadowColor: AppTheme.mandarin,
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(Icons.backspace_rounded, color: AppTheme.darkBlue),
+                          child: const Icon(Icons.backspace_rounded, color: AppTheme.mandarin),
                         ),
                       );
                     }
@@ -161,16 +161,17 @@ class _ParentTabState extends State<ParentTab> {
     return GestureDetector(
       onTap: () => _onPinKeyTap(val),
       child: Container(
-        decoration: AppTheme.neonDecoration(
+        decoration: AppTheme.vibrantDecoration(
           color: AppTheme.white,
           radius: 16,
-          borderWidth: 2,
+          borderWidth: 2.5,
           shadowOffset: const Offset(2, 2),
+          shadowColor: AppTheme.mandarin,
         ),
         alignment: Alignment.center,
         child: Text(
           val,
-          style: AppTheme.headerMedium,
+          style: AppTheme.headerMedium.copyWith(color: AppTheme.mandarin),
         ),
       ),
     );
@@ -182,9 +183,9 @@ class _ParentTabState extends State<ParentTab> {
     final fav = state.favoriteScholar;
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: AppTheme.porcelain,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: Text("Tahlil va Hisobotlar", style: AppTheme.headerMedium),
         actions: [
@@ -204,18 +205,17 @@ class _ParentTabState extends State<ParentTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Safe Alert Escalation Banner
+            // Safe Alert Escalation Banner (High-contrast appleRed box)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(
-                color: AppTheme.pastelPeach,
-                glowColor: AppTheme.magenta,
-                hasGlow: true,
+              decoration: AppTheme.vibrantDecoration(
+                color: AppTheme.pastelRed,
+                shadowColor: AppTheme.appleRed,
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppTheme.magenta, size: 28),
+                  const Icon(Icons.warning_amber_rounded, color: AppTheme.appleRed, size: 28),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -223,7 +223,7 @@ class _ParentTabState extends State<ParentTab> {
                       children: [
                         Text(
                           "Xavfsizlik Signali (Safety Alert)",
-                          style: AppTheme.headerSmall.copyWith(color: AppTheme.magenta, fontSize: 13),
+                          style: AppTheme.headerSmall.copyWith(color: AppTheme.appleRed, fontSize: 13),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -238,11 +238,14 @@ class _ParentTabState extends State<ParentTab> {
             ),
             const SizedBox(height: 20),
 
-            // Payme subscription widget
+            // Premium check
             if (!state.isPremiumSubscribed) ...[
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: AppTheme.neonDecoration(color: AppTheme.yellow),
+                decoration: AppTheme.vibrantDecoration(
+                  color: AppTheme.yellow,
+                  shadowColor: AppTheme.mandarin,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -251,7 +254,10 @@ class _ParentTabState extends State<ParentTab> {
                     Text("Barcha allomalar va audio darsliklarni to‘liq ochish uchun obunani rasmiylashtiring.", style: AppTheme.bodySmall),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.darkBlue),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.darkBlue,
+                        foregroundColor: AppTheme.white,
+                      ),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -267,34 +273,34 @@ class _ParentTabState extends State<ParentTab> {
               const SizedBox(height: 20),
             ],
 
-            // Weekly Mood Metrics (Visual Vector Bars)
+            // Weekly Mood Metrics (Vibrant fills: Marine Blue, Mint Green, Mandarin Orange)
             Text("Haftalik Emotsional Holat (Kayfiyat)", style: AppTheme.headerMedium),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(color: AppTheme.white),
+              decoration: AppTheme.vibrantDecoration(color: AppTheme.white),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _buildGraphBar("Du", 0.8, AppTheme.cyan),
-                      _buildGraphBar("Se", 0.6, AppTheme.magenta),
+                      _buildGraphBar("Du", 0.8, AppTheme.marineBlue),
+                      _buildGraphBar("Se", 0.6, AppTheme.mandarin),
                       _buildGraphBar("Ch", 0.9, AppTheme.yellow),
-                      _buildGraphBar("Pa", 0.4, AppTheme.cyan),
-                      _buildGraphBar("Ju", 0.7, AppTheme.magenta),
-                      _buildGraphBar("Sh", 0.5, AppTheme.yellow),
-                      _buildGraphBar("Ya", 0.95, AppTheme.cyan),
+                      _buildGraphBar("Pa", 0.4, AppTheme.mintGreen),
+                      _buildGraphBar("Ju", 0.7, AppTheme.marineBlue),
+                      _buildGraphBar("Sh", 0.5, AppTheme.mandarin),
+                      _buildGraphBar("Ya", 0.95, AppTheme.mintGreen),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildLegendCircle(AppTheme.cyan, "Xursand"),
+                      _buildLegendCircle(AppTheme.marineBlue, "Xursand"),
                       const SizedBox(width: 14),
-                      _buildLegendCircle(AppTheme.magenta, "Oddiy"),
+                      _buildLegendCircle(AppTheme.mandarin, "Oddiy"),
                       const SizedBox(width: 14),
                       _buildLegendCircle(AppTheme.yellow, "Xafa"),
                     ],
@@ -309,7 +315,7 @@ class _ParentTabState extends State<ParentTab> {
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.neonDecoration(color: AppTheme.pastelBlue),
+              decoration: AppTheme.vibrantDecoration(color: AppTheme.pastelBlue, shadowColor: AppTheme.marineBlue),
               child: Row(
                 children: [
                   Container(
