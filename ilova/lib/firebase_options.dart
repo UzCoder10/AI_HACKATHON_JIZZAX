@@ -19,28 +19,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'mock-api-key-idx-supercell',
-    appId: '1:123456789:web:1234abcd',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyCE2en-MyXJVqWsB3gS8uuvMg6I5Loc7As',
+    appId: '1:352395797870:web:476de4616fdc860d190d7f',
+    messagingSenderId: '352395797870',
     projectId: 'smartedu-5d27b',
     authDomain: 'smartedu-5d27b.firebaseapp.com',
-    storageBucket: 'smartedu-5d27b.appspot.com',
+    storageBucket: 'smartedu-5d27b.firebasestorage.app',
+    measurementId: 'G-Y21WDHJX48',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'mock-api-key-idx-supercell',
-    appId: '1:123456789:android:1234abcd',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyDhc2h-PkJDlFG-iqfWJQWS-jQ1QWOfbAs',
+    appId: '1:352395797870:android:8a85e4606899471f190d7f',
+    messagingSenderId: '352395797870',
     projectId: 'smartedu-5d27b',
-    storageBucket: 'smartedu-5d27b.appspot.com',
+    storageBucket: 'smartedu-5d27b.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'mock-api-key-idx-supercell',
-    appId: '1:123456789:ios:1234abcd',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyCEGiFVWuDXbI5tN-Yiba8Ol5EvPg8wZDY',
+    appId: '1:352395797870:ios:26323bea3037e38e190d7f',
+    messagingSenderId: '352395797870',
     projectId: 'smartedu-5d27b',
-    storageBucket: 'smartedu-5d27b.appspot.com',
-    iosBundleId: 'com.example.smartEduUzbekistan',
+    storageBucket: 'smartedu-5d27b.firebasestorage.app',
+    iosBundleId: 'com.smartedu.smartEduUzbekistan',
   );
 }

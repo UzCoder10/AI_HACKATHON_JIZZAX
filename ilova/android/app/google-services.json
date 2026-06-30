@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "352395797870",
+    "project_id": "smartedu-5d27b",
+    "storage_bucket": "smartedu-5d27b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:352395797870:android:8a85e4606899471f190d7f",
+        "android_client_info": {
+          "package_name": "com.smartedu.smart_edu_uzbekistan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhc2h-PkJDlFG-iqfWJQWS-jQ1QWOfbAs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
