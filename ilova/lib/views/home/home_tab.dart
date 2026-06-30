@@ -1,0 +1,383 @@
+import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../models/data_models.dart';
+import '../../controllers/app_state.dart';
+import 'drawing_quest_screen.dart';
+import 'scholar_wiki_screen.dart';
+
+class HomeTab extends StatefulWidget {
+  final AppState appState;
+
+  const HomeTab({super.key, required this.appState});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  String _unlockedMessage = "";
+
+  void _onMoodTap(MoodType mood) {
+    if (widget.appState.isMoodLoggedToday) {
+      setState(() {
+        _unlockedMessage = "Bugungi kayfiyatingiz allaqachon belgilangan!";
+      });
+      return;
+    }
+    
+    widget.appState.logMood(mood);
+    setState(() {
+      switch (mood) {
+        case MoodType.happy:
+          _unlockedMessage = "Ajoyib! Xursandligingiz bizni quvontiradi! +2 yulduzcha";
+          break;
+        case MoodType.neutral:
+          _unlockedMessage = "Tinch va osoyishta kayfiyat!";
+          break;
+        case MoodType.sad:
+          _unlockedMessage = "Xafa bo‘lmang, allomalarimiz sizga bilimlar ulashadi!";
+          break;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.appState;
+    final themeBg = AppTheme.getThemeBg(state.activeThemeName);
+    final themeAccent = AppTheme.getThemeAccent(state.activeThemeName);
+
+    return Scaffold(
+      backgroundColor: AppTheme.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: AppTheme.neonDecoration(
+                color: themeAccent,
+                radius: 12,
+                borderWidth: 2,
+                shadowOffset: const Offset(2, 2),
+              ),
+              child: Icon(
+                state.getAvatarIcon(state.selectedAvatarRole),
+                color: AppTheme.darkBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              "Smart Edu",
+              style: AppTheme.headerMedium.copyWith(fontSize: 18),
+            ),
+          ],
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            decoration: AppTheme.neonDecoration(
+              color: AppTheme.yellow,
+              radius: 16,
+              borderWidth: 2,
+              shadowOffset: const Offset(2, 2),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: AppTheme.darkBlue, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  "${state.stars}",
+                  style: AppTheme.headerSmall.copyWith(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Welcome Banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: AppTheme.neonDecoration(
+                color: themeBg,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Salom, ${state.childName}!",
+                          style: AppTheme.headerLarge.copyWith(fontSize: 24),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "Bugungi allomalar bilan ajoyib suhbatga va topshiriqlarga tayyormisiz?",
+                          style: AppTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppTheme.cyan,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.darkBlue, width: 2.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.face_rounded, color: AppTheme.darkBlue, size: 28),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Modern Mood Tracker (Emoji-free, Vector icon buttons)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.neonDecoration(
+                color: AppTheme.pastelMint,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Bugungi kayfiyatingiz qanday?",
+                    style: AppTheme.headerSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMoodBtn(MoodType.happy, Icons.sentiment_very_satisfied_rounded, "Xursand"),
+                      _buildMoodBtn(MoodType.neutral, Icons.sentiment_neutral_rounded, "Oddiy"),
+                      _buildMoodBtn(MoodType.sad, Icons.sentiment_very_dissatisfied_rounded, "Xafa"),
+                    ],
+                  ),
+                  if (_unlockedMessage.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.darkBlue, width: 2),
+                        ),
+                        child: Text(
+                          _unlockedMessage,
+                          style: AppTheme.bodySmall.copyWith(color: AppTheme.magenta, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Daily Quest Blueprint Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: AppTheme.glowDecoration(
+                color: AppTheme.yellow,
+                glowColor: AppTheme.yellow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.brush_rounded, color: AppTheme.darkBlue, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Bugungi Topshiriq",
+                        style: AppTheme.headerMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Yer sayyorasi yoki yulduzlar rasmini chizib, allomalarga yuboring va 5 yulduzcha yutib oling!",
+                    style: AppTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => DrawingQuestScreen(appState: widget.appState),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.darkBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    child: Text(
+                      "Chizishni boshlash",
+                      style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Scholars horizontal list tracking
+            Text(
+              "Buyuk Siymolar",
+              style: AppTheme.headerMedium,
+            ),
+            const SizedBox(height: 10),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: scholarsList.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.9,
+              ),
+              itemBuilder: (context, index) {
+                final scholar = scholarsList[index];
+                return GestureDetector(
+                  onTap: () {
+                    // Navigate to biography or start chat
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        title: Text(scholar.name, style: AppTheme.headerSmall),
+                        content: Text("Allomaning hayotiy ensiklopediyasini ko‘rmoqchimisiz yoki to‘g‘ridan-to‘g‘ri suhbatlashasizmi?", style: AppTheme.bodyMedium),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ScholarWikiScreen(scholar: scholar, appState: state),
+                                ),
+                              );
+                            },
+                            child: const Text("Hayot yo‘li"),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: scholar.solidColor),
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              state.selectScholar(scholar);
+                              state.changeTab(1); // Chat tab
+                            },
+                            child: Text("Suhbat", style: AppTheme.bodySmall.copyWith(color: Colors.white)),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    decoration: AppTheme.neonDecoration(
+                      color: scholar.pastelColor,
+                      radius: 20,
+                      borderWidth: 2.5,
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: scholar.solidColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppTheme.darkBlue, width: 2),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            scholar.initials,
+                            style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 14),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          scholar.name,
+                          style: AppTheme.headerSmall.copyWith(fontSize: 12),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          scholar.field,
+                          style: AppTheme.bodySmall.copyWith(fontSize: 9),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoodBtn(MoodType mood, IconData icon, String text) {
+    final bool isSelected = widget.appState.loggedMoodToday == mood;
+
+    return GestureDetector(
+      onTap: () => _onMoodTap(mood),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.white : Colors.white70,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.magenta : AppTheme.darkBlue,
+            width: isSelected ? 3 : 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  const BoxShadow(
+                    color: AppTheme.darkBlue,
+                    offset: Offset(3, 3),
+                  )
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: isSelected ? AppTheme.magenta : AppTheme.darkBlue),
+            const SizedBox(height: 4),
+            Text(
+              text,
+              style: AppTheme.headerSmall.copyWith(
+                fontSize: 10,
+                color: isSelected ? AppTheme.magenta : AppTheme.darkBlue,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

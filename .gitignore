@@ -1,0 +1,12 @@
+.gemini/
+.agents/
+.dart_tool/
+build/
+*.iml
+.idea/
+/ilova/.dart_tool/
+/ilova/build/
+/ilova/.idea/
+/ilova/*.iml
+/ilova/.flutter-plugins
+/ilova/.flutter-plugins-dependencies
