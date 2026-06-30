@@ -561,27 +561,42 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
   }
 
   Widget _buildScholarNode(Scholar scholar, Offset pos, String name) {
+    String assetName = "xorazmiy.png";
+    if (scholar.initials == "AB") assetName = "beruniy.png";
+    if (scholar.initials == "IS") assetName = "ibnsino.png";
+    if (scholar.initials == "MU") assetName = "ulugbek.png";
+
     return Positioned(
-      left: pos.dx - 28,
-      top: pos.dy - 28,
+      left: pos.dx - 32,
+      top: pos.dy - 32,
       child: GestureDetector(
         onTap: () => _openScholarGreeting(scholar),
         child: Column(
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 64,
+              height: 64,
               decoration: AppTheme.vibrant3DBoxDecoration(
                 color: scholar.pastelColor,
-                radius: 20,
+                radius: 22,
                 borderWidth: 2,
                 shadowOffset: const Offset(2, 2),
                 borderColor: scholar.solidColor,
               ),
-              alignment: Alignment.center,
-              child: Text(
-                scholar.initials,
-                style: AppTheme.headerMedium.copyWith(color: scholar.solidColor, fontSize: 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  "assets/images/$assetName",
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Text(
+                        scholar.initials,
+                        style: AppTheme.headerMedium.copyWith(color: scholar.solidColor, fontSize: 16),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 4),
