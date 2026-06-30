@@ -4,6 +4,7 @@ import '../../models/data_models.dart';
 import '../../controllers/app_state.dart';
 import 'drawing_quest_screen.dart';
 import 'scholar_wiki_screen.dart';
+import '../game/building_game_tab.dart';
 
 // =========================================================================
 // REUSABLE FLOATING MOTION WIDGET
@@ -472,7 +473,66 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+             const SizedBox(height: 20),
+
+             // 3D Game Launcher Card
+             FloatingWidget(
+               delayMs: 250,
+               child: Container(
+                 width: double.infinity,
+                 padding: const EdgeInsets.all(20),
+                 decoration: AppTheme.vibrant3DBoxDecoration(
+                   color: AppTheme.pastelBlue,
+                   borderColor: AppTheme.darkMarineBlue,
+                   shadowColor: AppTheme.marineBlue,
+                 ),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       children: [
+                         const Icon(Icons.architecture_rounded, color: AppTheme.marineBlue, size: 24),
+                         const SizedBox(width: 8),
+                         Text(
+                           "3D Arxitektor O‘yini",
+                           style: AppTheme.headerMedium.copyWith(color: AppTheme.darkMarineBlue),
+                         ),
+                       ],
+                     ),
+                     const SizedBox(height: 8),
+                     Text(
+                       "Seysmik mustahkam minoralar quring va qanday qilib binolarni zilziladan himoya qilishni o‘rganing!",
+                       style: AppTheme.bodyLarge.copyWith(color: AppTheme.darkPurple),
+                     ),
+                     const SizedBox(height: 14),
+                     ElevatedButton(
+                       onPressed: () {
+                         Navigator.of(context).push(
+                           MaterialPageRoute(
+                             builder: (context) => BuildingGameTab(appState: widget.appState),
+                           ),
+                         );
+                       },
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: AppTheme.marineBlue,
+                         foregroundColor: AppTheme.white,
+                         elevation: 0,
+                         shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(16),
+                           side: const BorderSide(color: AppTheme.darkMarineBlue, width: 1.5),
+                         ),
+                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                       ),
+                       child: Text(
+                         "O‘yinni boshlash",
+                         style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 14),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+             ),
+             const SizedBox(height: 24),
 
             // Scholars list
             Text(
