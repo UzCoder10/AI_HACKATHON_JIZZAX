@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/data_models.dart';
 import '../../controllers/app_state.dart';
 import '../../controllers/age_tier_controller.dart';
 import '../game/adaptive_logic_games.dart';
@@ -9,7 +10,7 @@ import '../game/building_game_tab.dart';
 import 'drawing_quest_screen.dart';
 
 // =========================================================================
-// KODI THE BEAR (UZBEK PET AVATAR) PAINTER
+// INTERACTIVE KODI THE BEAR AVATAR
 // =========================================================================
 class KodiPainter extends CustomPainter {
   final double blinkVal;
@@ -52,11 +53,10 @@ class KodiPainter extends CustomPainter {
     pathDoppi.quadraticBezierTo(cx, cy - r * 0.5, cx - r * 0.6, cy - r * 0.7);
     pathDoppi.close();
 
-    final pDoppi = Paint()..color = const Color(0xFF0F5227)..style = PaintingStyle.fill; // Green Do'ppi
+    final pDoppi = Paint()..color = const Color(0xFF0F5227)..style = PaintingStyle.fill;
     canvas.drawPath(pathDoppi, pDoppi);
     canvas.drawPath(pathDoppi, pBorder);
 
-    // Embroidered dots on Do'ppi
     final pDot = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx - r * 0.25, cy - r * 0.78), 3, pDot);
     canvas.drawCircle(Offset(cx, cy - r * 0.83), 3, pDot);
@@ -70,7 +70,6 @@ class KodiPainter extends CustomPainter {
 
     final pEye = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.fill;
     if (blinkVal > 0.85) {
-      // Blinking (closed eye curve)
       final pBlink = Paint()
         ..color = AppTheme.darkPurpleBorder
         ..style = PaintingStyle.stroke
@@ -81,7 +80,6 @@ class KodiPainter extends CustomPainter {
     } else {
       canvas.drawCircle(Offset(leftEyeX, eyeY), eyeR, pEye);
       canvas.drawCircle(Offset(rightEyeX, eyeY), eyeR, pEye);
-      // Highlights
       canvas.drawCircle(Offset(leftEyeX - 2, eyeY - 2), 2, pDot);
       canvas.drawCircle(Offset(rightEyeX - 2, eyeY - 2), 2, pDot);
     }
@@ -108,10 +106,8 @@ class KodiPainter extends CustomPainter {
     final double waveAngle = math.sin(waveVal * math.pi * 4) * 0.25;
     canvas.rotate(waveAngle);
     
-    // Paw body
     canvas.drawOval(Rect.fromCenter(center: const Offset(15, -15), width: r * 0.45, height: r * 0.35), pBear);
     canvas.drawOval(Rect.fromCenter(center: const Offset(15, -15), width: r * 0.45, height: r * 0.35), pBorder);
-    // Paw pad
     canvas.drawCircle(const Offset(15, -15), r * 0.1, pMuzzle);
 
     canvas.restore();
@@ -166,7 +162,7 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
             blinkVal = 1.0;
           }
           return CustomPaint(
-            size: const Size(120, 110),
+            size: const Size(110, 100),
             painter: KodiPainter(
               blinkVal: blinkVal,
               waveVal: _waveController.value,
@@ -180,7 +176,7 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
 }
 
 // =========================================================================
-// ROADMAP PATH CUSTOM PAINTER
+// ROADMAP PATH PAINTER (WITH MULTI-BIOMES)
 // =========================================================================
 class RoadmapPainter extends CustomPainter {
   final AgeTier tier;
@@ -193,24 +189,22 @@ class RoadmapPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    // Define standard path matching the nodes
+    // Drawing the Winding Roadmap Path
     final path = Path();
-    path.moveTo(w * 0.2, h * 0.85);
-    path.cubicTo(w * 0.8, h * 0.72, w * 0.8, h * 0.62, w * 0.35, h * 0.52);
-    path.cubicTo(w * 0.05, h * 0.42, w * 0.4, h * 0.28, w * 0.75, h * 0.22);
+    path.moveTo(w * 0.25, h * 0.9);
+    path.cubicTo(w * 0.85, h * 0.76, w * 0.85, h * 0.64, w * 0.35, h * 0.54);
+    path.cubicTo(w * 0.02, h * 0.42, w * 0.42, h * 0.26, w * 0.78, h * 0.2);
     path.lineTo(w * 0.5, h * 0.08);
 
-    Color roadColor = AppTheme.pastelGold;
-    Color dashedColor = AppTheme.yellow;
+    // Dynamic Biome road coloring
+    Color roadColor = const Color(0xFFFFECE5);
+    Color dashedColor = AppTheme.mandarin;
     if (tier == AgeTier.toddler) {
       roadColor = const Color(0xFFCEF5E8);
       dashedColor = AppTheme.mintGreen;
     } else if (tier == AgeTier.intermediate) {
       roadColor = const Color(0xFFD6F2FE);
       dashedColor = AppTheme.marineBlue;
-    } else {
-      roadColor = const Color(0xFFFFEAD9);
-      dashedColor = AppTheme.mandarin;
     }
 
     final pShadow = Paint()
@@ -231,12 +225,9 @@ class RoadmapPainter extends CustomPainter {
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
-    // Draw shadow path
     canvas.drawPath(path, pShadow);
-    // Draw road path
     canvas.drawPath(path, pRoad);
 
-    // Draw center dotted indicator lines
     final pathMetrics = path.computeMetrics();
     for (final metric in pathMetrics) {
       double distance = 0.0;
@@ -247,28 +238,27 @@ class RoadmapPainter extends CustomPainter {
       }
     }
 
-    // Draw Biome Decoratives
     _drawBiomeDecorations(canvas, size);
   }
 
   void _drawBiomeDecorations(Canvas canvas, Size size) {
-    final random = math.Random(101); // Stable seed
+    final random = math.Random(42);
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    List<String> emojis = ["🌸", "🍎", "🍃", "🍓"];
-    if (tier == AgeTier.intermediate) emojis = ["🪐", "🚀", "⭐️", "☄️"];
-    if (tier == AgeTier.advanced) emojis = ["🕌", "📜", "🛡️", "🏛️"];
+    List<String> emojis = ["🌲", "🍓", "🍎", "🌸"];
+    if (tier == AgeTier.intermediate) emojis = ["🏛️", "📜", "🎒", "🏺"];
+    if (tier == AgeTier.advanced) emojis = ["🪐", "🚀", "🛰️", "🛸"];
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 12; i++) {
       final double rx = random.nextDouble() * size.width;
       final double ry = random.nextDouble() * size.height;
 
-      // Keep decorative items off the path centers
-      if ((rx - size.width * 0.5).abs() < 50) continue;
+      // Ensure decorations don't sit on the roadmap line center
+      if ((rx - size.width * 0.5).abs() < 60) continue;
 
       textPainter.text = TextSpan(
         text: emojis[i % emojis.length],
-        style: const TextStyle(fontSize: 22),
+        style: const TextStyle(fontSize: 24),
       );
       textPainter.layout();
       textPainter.paint(canvas, Offset(rx, ry));
@@ -280,7 +270,111 @@ class RoadmapPainter extends CustomPainter {
 }
 
 // =========================================================================
-// ADAPTIVE HOME TAB VIEW
+// LIVING NODE WIDGET WITH PULSE & PROGRESS
+// =========================================================================
+class LivingNode extends StatefulWidget {
+  final int index;
+  final bool isLocked;
+  final bool isActive;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const LivingNode({
+    super.key,
+    required this.index,
+    required this.isLocked,
+    required this.isActive,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  State<LivingNode> createState() => _LivingNodeState();
+}
+
+class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    if (widget.isActive) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double percent = widget.isLocked ? 0.0 : (widget.isActive ? 50.0 : 100.0);
+
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        double scale = 1.0;
+        if (widget.isActive) {
+          scale = 1.0 + _pulseController.value * 0.12;
+        }
+        return Transform.scale(
+          scale: scale,
+          child: child,
+        );
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: SizedBox(
+          width: 72,
+          height: 72,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer circular progress ring
+              CircularProgressIndicator(
+                value: percent / 100.0,
+                strokeWidth: 4.5,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(widget.isLocked ? Colors.grey : AppTheme.mintGreen),
+              ),
+
+              // Solid inner capsule
+              Container(
+                width: 58,
+                height: 58,
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: widget.isLocked
+                      ? Colors.grey.shade300
+                      : (widget.isActive ? AppTheme.yellow : widget.activeColor),
+                  radius: 24,
+                  borderWidth: 2,
+                  shadowOffset: const Offset(2, 2),
+                ),
+                alignment: Alignment.center,
+                child: widget.isLocked
+                    ? const Icon(Icons.lock_rounded, color: Colors.grey, size: 22)
+                    : Text(
+                        "${widget.index + 1}",
+                        style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 18),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// ADAPTIVE HOME TAB SCREEN OVERHAUL
 // =========================================================================
 class AdaptiveHomeTab extends StatefulWidget {
   final AppState appState;
@@ -290,36 +384,19 @@ class AdaptiveHomeTab extends StatefulWidget {
   State<AdaptiveHomeTab> createState() => _AdaptiveHomeTabState();
 }
 
-class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderStateMixin {
-  late final AnimationController _bounceController;
-
-  @override
-  void initState() {
-    super.initState();
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _bounceController.dispose();
-    super.dispose();
-  }
-
+class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
   Offset _getNodeOffset(int index, Size size) {
     final double w = size.width;
     final double h = size.height;
     switch (index) {
       case 0:
-        return Offset(w * 0.2, h * 0.85);
+        return Offset(w * 0.25, h * 0.9);
       case 1:
-        return Offset(w * 0.72, h * 0.68);
+        return Offset(w * 0.76, h * 0.72);
       case 2:
-        return Offset(w * 0.35, h * 0.52);
+        return Offset(w * 0.35, h * 0.54);
       case 3:
-        return Offset(w * 0.73, h * 0.32);
+        return Offset(w * 0.74, h * 0.3);
       case 4:
         return Offset(w * 0.5, h * 0.08);
       default:
@@ -330,12 +407,10 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
   void _onNodeTap(int index, AgeTier tier) {
     final ageController = Provider.of<AgeTierController>(context, listen: false);
     if (index > ageController.activeNodeIndex) {
-      // Locked state alert
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Ushbu bosqich qulflangan! Oldingi topshiriqni bajaring. 🔒"),
+        const SnackBar(
+          content: Text("Ushbu bosqich qulflangan! Bosqichlarni ketma-ket bajaring! 🔒"),
           backgroundColor: AppTheme.appleRed,
-          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -343,54 +418,72 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
 
     if (tier == AgeTier.toddler) {
       if (index == 0) {
-        // Counting game
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 0)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 0)));
       } else if (index == 1) {
-        // Canvas drawing
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ushbu kvest yakunlandi!")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mavzu yakunlandi!")));
       }
     } else if (tier == AgeTier.intermediate) {
       if (index == 0) {
-        // Phonics dragging matching
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)));
       } else if (index == 1) {
-        // Drawing quest
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Yangi kvest tez orada qo'shiladi!")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi kvest kutilmoqda!")));
       }
     } else {
-      // Advanced
       if (index == 0) {
-        // 3D Isometric building game
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => BuildingGameTab(appState: widget.appState)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BuildingGameTab(appState: widget.appState)));
       } else if (index == 1) {
-        // Drawing quest
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Super kvest yakunlandi!")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Imperiya qurildi!")));
       }
     }
+  }
+
+  void _openScholarGreeting(Scholar scholar) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: scholar.solidColor),
+              child: Text(scholar.initials, style: const TextStyle(color: Colors.white, fontSize: 14)),
+            ),
+            const SizedBox(width: 10),
+            Text(scholar.name, style: AppTheme.headerSmall),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Soha: ${scholar.field}", style: AppTheme.bodySmall.copyWith(color: AppTheme.mandarin, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text(scholar.automatedGreeting, style: AppTheme.bodyLarge),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: scholar.solidColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              widget.appState.selectScholar(scholar);
+              widget.appState.changeTab(1); // Nav to chat tab
+            },
+            child: Text("Suhbatlashish", style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13)),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -399,17 +492,16 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
     final tier = ageController.activeTier;
     final accentColor = ageController.getAccentColor();
     final size = MediaQuery.of(context).size;
-    final double roadmapHeight = size.height * 0.95;
+    final double roadmapHeight = size.height * 1.05;
 
     return Scaffold(
       backgroundColor: ageController.getBiomeBgColor(),
       body: SafeArea(
         child: Column(
           children: [
-            // Top Interactive Character Header
+            // Interactive header with bear avatar
             _buildInteractiveHeader(tier, accentColor, ageController),
 
-            // Continuous Roadmap Path View
             Expanded(
               child: SingleChildScrollView(
                 child: SizedBox(
@@ -417,7 +509,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
                   width: double.infinity,
                   child: Stack(
                     children: [
-                      // Roadmap Line CustomPainter
+                      // Continuous roadmap CustomPainter
                       Positioned.fill(
                         child: CustomPaint(
                           painter: RoadmapPainter(
@@ -434,49 +526,71 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
                         final bool isActive = index == ageController.activeNodeIndex;
 
                         return Positioned(
-                          left: pos.dx - 32,
-                          top: pos.dy - 32,
-                          child: AnimatedBuilder(
-                            animation: _bounceController,
-                            builder: (context, child) {
-                              double bounceOffset = 0.0;
-                              if (isActive) {
-                                bounceOffset = math.sin(_bounceController.value * math.pi) * 8;
-                              }
-                              return Transform.translate(
-                                offset: Offset(0, -bounceOffset),
-                                child: child,
-                              );
-                            },
-                            child: GestureDetector(
-                              onTap: () => _onNodeTap(index, tier),
-                              child: Container(
-                                width: 64,
-                                height: 64,
-                                decoration: AppTheme.vibrant3DBoxDecoration(
-                                  color: isLocked 
-                                      ? Colors.grey.shade300 
-                                      : (isActive ? AppTheme.yellow : accentColor),
-                                  radius: 20,
-                                  shadowOffset: const Offset(3, 3),
-                                ),
-                                alignment: Alignment.center,
-                                child: isLocked 
-                                    ? const Icon(Icons.lock_rounded, color: Colors.grey, size: 24)
-                                    : Text(
-                                        "${index + 1}",
-                                        style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 20),
-                                      ),
-                              ),
-                            ),
+                          left: pos.dx - 36,
+                          top: pos.dy - 36,
+                          child: LivingNode(
+                            index: index,
+                            isLocked: isLocked,
+                            isActive: isActive,
+                            activeColor: accentColor,
+                            onTap: () => _onNodeTap(index, tier),
                           ),
                         );
                       }),
+
+                      // Scholars (Quest Givers) placed along the path
+                      _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy"),
+                      _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy"),
+                      _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino"),
+                      _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek"),
                     ],
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScholarNode(Scholar scholar, Offset pos, String name) {
+    return Positioned(
+      left: pos.dx - 28,
+      top: pos.dy - 28,
+      child: GestureDetector(
+        onTap: () => _openScholarGreeting(scholar),
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: scholar.pastelColor,
+                radius: 20,
+                borderWidth: 2,
+                shadowOffset: const Offset(2, 2),
+                borderColor: scholar.solidColor,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                scholar.initials,
+                style: AppTheme.headerMedium.copyWith(color: scholar.solidColor, fontSize: 16),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.darkPurpleBorder, width: 1),
+              ),
+              child: Text(
+                scholar.initials == "AX" ? "Matematika" : (scholar.initials == "IS" ? "Tibbiyot" : "Koinot"),
+                style: AppTheme.bodySmall.copyWith(fontSize: 8, fontWeight: FontWeight.bold),
+              ),
+            )
           ],
         ),
       ),
@@ -498,7 +612,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
       ),
       child: Row(
         children: [
-          // Animated Kodi Avatar skullcap bear
           AnimatedKodiAvatar(tier: tier),
           const SizedBox(width: 14),
           Expanded(
@@ -506,18 +619,18 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with TickerProviderSt
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Kodi Olamida",
+                  "Kodi Sayohati",
                   style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
                 ),
                 Text(
-                  "Biome: ${controller.getBiomeName()}",
+                  "Xarita: ${controller.getBiomeName()}",
                   style: AppTheme.bodySmall.copyWith(color: accentColor, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
           
-          // Next Level Progression trigger (Cheat/Helper button for child)
+          // Cheat / advance progression button
           GestureDetector(
             onTap: () {
               controller.advanceNode();

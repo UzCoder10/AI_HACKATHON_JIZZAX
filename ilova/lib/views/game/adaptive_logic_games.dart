@@ -30,7 +30,6 @@ class FruitBubble {
 
   void update(double dt) {
     if (!isPopped) {
-      // Float upward
       pos = Offset(pos.dx, pos.dy - speed * dt);
     } else {
       popAnimTime += dt * 10;
@@ -70,7 +69,6 @@ class ToddlerBubblePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    // Draw active bubbles
     for (final b in bubbles) {
       if (b.isPopped && b.popAnimTime >= math.pi) continue;
 
@@ -89,7 +87,6 @@ class ToddlerBubblePainter extends CustomPainter {
         ..strokeWidth = 2.0;
       canvas.drawCircle(Offset.zero, b.radius, pBorder);
 
-      // Render fruit emoji in center
       textPainter.text = TextSpan(
         text: b.emoji,
         style: TextStyle(fontSize: b.radius * 1.05),
@@ -100,7 +97,6 @@ class ToddlerBubblePainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Draw particle bursts
     for (final p in particles) {
       final paint = Paint()
         ..color = p.color.withAlpha((p.opacity * 255).round())
@@ -171,6 +167,11 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   List<TargetBox> _targets = [];
   int _phonicsScore = 0;
 
+  // Kinetic Snap-back animation properties
+  late final AnimationController _snapController;
+  int _animatingIndex = -1;
+  Offset _animatingStartOffset = Offset.zero;
+
   @override
   void initState() {
     super.initState();
@@ -186,11 +187,32 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     } else if (_activeGameIndex == 1) {
       _setupPhonicsGame();
     }
+
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..addListener(() {
+        if (_animatingIndex != -1) {
+          setState(() {
+            final double t = _snapController.value;
+            // Elastic underdamped oscillation equation x(t) = exp(-5t)*cos(15t)
+            final double damping = math.exp(-5.0 * t);
+            final double oscillation = math.cos(18.0 * t);
+            final double scale = damping * oscillation;
+
+            final Offset original = _dragLetters[_animatingIndex].originalPos;
+            final Offset diff = _animatingStartOffset - original;
+
+            _dragLetters[_animatingIndex].currentPos = original + diff * scale;
+          });
+        }
+      });
   }
 
   @override
   void dispose() {
     _physicsTicker.dispose();
+    _snapController.dispose();
     super.dispose();
   }
 
@@ -202,7 +224,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _spawnTimer += dt;
       final size = MediaQuery.of(context).size;
 
-      // Spawn bubbles at the bottom
       if (_spawnTimer > 1.0 && _toddlerCount < 10) {
         _spawnTimer = 0.0;
         final random = math.Random();
@@ -219,15 +240,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         ));
       }
 
-      // Update bubbles
       for (final b in _bubbles) {
         b.update(dt);
       }
 
-      // Remove popped or out of bounds
       _bubbles.removeWhere((b) => b.pos.dy < -50 || (b.isPopped && b.popAnimTime >= math.pi));
 
-      // Update particles
       for (final p in _particles) {
         p.update(dt);
       }
@@ -245,7 +263,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             b.isPopped = true;
             _toddlerCount++;
 
-            // Create particles burst
             final random = math.Random();
             for (int i = 0; i < 15; i++) {
               final angle = random.nextDouble() * math.pi * 2;
@@ -284,7 +301,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   }
 
   void _onLetterDragStart(int index, Offset localPos) {
-    if (_dragLetters[index].isMatched) return;
+    if (_dragLetters[index].isMatched || _snapController.isAnimating) return;
     setState(() {
       _dragLetters[index].isDragging = true;
     });
@@ -293,7 +310,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   void _onLetterDragUpdate(int index, Offset globalPos) {
     if (!_dragLetters[index].isDragging) return;
     setState(() {
-      // Offset by bubble size centering
       _dragLetters[index].currentPos = globalPos - const Offset(36, 120);
     });
   }
@@ -303,29 +319,27 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     setState(() {
       _dragLetters[index].isDragging = false;
 
-      // Check collision with targets
       bool matched = false;
       final bubbleCenter = _dragLetters[index].currentPos + const Offset(36, 36);
 
       for (final target in _targets) {
         final targetRect = Rect.fromLTWH(target.pos.dx, target.pos.dy, target.size.width, target.size.height);
         if (targetRect.contains(bubbleCenter) && target.char == _dragLetters[index].char) {
-          // Correct match & locking snap
           _dragLetters[index].isMatched = true;
-          _dragLetters[index].currentPos = target.pos + const Offset(4, 4); // lock alignment
+          _dragLetters[index].currentPos = target.pos + const Offset(4, 4); 
           _phonicsScore++;
           matched = true;
-
-          // Dopamine spring scale trigger
           _dragLetters[index].targetCenter = target.pos;
           break;
         }
       }
 
       if (!matched) {
-        // Snap-back animation to original coordinates
-        final original = _dragLetters[index].originalPos;
-        _dragLetters[index].currentPos = original;
+        // Triggering Elastic Damped Kinetic Wobble Snapback
+        _animatingIndex = index;
+        _animatingStartOffset = _dragLetters[index].currentPos;
+        _snapController.forward(from: 0.0);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Ouch! Qayta urinib ko'r! 🧸"),
@@ -418,13 +432,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     }
   }
 
-  // =========================================================================
-  // TODDLER BUBBLE MATH GAME WIDGET
-  // =========================================================================
   Widget _buildToddlerMathGame() {
     return Column(
       children: [
-        // Dopamine tray indicator
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Container(
@@ -485,9 +495,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     );
   }
 
-  // =========================================================================
-  // INTERMEDIATE PHONICS GAME WIDGET
-  // =========================================================================
   Widget _buildIntermediatePhonicsGame() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -499,7 +506,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         borderRadius: BorderRadius.circular(24),
         child: GestureDetector(
           onPanStart: (details) {
-            // Find index of dragged letter
             final localPos = details.localPosition;
             for (int i = 0; i < _dragLetters.length; i++) {
               final letterRect = Rect.fromLTWH(_dragLetters[i].currentPos.dx, _dragLetters[i].currentPos.dy, 72, 72);
@@ -539,7 +545,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                 ),
               ),
 
-              // Draw Targets
+              // Targets
               ..._targets.map((target) {
                 return Positioned(
                   left: target.pos.dx,
@@ -562,7 +568,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                 );
               }),
 
-              // Draw Draggables
+              // Draggables
               ..._dragLetters.map((l) {
                 return Positioned(
                   left: l.currentPos.dx,

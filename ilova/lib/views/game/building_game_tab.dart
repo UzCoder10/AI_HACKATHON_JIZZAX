@@ -4,14 +4,10 @@ import 'package:flutter/scheduler.dart';
 import '../../core/theme.dart';
 import '../../controllers/app_state.dart';
 
-// =========================================================================
-// ARCHITECTURE TYPES
-// =========================================================================
 enum ArchitectureType { column, arch, wall, dome }
 
-// =========================================================================
-// REAL-TIME PHYSICS SIMULATION MODELS
-// =========================================================================
+enum GameBuildingMaterial { brick, wood, clay }
+
 class GameParticle {
   Offset pos;
   Offset vel;
@@ -49,6 +45,7 @@ class TumblingComponent {
   final Color color;
   int bounces = 0;
   final double groundLevel;
+  final double bounceFactor;
 
   TumblingComponent({
     required this.pos,
@@ -59,6 +56,7 @@ class TumblingComponent {
     required this.type,
     required this.color,
     required this.groundLevel,
+    this.bounceFactor = 0.45,
   });
 
   void update(double dt, List<GameParticle> particles) {
@@ -71,7 +69,7 @@ class TumblingComponent {
     if (pos.dy >= groundLevel) {
       pos = Offset(pos.dx, groundLevel);
       if (bounces < 3) {
-        vel = Offset(vel.dx * 0.65, -vel.dy * 0.45);
+        vel = Offset(vel.dx * 0.65, -vel.dy * bounceFactor);
         bounces++;
         for (int i = 0; i < 5; i++) {
           particles.add(GameParticle(
@@ -92,7 +90,7 @@ class TumblingComponent {
 
 class VectorCar {
   double progress;
-  final int roadDirection; // 0: h, 1: v
+  final int roadDirection; 
   final Color color;
   final double speed;
 
@@ -114,6 +112,7 @@ class StackedComponent {
   final ArchitectureType type;
   final Color color;
   final double driftX;
+  final GameBuildingMaterial material;
   double wobbleOffset = 0.0;
 
   StackedComponent({
@@ -121,6 +120,7 @@ class StackedComponent {
     required this.type,
     required this.color,
     required this.driftX,
+    required this.material,
   });
 }
 
@@ -209,7 +209,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     final double r = scaleSize * 0.95;
     final double h = scaleSize * 0.98;
 
-    // 1. Grid Tiles (Grass & Roads)
     for (int x = -3; x <= 3; x++) {
       for (int y = -3; y <= 3; y++) {
         final isRoadHorizontal = (y == 0);
@@ -222,28 +221,23 @@ class UltraPhysicsCityPainter extends CustomPainter {
       }
     }
 
-    // 2. Cars
     for (final car in cars) {
       _drawVectorCar(canvas, car);
     }
 
-    // 3. Trees
     for (final tree in trees) {
       final base = _project(tree.gridX, tree.gridY, 0.0);
       _drawTree(canvas, base, tree.wobbleAngle, tree.isFlashing);
     }
 
-    // 4. Detailed Buildings
     for (final aux in auxBuildings) {
       final base = _project(aux.gridX, aux.gridY, 0.0);
       _drawDetailedBuilding(canvas, base, r * 0.9, aux.height, aux.color, aux.windowRows, aux.windowCols, aux.wobbleAngle, aux.isFlashing);
     }
 
-    // 5. Central Citadel Platform
     final citadelBase = _project(0.0, 0.0, 0.0);
     _drawDetailedBuilding(canvas, citadelBase, r * 1.35, h * 0.6, AppTheme.yellow, 1, 3, citadelTiltAngle, false);
 
-    // 6. Stacked Components
     double currentHeightOffset = 0.6;
     for (int i = 0; i < blocks.length; i++) {
       final b = blocks[i];
@@ -255,17 +249,14 @@ class UltraPhysicsCityPainter extends CustomPainter {
       currentHeightOffset += 1.0;
     }
 
-    // 7. Active Dropping Component
     if (isDropping) {
       _drawArchitecture(canvas, droppingBlockPos, r, h, droppingColor, droppingType, 0.0, 0.0, 0.0);
     }
 
-    // 8. Tumbling Debris
     for (final frag in debris) {
       _drawArchitecture(canvas, frag.pos, r, h, frag.color, frag.type, frag.rotX, frag.rotY, frag.rotZ);
     }
 
-    // 9. Particles
     for (final p in particles) {
       final paint = Paint()
         ..color = p.color.withAlpha((p.opacity * 255).round())
@@ -273,11 +264,8 @@ class UltraPhysicsCityPainter extends CustomPainter {
       canvas.drawCircle(p.pos, p.size, paint);
     }
 
-    // 10. Crane
     _drawCraneSystem(canvas, size);
   }
-
-  // --- Background Elements ---
 
   void _drawGrassTile(Canvas canvas, double gx, double gy) {
     final path = _getTilePath(gx, gy);
@@ -403,8 +391,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     canvas.drawCircle(Offset(topCenter.dx, topCenter.dy - 18), 3.0, Paint()..color = AppTheme.appleRed);
   }
 
-  // --- Architecture Renderers ---
-
   void _drawArchitecture(Canvas canvas, Offset center, double r, double h, Color color, ArchitectureType type, double rotX, double rotY, double rotZ) {
     switch (type) {
       case ArchitectureType.wall:
@@ -423,7 +409,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
   }
 
   void _drawWall(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
-    // Standard beveled cube with brick line strokes
     final colors = _getShadedColors(color);
     
     Offset pTop = Offset(center.dx, center.dy - r * 0.5);
@@ -455,7 +440,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     canvas.drawPath(rightPath, fill..color = colors[2]);
     canvas.drawPath(rightPath, stroke);
 
-    // Brick lines (simplified)
     final pBrick = Paint()..color = colors[3].withAlpha(80)..strokeWidth = 1.0;
     for (int i = 1; i <= 3; i++) {
       final double frac = i / 4.0;
@@ -470,15 +454,11 @@ class UltraPhysicsCityPainter extends CustomPainter {
 
   void _drawColumn(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
     final colors = _getShadedColors(color);
-    // Draw a cylinder-like shape
     final double colR = r * 0.6;
     
-    // Top ellipse
     Offset topC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5), center, rotX, rotY, rotZ);
-    // Base ellipse
     Offset baseC = _rotateOffset3D(Offset(center.dx, center.dy - colR * 0.5 + h), center, rotX, rotY, rotZ);
 
-    // Body
     final path = Path();
     path.moveTo(topC.dx - colR, topC.dy);
     path.lineTo(topC.dx + colR, topC.dy);
@@ -486,7 +466,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     path.lineTo(baseC.dx - colR, baseC.dy);
     path.close();
 
-    // Fill with gradient to simulate roundness
     final gradient = LinearGradient(colors: [colors[1], colors[0], colors[2]], stops: const [0.0, 0.4, 1.0]);
     final fill = Paint()..shader = gradient.createShader(Rect.fromPoints(Offset(topC.dx - colR, topC.dy), Offset(baseC.dx + colR, baseC.dy)));
     canvas.drawPath(path, fill);
@@ -494,22 +473,18 @@ class UltraPhysicsCityPainter extends CustomPainter {
     final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
     canvas.drawPath(path, stroke);
 
-    // Caps
     final topRect = Rect.fromCenter(center: topC, width: colR * 2, height: colR * 0.8);
     canvas.drawOval(topRect, Paint()..color = colors[0]..style = PaintingStyle.fill);
     canvas.drawOval(topRect, stroke);
     
     final baseRect = Rect.fromCenter(center: baseC, width: colR * 2, height: colR * 0.8);
-    canvas.drawArc(baseRect, 0, math.pi, false, stroke); // Only bottom half of base
+    canvas.drawArc(baseRect, 0, math.pi, false, stroke); 
   }
 
   void _drawArch(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
     final colors = _getShadedColors(color);
-    
-    // Draw the outer wall first
     _drawWall(canvas, center, r, h, color, rotX, rotY, rotZ);
 
-    // Draw the hollow cutout on the left face
     Offset pLeft = Offset(center.dx - r * 0.866, center.dy);
     Offset pBottom = Offset(center.dx, center.dy + r * 0.5);
     Offset pBottomLeft = Offset(pLeft.dx, pLeft.dy + h);
@@ -520,7 +495,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     pBottomLeft = _rotateOffset3D(pBottomLeft, center, rotX, rotY, rotZ);
     pBottomCenter = _rotateOffset3D(pBottomCenter, center, rotX, rotY, rotZ);
 
-    // Cutout polygon
     final double pad = 0.25;
     Offset cBL = Offset(pBottomLeft.dx + (pBottomCenter.dx - pBottomLeft.dx) * pad, pBottomLeft.dy + (pBottomCenter.dy - pBottomLeft.dy) * pad);
     Offset cBR = Offset(pBottomLeft.dx + (pBottomCenter.dx - pBottomLeft.dx) * (1 - pad), pBottomLeft.dy + (pBottomCenter.dy - pBottomLeft.dy) * (1 - pad));
@@ -531,7 +505,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     final cutoutPath = Path();
     cutoutPath.moveTo(cBL.dx, cBL.dy);
     cutoutPath.lineTo(cTL.dx, cTL.dy);
-    // Arch curve
     cutoutPath.quadraticBezierTo(
       cTL.dx + (cTR.dx - cTL.dx) / 2, cTL.dy - h * 0.4, 
       cTR.dx, cTR.dy
@@ -539,7 +512,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     cutoutPath.lineTo(cBR.dx, cBR.dy);
     cutoutPath.close();
 
-    // Fill cutout with a very dark interior color (deep shadow)
     canvas.drawPath(cutoutPath, Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.fill);
     
     final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 2.0;
@@ -548,16 +520,13 @@ class UltraPhysicsCityPainter extends CustomPainter {
 
   void _drawDome(Canvas canvas, Offset center, double r, double h, Color color, double rotX, double rotY, double rotZ) {
     final colors = _getShadedColors(color);
-    
-    // Draw base drum (short wall/cylinder)
     _drawWall(canvas, center, r * 0.9, h * 0.3, color, rotX, rotY, rotZ);
 
-    // Draw Dome Sphere
     final domeCenter = _rotateOffset3D(Offset(center.dx, center.dy - r * 0.3), center, rotX, rotY, rotZ);
     final double domeR = r * 0.8;
 
     final gradient = RadialGradient(
-      center: Alignment(-0.3, -0.3), // Sun glare from top left
+      center: Alignment(-0.3, -0.3), 
       radius: 0.8,
       colors: [AppTheme.white, colors[0], colors[1], colors[3]],
       stops: const [0.0, 0.3, 0.7, 1.0],
@@ -569,7 +538,6 @@ class UltraPhysicsCityPainter extends CustomPainter {
     final stroke = Paint()..color = colors[3]..style = PaintingStyle.stroke..strokeWidth = 3.0;
     canvas.drawCircle(domeCenter, domeR, stroke);
 
-    // Finial
     final Offset finialTop = _rotateOffset3D(Offset(center.dx, center.dy - r * 0.3 - domeR - 10), center, rotX, rotY, rotZ);
     canvas.drawLine(domeCenter, finialTop, stroke);
     canvas.drawCircle(finialTop, 3.0, Paint()..color = AppTheme.yellow);
@@ -626,7 +594,7 @@ class UltraPhysicsCityPainter extends CustomPainter {
 }
 
 // =========================================================================
-// ISOMETRIC PUZZLE GAME TAB SCREEN
+// ISOMETRIC PUZZLE GAME TAB SCREEN OVERHAUL
 // =========================================================================
 class BuildingGameTab extends StatefulWidget {
   final AppState appState;
@@ -641,6 +609,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   bool _isDropping = false;
   Color _currentColor = AppTheme.marineBlue;
   ArchitectureType _currentType = ArchitectureType.column;
+  GameBuildingMaterial _selectedMaterial = GameBuildingMaterial.brick;
 
   final List<GameParticle> _particles = [];
   final List<TumblingComponent> _debris = [];
@@ -713,6 +682,28 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
     super.dispose();
   }
 
+  double _getMaterialWeight() {
+    switch (_selectedMaterial) {
+      case GameBuildingMaterial.brick:
+        return 2.0;
+      case GameBuildingMaterial.wood:
+        return 0.8;
+      case GameBuildingMaterial.clay:
+        return 1.4;
+    }
+  }
+
+  double _getMaterialElasticity() {
+    switch (_selectedMaterial) {
+      case GameBuildingMaterial.brick:
+        return 0.25;
+      case GameBuildingMaterial.wood:
+        return 0.70;
+      case GameBuildingMaterial.clay:
+        return 0.15;
+    }
+  }
+
   void _updatePhysics(double dt) {
     if (!mounted) return;
     _timeElapsed += dt;
@@ -733,7 +724,9 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       _ropeAngle += _ropeAngularVelocity * dt;
 
       if (_isDropping) {
-        _dropVelY += 980.0 * dt;
+        // Drop speed based on material weight
+        final double gValue = 600.0 + _getMaterialWeight() * 200.0;
+        _dropVelY += gValue * dt;
         _dropPos = Offset(_dropPos.dx, _dropPos.dy + _dropVelY * dt);
         final double targetY = _projectTargetLandingY();
         if (_dropPos.dy >= targetY) {
@@ -743,7 +736,8 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
 
       if (_wobbleTime > 0.0) {
         _wobbleTime = math.max(0.0, _wobbleTime - dt);
-        _towerWobbleOffset = 30.0 * math.exp(- (2.5 - _wobbleTime) * 2.2) * math.cos((2.5 - _wobbleTime) * 14.0);
+        final double scaleFactor = _selectedMaterial == GameBuildingMaterial.wood ? 40.0 : 25.0;
+        _towerWobbleOffset = scaleFactor * math.exp(- (2.5 - _wobbleTime) * 2.2) * math.cos((2.5 - _wobbleTime) * 14.0);
       } else {
         _towerWobbleOffset = 0.0;
       }
@@ -848,15 +842,22 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
     final double centerOffset = screenWidth / 2;
     final double drift = _dropPos.dx - centerOffset;
     
-    // Update Cumulative Balance Physics
-    _cumulativeDrift += drift;
+    // Weight multiplier adjusts drift impact
+    final double weightMultiplier = _getMaterialWeight();
+    _cumulativeDrift += drift * (weightMultiplier / 1.4);
     
     final double absImbalance = _cumulativeDrift.abs();
     final bool isCritical = absImbalance > 100.0;
 
     setState(() {
       _isDropping = false;
-      _blocks.add(StackedComponent(index: _blocks.length, type: _currentType, color: _currentColor, driftX: drift));
+      _blocks.add(StackedComponent(
+        index: _blocks.length,
+        type: _currentType,
+        color: _currentColor,
+        driftX: drift,
+        material: _selectedMaterial,
+      ));
 
       _alignmentDeviationMeter = math.min(1.0, absImbalance / 100.0);
       _citadelTiltAngle = _cumulativeDrift * 0.0025;
@@ -895,7 +896,6 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   void _triggerStructuralCollapse() {
     final groundLevel = MediaQuery.of(context).size.height - 140;
     
-    // Turn all components into tumbling debris, retaining their shape type!
     for (final b in _blocks) {
       final basePos = _projectCoord(0.0, 0.0, 0.6 + b.index);
       final Offset blockCenter = Offset(basePos.dx + b.driftX, basePos.dy);
@@ -912,6 +912,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
         type: b.type,
         color: b.color,
         groundLevel: groundLevel - (math.Random().nextDouble() * 15),
+        bounceFactor: _getMaterialElasticity(),
       ));
     }
     _blocks.clear();
@@ -939,7 +940,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       ),
       body: Stack(
         children: [
-          // Shake view (Matrix4 Transform)
+          // Shake view
           Positioned.fill(
             child: Transform(
               transform: Matrix4.identity()
@@ -947,7 +948,6 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                 ..translate(_shakeDx, _shakeDy)
                 // ignore: deprecated_member_use
                 ..scale(_shakeScale, _shakeScale)
-                // Add slight perspective skew for disaster realism
                 ..setEntry(3, 0, _shakeTilt * 0.01)
                 ..setEntry(3, 1, _shakeTilt * 0.01)
                 ..rotateZ(_shakeTilt),
@@ -981,6 +981,33 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
             ),
           ),
 
+          // Material Science Selector
+          if (!_isCollapsed)
+            Positioned(
+              right: 16,
+              top: 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: AppTheme.white,
+                  radius: 16,
+                  borderWidth: 2,
+                  shadowOffset: const Offset(2, 2),
+                ),
+                child: Column(
+                  children: [
+                    Text("Material", style: AppTheme.bodySmall),
+                    const SizedBox(height: 6),
+                    _buildMaterialSelectBtn(GameBuildingMaterial.brick, "G'isht"),
+                    const SizedBox(height: 6),
+                    _buildMaterialSelectBtn(GameBuildingMaterial.wood, "Yog'och"),
+                    const SizedBox(height: 6),
+                    _buildMaterialSelectBtn(GameBuildingMaterial.clay, "Sopol"),
+                  ],
+                ),
+              ),
+            ),
+
           // Sidebar Stats
           if (!_isCollapsed)
             Positioned(
@@ -1005,7 +1032,6 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                   ),
                   const SizedBox(height: 12),
                   
-                  // Live Seismic Weight Balance Gauge
                   Container(
                     padding: const EdgeInsets.all(12),
                     width: 76,
@@ -1079,7 +1105,6 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
               ),
             ),
 
-          // Temur briefing
           if (_showBriefing)
             _buildTemurBriefingOverlay(),
         ],
@@ -1087,7 +1112,39 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
     );
   }
 
+  Widget _buildMaterialSelectBtn(GameBuildingMaterial material, String label) {
+    final bool isSel = _selectedMaterial == material;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedMaterial = material;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSel ? AppTheme.yellow : AppTheme.porcelain,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSel ? AppTheme.darkYellow : Colors.grey.shade300, width: 1.5),
+        ),
+        child: Text(
+          label,
+          style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: isSel ? AppTheme.white : AppTheme.darkPurple),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTemurBriefingOverlay() {
+    String postMortem = "Bino barpo etishda poydevor kengligi va og‘irlik markazi (center of gravity) o‘ta muhimdir. ";
+    if (_selectedMaterial == GameBuildingMaterial.wood) {
+      postMortem += "Siz tanlagan 'Yog'och Sinchi' juda yengil va elastik, ammo massasi yetarli bo'lmagani uchun eng kichik siljish ham minorani ag'dardi.";
+    } else if (_selectedMaterial == GameBuildingMaterial.brick) {
+      postMortem += "Siz tanlagan 'Pishiq G'isht' o'ta og'ir va mustahkam, biroq elastiklik yetishmasligi sababli seysmik zarbaga bardosh berolmay chort-kesildi.";
+    } else {
+      postMortem += "Siz tanlagan 'Sopol' material yuqori ishqalanishga ega bo'lsa-da, uning mo'rtligi va poydevor chuqurligi yetarli emasligi sababli quladi.";
+    }
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 650),
       curve: Curves.easeOutBack,
@@ -1150,7 +1207,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                   shadowOffset: const Offset(3, 3),
                 ),
                 child: Text(
-                  "Bino barpo etishda poydevor kengligi va og‘irlik markazi (center of gravity) o‘ta muhimdir. Agar minoralar markazdan og‘ib ketsa, eng kichik silzilalar ham uni ag‘daradi. Biz Samarqandda qurdirtirgan koshonalar mustahkam poydevorli va seysmik yuklarga chidamli qilib ishlangan. 'Kuch adolatdadir!' Minorani qayta tiklab, yana yulduzchalar yutib olamiz!",
+                  postMortem,
                   style: AppTheme.bodyLarge.copyWith(height: 1.45, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
@@ -1239,14 +1296,14 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       _particles.clear();
       _debris.clear();
 
-          for (final aux in _auxBuildings) {
-            aux.wobbleAngle = 0.0;
-            aux.isFlashing = false;
-          }
-          for (final tree in _trees) {
-            tree.wobbleAngle = 0.0;
-            tree.isFlashing = false;
-          }
+      for (final aux in _auxBuildings) {
+        aux.wobbleAngle = 0.0;
+        aux.isFlashing = false;
+      }
+      for (final tree in _trees) {
+        tree.wobbleAngle = 0.0;
+        tree.isFlashing = false;
+      }
     });
   }
 }

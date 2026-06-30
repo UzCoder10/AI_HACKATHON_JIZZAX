@@ -3,22 +3,32 @@ import '../core/theme.dart';
 
 enum AgeTier { toddler, intermediate, advanced }
 
+enum BuildingMaterial { brick, wood, clay }
+
 class AgeTierController extends ChangeNotifier {
   AgeTier _activeTier = AgeTier.advanced;
   int _activeAge = 9;
   String _activeChildName = "Ahrorbek";
 
-  // Roadmap & Progress
+  // Roadmap Progress
   int _activeNodeIndex = 0;
   final List<String> _badges = ["Mantiq Ustasi"];
-  final int _totalLevelsUnlocked = 5;
+  
+  // Game State Configs
+  BuildingMaterial _selectedMaterial = BuildingMaterial.brick;
+  final List<BuildingMaterial> _unlockedMaterials = [
+    BuildingMaterial.brick,
+    BuildingMaterial.wood,
+    BuildingMaterial.clay,
+  ];
 
   AgeTier get activeTier => _activeTier;
   int get activeAge => _activeAge;
   String get activeChildName => _activeChildName;
   int get activeNodeIndex => _activeNodeIndex;
   List<String> get badges => _badges;
-  int get totalLevelsUnlocked => _totalLevelsUnlocked;
+  BuildingMaterial get selectedMaterial => _selectedMaterial;
+  List<BuildingMaterial> get unlockedMaterials => _unlockedMaterials;
 
   void setChildProfile(String name, int age) {
     _activeChildName = name;
@@ -30,8 +40,15 @@ class AgeTierController extends ChangeNotifier {
     } else {
       _activeTier = AgeTier.advanced;
     }
-    _activeNodeIndex = 0; // Reset progression
+    _activeNodeIndex = 0;
     notifyListeners();
+  }
+
+  void selectMaterial(BuildingMaterial material) {
+    if (_unlockedMaterials.contains(material)) {
+      _selectedMaterial = material;
+      notifyListeners();
+    }
   }
 
   void advanceNode() {
@@ -86,7 +103,6 @@ class AgeTierController extends ChangeNotifier {
     }
   }
 
-  // Dynamic Theme
   String getBiomeName() {
     switch (_activeTier) {
       case AgeTier.toddler:

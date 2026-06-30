@@ -6,7 +6,7 @@ import 'controllers/age_tier_controller.dart';
 import 'views/auth/khan_onboarding.dart';
 import 'views/home/adaptive_home_tab.dart';
 import 'views/chat/chat_tab.dart';
-import 'views/shorts/shorts_tab.dart';
+import 'views/shorts/educational_feed.dart';
 import 'views/achievements/achievements_tab.dart';
 import 'views/parent/parent_tab.dart';
 
@@ -169,7 +169,7 @@ class MainNavigationLayout extends StatelessWidget {
               children: [
                 AdaptiveHomeTab(appState: appState),
                 ChatTab(appState: appState),
-                ShortsTab(appState: appState),
+                EducationalFeed(appState: appState),
                 AchievementsTab(appState: appState),
                 ParentTab(appState: appState),
               ],
