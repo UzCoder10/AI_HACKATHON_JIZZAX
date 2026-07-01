@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -8,12 +9,11 @@ import '../../controllers/age_tier_controller.dart';
 import 'building_game_tab.dart';
 
 // =========================================================================
-// TODDLER PHYSICS: PACHINKO GRAVITY FRUIT DROP & PEG DEFLECTIONS
+// PEG / PACHINKO / SHAPE BLOCKS FOR PHYSICS SIMULATION
 // =========================================================================
 class Peg {
   final Offset pos;
   final double radius;
-
   Peg({required this.pos, required this.radius});
 }
 
@@ -37,26 +37,17 @@ class FruitBubble {
 
   void update(double dt, List<Peg> pegs) {
     if (!isPopped) {
-      // 1. Gravity acceleration downwards
       vel = Offset(vel.dx, vel.dy + 250.0 * dt);
       pos += vel * dt;
 
-      // 2. Peg Deflections & Elastic Bounces
       for (final peg in pegs) {
         final double dist = (pos - peg.pos).distance;
         final double minDist = radius + peg.radius;
         if (dist < minDist) {
-          // Calculate normal vector
           final normal = (pos - peg.pos) / dist;
-          
-          // Reposition to prevent clipping
           pos = peg.pos + normal * minDist;
-          
-          // Elastic vector rebound reflection
           final double dotProduct = vel.dx * normal.dx + vel.dy * normal.dy;
           vel = Offset(vel.dx - 2 * dotProduct * normal.dx, vel.dy - 2 * dotProduct * normal.dy) * 0.75;
-          
-          // Add a small horizontal dispersion
           vel += Offset((math.Random().nextDouble() - 0.5) * 50.0, 0.0);
         }
       }
@@ -82,9 +73,18 @@ class BubbleParticle {
   });
 
   void update(double dt) {
+    // Gravity acceleration on particles!
+    vel = Offset(vel.dx, vel.dy + 300.0 * dt);
     pos += vel * dt;
-    size = math.max(0.0, size - 12.0 * dt);
-    opacity = math.max(0.0, opacity - 2.0 * dt);
+
+    // Bounce off floor limit
+    if (pos.dy >= 380) {
+      pos = Offset(pos.dx, 380);
+      vel = Offset(vel.dx * 0.7, -vel.dy * 0.4);
+    }
+
+    size = math.max(0.0, size - 4.0 * dt);
+    opacity = math.max(0.0, opacity - 1.2 * dt);
   }
 }
 
@@ -105,18 +105,15 @@ class ToddlerPachinkoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    // 1. Paint Peg array (white circles with dark borders)
     final pPeg = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
     final pPegBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.0;
 
     for (final peg in pegs) {
       canvas.drawCircle(peg.pos, peg.radius, pPeg);
       canvas.drawCircle(peg.pos, peg.radius, pPegBorder);
-      // Small peg pin point
       canvas.drawCircle(peg.pos, 2, Paint()..color = AppTheme.darkPurple);
     }
 
-    // 2. Paint falling fruits
     for (final b in bubbles) {
       if (b.isPopped && b.popAnimTime >= math.pi) continue;
 
@@ -124,32 +121,19 @@ class ToddlerPachinkoPainter extends CustomPainter {
       canvas.translate(b.pos.dx, b.pos.dy);
       canvas.scale(b.scale, b.scale);
 
-      final pBubble = Paint()
-        ..color = b.color.withAlpha(190)
-        ..style = PaintingStyle.fill;
+      final pBubble = Paint()..color = b.color.withAlpha(190)..style = PaintingStyle.fill;
       canvas.drawCircle(Offset.zero, b.radius, pBubble);
+      canvas.drawCircle(Offset.zero, b.radius, pPegBorder);
 
-      final pBorder = Paint()
-        ..color = AppTheme.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-      canvas.drawCircle(Offset.zero, b.radius, pBorder);
-
-      textPainter.text = TextSpan(
-        text: b.emoji,
-        style: TextStyle(fontSize: b.radius * 1.05),
-      );
+      textPainter.text = TextSpan(text: b.emoji, style: TextStyle(fontSize: b.radius * 1.05));
       textPainter.layout();
       textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
-
       canvas.restore();
     }
 
-    // 3. Paint weight displacement recoil baskets at the bottom
     final double basketWidth = size.width / 3 - 16;
     final double basketHeight = 45.0;
     final double basketY = size.height - 75.0;
-
     final basketColors = [AppTheme.mandarin, AppTheme.yellow, AppTheme.mintGreen];
 
     for (int i = 0; i < 3; i++) {
@@ -157,26 +141,12 @@ class ToddlerPachinkoPainter extends CustomPainter {
       final double recoil = basketRecoils[i];
 
       final rect = Rect.fromLTWH(bx, basketY + recoil, basketWidth, basketHeight);
-      final pBasket = Paint()..color = basketColors[i]..style = PaintingStyle.fill;
-      final pBasketBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
-
-      // Draw custom 3D styled basket
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pBasket);
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pBasketBorder);
-
-      // Draw basket grid lines
-      final pGrid = Paint()..color = AppTheme.white.withAlpha(120)..strokeWidth = 2.0;
-      canvas.drawLine(Offset(bx + basketWidth * 0.25, basketY + recoil), Offset(bx + basketWidth * 0.25, basketY + recoil + basketHeight), pGrid);
-      canvas.drawLine(Offset(bx + basketWidth * 0.5, basketY + recoil), Offset(bx + basketWidth * 0.5, basketY + recoil + basketHeight), pGrid);
-      canvas.drawLine(Offset(bx + basketWidth * 0.75, basketY + recoil), Offset(bx + basketWidth * 0.75, basketY + recoil + basketHeight), pGrid);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), Paint()..color = basketColors[i]);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pPegBorder);
     }
 
-    // 4. Paint vector particles
     for (final p in particles) {
-      final paint = Paint()
-        ..color = p.color.withAlpha((p.opacity * 255).round())
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(p.pos, p.size, paint);
+      canvas.drawCircle(p.pos, p.size, Paint()..color = p.color.withAlpha((p.opacity * 255).round()));
     }
   }
 
@@ -228,11 +198,8 @@ class SyllableWordConfig {
   });
 }
 
-// =========================================================================
-// GEOMETRIC OBJECT CUSTOM PAINTER (NO ASSET IMAGES)
-// =========================================================================
 class SyllableObjectPainter extends CustomPainter {
-  final int wordIndex; // 0: OLMA, 1: KITOB, 2: QALAM
+  final int wordIndex;
   final double pulseAnimation;
 
   SyllableObjectPainter({required this.wordIndex, required this.pulseAnimation});
@@ -247,51 +214,37 @@ class SyllableObjectPainter extends CustomPainter {
     canvas.translate(cx, cy);
     canvas.scale(scale, scale);
 
+    final pStroke = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
+
     if (wordIndex == 0) {
       // Draw Red Apple (OLMA)
-      final pRed = Paint()..color = AppTheme.appleRed..style = PaintingStyle.fill;
-      final pDarkRed = Paint()..color = AppTheme.darkAppleRed..style = PaintingStyle.stroke..strokeWidth = 3.0;
-
-      // Leaf & Stem
-      final pStem = Paint()..color = const Color(0xFF8B5A2B)..style = PaintingStyle.stroke..strokeWidth = 4.0..strokeCap = StrokeCap.round;
-      canvas.drawLine(const Offset(0, -15), const Offset(8, -35), pStem);
+      canvas.drawCircle(const Offset(-14, 0), 28, Paint()..color = AppTheme.appleRed);
+      canvas.drawCircle(const Offset(14, 0), 28, Paint()..color = AppTheme.appleRed);
+      canvas.drawCircle(const Offset(-14, 0), 28, pStroke);
+      canvas.drawCircle(const Offset(14, 0), 28, pStroke);
 
       final pLeaf = Paint()..color = AppTheme.mintGreen..style = PaintingStyle.fill;
       final pathLeaf = Path()
-        ..moveTo(8, -35)
-        ..quadraticBezierTo(20, -45, 25, -30)
-        ..quadraticBezierTo(14, -26, 8, -35)
+        ..moveTo(0, -28)
+        ..quadraticBezierTo(15, -45, 18, -32)
+        ..quadraticBezierTo(5, -24, 0, -28)
         ..close();
       canvas.drawPath(pathLeaf, pLeaf);
-      canvas.drawPath(pathLeaf, Paint()..color = AppTheme.darkMintGreen..style = PaintingStyle.stroke..strokeWidth = 1.5);
-
-      // Body
-      canvas.drawCircle(const Offset(-14, 2), 26, pRed);
-      canvas.drawCircle(const Offset(14, 2), 26, pRed);
-      canvas.drawCircle(const Offset(-14, 2), 26, pDarkRed);
-      canvas.drawCircle(const Offset(14, 2), 26, pDarkRed);
-
-      // Highlight
-      final pHighlight = Paint()..color = AppTheme.white.withAlpha(180)..style = PaintingStyle.fill;
-      canvas.drawOval(const Rect.fromLTWH(-20, -14, 8, 12), pHighlight);
-
+      canvas.drawPath(pathLeaf, pStroke);
     } else if (wordIndex == 1) {
-      // Draw Blue Book (KITOB)
+      // Draw Book (KITOB)
       final pBlue = Paint()..color = AppTheme.marineBlue..style = PaintingStyle.fill;
-      final pDarkBlue = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
       final pPages = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
-
-      // Spine / Cover
+      
       final pathCover = Path()
-        ..moveTo(-35, -20)
+        ..moveTo(-34, -20)
         ..lineTo(30, -20)
-        ..lineTo(35, 25)
+        ..lineTo(34, 25)
         ..lineTo(-30, 25)
         ..close();
       canvas.drawPath(pathCover, pBlue);
-      canvas.drawPath(pathCover, pDarkBlue);
+      canvas.drawPath(pathCover, pStroke);
 
-      // Paper Pages
       final pathPages = Path()
         ..moveTo(-30, -16)
         ..lineTo(26, -16)
@@ -299,26 +252,13 @@ class SyllableObjectPainter extends CustomPainter {
         ..lineTo(-26, 21)
         ..close();
       canvas.drawPath(pathPages, pPages);
-      canvas.drawPath(pathPages, pDarkBlue);
-
-      // Ribbon Bookmark
-      final pRibbon = Paint()..color = AppTheme.mandarin..style = PaintingStyle.fill;
-      final pathRibbon = Path()
-        ..moveTo(0, -16)
-        ..lineTo(6, -16)
-        ..lineTo(4, 30)
-        ..lineTo(0, 26)
-        ..close();
-      canvas.drawPath(pathRibbon, pRibbon);
-
+      canvas.drawPath(pathPages, pStroke);
     } else {
       // Draw Pencil (QALAM)
       final pWood = Paint()..color = AppTheme.pastelGold..style = PaintingStyle.fill;
       final pLead = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.fill;
       final pPencilBody = Paint()..color = AppTheme.mandarin..style = PaintingStyle.fill;
-      final pStroke = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.5;
 
-      // Pencil Body
       final pathBody = Path()
         ..moveTo(-35, -10)
         ..lineTo(10, -10)
@@ -328,7 +268,6 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathBody, pPencilBody);
       canvas.drawPath(pathBody, pStroke);
 
-      // Wooden Cone
       final pathCone = Path()
         ..moveTo(10, -10)
         ..lineTo(28, 0)
@@ -337,7 +276,6 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathCone, pWood);
       canvas.drawPath(pathCone, pStroke);
 
-      // Tip
       final pathTip = Path()
         ..moveTo(22, -3)
         ..lineTo(28, 0)
@@ -347,6 +285,94 @@ class SyllableObjectPainter extends CustomPainter {
     }
 
     canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// =========================================================================
+// SHAPE MATCHING PHYSICS GAME FOR INTERMEDIATE EXTRA DETAILS
+// =========================================================================
+enum ShapeType { circle, square, triangle }
+
+class ShapeBlock {
+  final ShapeType type;
+  Offset currentPos;
+  final Offset originalPos;
+  Offset vel = Offset.zero;
+  bool isDragging = false;
+  bool isMatched = false;
+  final Color color;
+
+  ShapeBlock({
+    required this.type,
+    required this.currentPos,
+    required this.originalPos,
+    required this.color,
+  });
+
+  void updatePhysics(double dt) {
+    if (!isDragging && !isMatched) {
+      vel = Offset(vel.dx, vel.dy + 450.0 * dt); // Gravity acceleration
+      currentPos += vel * dt;
+
+      // Bounce off ground
+      if (currentPos.dy >= 310) {
+        currentPos = Offset(currentPos.dx, 310);
+        vel = Offset(vel.dx * 0.5, -vel.dy * 0.45); // Elastic collision rebound
+      }
+    }
+  }
+}
+
+class ShapeSocket {
+  final ShapeType type;
+  final Offset pos;
+  final double size = 76.0;
+  bool filled = false;
+  ShapeSocket({required this.type, required this.pos});
+}
+
+class ShapeGamePainter extends CustomPainter {
+  final ShapeType type;
+  final Color color;
+  final bool outlineOnly;
+
+  ShapeGamePainter({required this.type, required this.color, required this.outlineOnly});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width * 0.4;
+
+    final paint = Paint()
+      ..color = color
+      ..style = outlineOnly ? PaintingStyle.stroke : PaintingStyle.fill
+      ..strokeWidth = outlineOnly ? 3.0 : 1.0;
+
+    final border = Paint()
+      ..color = AppTheme.darkPurpleBorder
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+
+    if (type == ShapeType.circle) {
+      canvas.drawCircle(Offset(cx, cy), r, paint);
+      if (!outlineOnly) canvas.drawCircle(Offset(cx, cy), r, border);
+    } else if (type == ShapeType.square) {
+      final rect = Rect.fromCenter(center: Offset(cx, cy), width: r * 2, height: r * 2);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)), paint);
+      if (!outlineOnly) canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)), border);
+    } else {
+      final path = Path()
+        ..moveTo(cx, cy - r)
+        ..lineTo(cx - r, cy + r)
+        ..lineTo(cx + r, cy + r)
+        ..close();
+      canvas.drawPath(path, paint);
+      if (!outlineOnly) canvas.drawPath(path, border);
+    }
   }
 
   @override
@@ -386,6 +412,11 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   List<SyllableBlock> _syllableBlocks = [];
   List<SyllableSlot> _slots = [];
 
+  // Intermediate Sub-Game Mode: 0 = Phonics, 1 = Physics Shape Matcher
+  int _intermediateSubMode = 0;
+  final List<ShapeBlock> _shapeBlocks = [];
+  final List<ShapeSocket> _shapeSockets = [];
+
   // Kinetic Snap-back animation properties
   late final AnimationController _snapController;
   int _animatingIndex = -1;
@@ -393,6 +424,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
 
   // Sound/Success pulse bounce
   late final AnimationController _pulseController;
+  
+  // Repeating bouncing trajectory hand guide controller
+  late final AnimationController _handDemoController;
+
+  // Audio Stream Guide State simulation
+  bool _kodiVoiceActive = false;
 
   @override
   void initState() {
@@ -409,11 +446,18 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       duration: const Duration(milliseconds: 800),
     );
 
+    _handDemoController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
     if (_activeGameIndex == 0) {
       _setupPachinkoPegs();
       _physicsTicker.start();
     } else if (_activeGameIndex == 1) {
       _setupSyllableGame();
+      _setupShapeGame();
+      _physicsTicker.start(); // Start physics for shape drops
     }
 
     _snapController = AnimationController(
@@ -423,7 +467,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         if (_animatingIndex != -1) {
           setState(() {
             final double t = _snapController.value;
-            // Damped elastic kinetic equation
             final double damping = math.exp(-5.0 * t);
             final double oscillation = math.cos(18.0 * t);
             final double scale = damping * oscillation;
@@ -435,29 +478,56 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           });
         }
       });
+
+    // Auto Play Voice Guide simulation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tier = Provider.of<AgeTierController>(context, listen: false).activeTier;
+      if (tier == AgeTier.intermediate) {
+        _playVoiceGuide('welcome.mp3');
+      }
+    });
+  }
+
+  void _playVoiceGuide(String filename) {
+    debugPrint("🎵 Simulated Audio Stream triggered: playing audio guide '$filename'");
+    setState(() {
+      _kodiVoiceActive = true;
+    });
+    Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _kodiVoiceActive = false;
+        });
+      }
+    });
   }
 
   void _setupPachinkoPegs() {
-    // Staggered peg matrix layout
     final double pegRadius = 6.0;
-    
-    // Row 1
     _pegs.add(Peg(pos: const Offset(70, 160), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(170, 160), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(270, 160), radius: pegRadius));
-
-    // Row 2 (Staggered)
     _pegs.add(Peg(pos: const Offset(120, 240), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(220, 240), radius: pegRadius));
-
-    // Row 3
     _pegs.add(Peg(pos: const Offset(70, 320), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(170, 320), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(270, 320), radius: pegRadius));
-
-    // Row 4 (Staggered)
     _pegs.add(Peg(pos: const Offset(120, 400), radius: pegRadius));
     _pegs.add(Peg(pos: const Offset(220, 400), radius: pegRadius));
+  }
+
+  void _setupShapeGame() {
+    _shapeSockets.clear();
+    _shapeBlocks.clear();
+
+    _shapeSockets.add(ShapeSocket(type: ShapeType.circle, pos: const Offset(30, 80)));
+    _shapeSockets.add(ShapeSocket(type: ShapeType.square, pos: const Offset(136, 80)));
+    _shapeSockets.add(ShapeSocket(type: ShapeType.triangle, pos: const Offset(242, 80)));
+
+    final colors = [AppTheme.appleRed, AppTheme.mintGreen, AppTheme.marineBlue];
+    _shapeBlocks.add(ShapeBlock(type: ShapeType.circle, currentPos: const Offset(30, 310), originalPos: const Offset(30, 310), color: colors[0]));
+    _shapeBlocks.add(ShapeBlock(type: ShapeType.square, currentPos: const Offset(136, 310), originalPos: const Offset(136, 310), color: colors[1]));
+    _shapeBlocks.add(ShapeBlock(type: ShapeType.triangle, currentPos: const Offset(242, 310), originalPos: const Offset(242, 310), color: colors[2]));
   }
 
   @override
@@ -465,87 +535,91 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _physicsTicker.dispose();
     _snapController.dispose();
     _pulseController.dispose();
+    _handDemoController.dispose();
     super.dispose();
   }
 
-  // --- PHYSICS ENGINE LOOP (TODDLERS) ---
   void _updatePhysics(double dt) {
-    if (!mounted || _activeGameIndex != 0) return;
+    if (!mounted) return;
 
-    setState(() {
-      _spawnTimer += dt;
-      final size = MediaQuery.of(context).size;
+    if (_activeGameIndex == 0) {
+      setState(() {
+        _spawnTimer += dt;
+        final size = MediaQuery.of(context).size;
 
-      // Spawn falling fruits
-      if (_spawnTimer > 1.2 && _toddlerCount < 10) {
-        _spawnTimer = 0.0;
-        final random = math.Random();
-        final emojis = ["🍎", "🍋", "🍇", "🍓", "🍉", "🍒"];
-        final colors = [AppTheme.appleRed, AppTheme.yellow, AppTheme.marineBlue, AppTheme.mandarin, AppTheme.mintGreen, AppTheme.pastelGold];
-        
-        final idx = random.nextInt(emojis.length);
-        _bubbles.add(FruitBubble(
-          pos: Offset(40 + random.nextDouble() * (size.width - 80), 20),
-          vel: Offset((random.nextDouble() - 0.5) * 40.0, 50.0),
-          radius: 26.0,
-          emoji: emojis[idx],
-          color: colors[idx],
-        ));
-      }
-
-      // Update falling fruits
-      for (final b in _bubbles) {
-        b.update(dt, _pegs);
-      }
-
-      // Basket Landings & Recoil trigger checks
-      final double basketY = size.height - 75.0;
-      final double basketWidth = size.width / 3;
-
-      for (final b in _bubbles) {
-        if (!b.isPopped && b.pos.dy >= basketY - 10) {
-          b.isPopped = true;
-
-          // Determine which basket
-          int basketIdx = (b.pos.dx / basketWidth).floor().clamp(0, 2);
-          
-          // Trigger spring recoil displacement
-          _basketRecoils[basketIdx] = 16.0;
-          _toddlerCount++;
-
-          // Tally score particle pop
+        if (_spawnTimer > 1.2 && _toddlerCount < 10) {
+          _spawnTimer = 0.0;
           final random = math.Random();
-          for (int i = 0; i < 15; i++) {
-            final double angle = random.nextDouble() * math.pi * 2;
-            final double speed = 80.0 + random.nextDouble() * 120.0;
-            _particles.add(BubbleParticle(
-              pos: b.pos,
-              vel: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
-              color: b.color,
-              size: 4.0 + random.nextDouble() * 6.0,
-            ));
-          }
+          final emojis = ["🍎", "🍋", "🍇", "🍓", "🍉", "🍒"];
+          final colors = [AppTheme.appleRed, AppTheme.yellow, AppTheme.marineBlue, AppTheme.mandarin, AppTheme.mintGreen, AppTheme.pastelGold];
+          
+          final idx = random.nextInt(emojis.length);
+          _bubbles.add(FruitBubble(
+            pos: Offset(40 + random.nextDouble() * (size.width - 80), 20),
+            vel: Offset((random.nextDouble() - 0.5) * 40.0, 50.0),
+            radius: 26.0,
+            emoji: emojis[idx],
+            color: colors[idx],
+          ));
+        }
 
-          if (_toddlerCount >= 10) {
-            _winGame(10);
+        for (final b in _bubbles) {
+          b.update(dt, _pegs);
+        }
+
+        final double basketY = size.height - 75.0;
+        final double basketWidth = size.width / 3;
+
+        for (final b in _bubbles) {
+          if (!b.isPopped && b.pos.dy >= basketY - 10) {
+            b.isPopped = true;
+            int basketIdx = (b.pos.dx / basketWidth).floor().clamp(0, 2);
+            _basketRecoils[basketIdx] = 16.0;
+            _toddlerCount++;
+
+            final random = math.Random();
+            for (int i = 0; i < 15; i++) {
+              final double angle = random.nextDouble() * math.pi * 2;
+              final double speed = 80.0 + random.nextDouble() * 120.0;
+              _particles.add(BubbleParticle(
+                pos: b.pos,
+                vel: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
+                color: b.color,
+                size: 4.0 + random.nextDouble() * 6.0,
+              ));
+            }
+
+            if (_toddlerCount >= 10) {
+              _winGame(10);
+            }
           }
         }
-      }
 
-      // Reset basket recoil decay
-      for (int i = 0; i < 3; i++) {
-        if (_basketRecoils[i] > 0.0) {
-          _basketRecoils[i] = math.max(0.0, _basketRecoils[i] - dt * 90.0);
+        for (int i = 0; i < 3; i++) {
+          if (_basketRecoils[i] > 0.0) {
+            _basketRecoils[i] = math.max(0.0, _basketRecoils[i] - dt * 90.0);
+          }
         }
-      }
 
-      _bubbles.removeWhere((b) => b.pos.dy > size.height || (b.isPopped && b.popAnimTime >= math.pi));
+        _bubbles.removeWhere((b) => b.pos.dy > size.height || (b.isPopped && b.popAnimTime >= math.pi));
 
-      for (final p in _particles) {
-        p.update(dt);
-      }
-      _particles.removeWhere((p) => p.opacity <= 0.0 || p.size <= 0.0);
-    });
+        for (final p in _particles) {
+          p.update(dt);
+        }
+        _particles.removeWhere((p) => p.opacity <= 0.0 || p.size <= 0.0);
+      });
+    } else if (_activeGameIndex == 1) {
+      // Physics Shape Matcher drops physics
+      setState(() {
+        for (final block in _shapeBlocks) {
+          block.updatePhysics(dt);
+        }
+        for (final p in _particles) {
+          p.update(dt);
+        }
+        _particles.removeWhere((p) => p.opacity <= 0.0 || p.size <= 0.0);
+      });
+    }
   }
 
   void _onToddlerScreenTap(TapDownDetails details) {
@@ -558,7 +632,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             b.isPopped = true;
             _toddlerCount++;
 
-            // Explode particles vector canvas
             final random = math.Random();
             for (int i = 0; i < 20; i++) {
               final double angle = random.nextDouble() * math.pi * 2;
@@ -587,7 +660,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _slots = [];
     _syllableBlocks = [];
 
-    // Layout slots center-middle
     final double slotWidth = 90.0;
     final double slotHeight = 72.0;
     final double spacing = 16.0;
@@ -604,10 +676,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       ));
     }
 
-    // Scrambled letters/syllables at the bottom
     final double blockWidth = 84.0;
     final double blockStartX = (342 - (config.syllablesScrambled.length * blockWidth + (config.syllablesScrambled.length - 1) * spacing)) / 2;
-
     final colors = [AppTheme.yellow, AppTheme.mintGreen, AppTheme.marineBlue];
 
     for (int i = 0; i < config.syllablesScrambled.length; i++) {
@@ -640,12 +710,10 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     setState(() {
       _syllableBlocks[index].isDragging = false;
       bool matched = false;
-
       final blockCenter = _syllableBlocks[index].currentPos + const Offset(42, 34);
 
       for (final slot in _slots) {
         if (slot.filled) continue;
-
         final slotRect = Rect.fromLTWH(slot.pos.dx, slot.pos.dy, slot.size.width, slot.size.height);
         if (slotRect.contains(blockCenter) && slot.expectedText == _syllableBlocks[index].text) {
           _syllableBlocks[index].isMatched = true;
@@ -654,11 +722,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           matched = true;
           
           final random = math.Random();
-          for (int i = 0; i < 8; i++) {
+          for (int i = 0; i < 15; i++) {
             final double angle = random.nextDouble() * math.pi * 2;
+            final double speed = 60.0 + random.nextDouble() * 100.0;
             _particles.add(BubbleParticle(
               pos: slot.pos + const Offset(45, 36),
-              vel: Offset(math.cos(angle) * 120, math.sin(angle) * 120),
+              vel: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
               color: _syllableBlocks[index].color,
               size: 4 + random.nextDouble() * 6,
             ));
@@ -668,17 +737,14 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
 
       if (!matched) {
-        // Trigger Elastic Snapping
         _animatingIndex = index;
         _animatingStartOffset = _syllableBlocks[index].currentPos;
         _snapController.forward(from: 0.0);
       }
 
-      // Check if word completed
       final bool allMatched = _syllableBlocks.every((s) => s.isMatched);
       if (allMatched) {
         _pulseController.forward(from: 0.0);
-
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (!mounted) return;
           setState(() {
@@ -694,40 +760,121 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     });
   }
 
+  // --- INTERMEDIATE: SHAPE MATCHING LOGIC ---
+  void _onShapeDragStart(int index, Offset localPos) {
+    if (_shapeBlocks[index].isMatched) return;
+    setState(() {
+      _shapeBlocks[index].isDragging = true;
+    });
+  }
+
+  void _onShapeDragUpdate(int index, Offset globalPos) {
+    if (!_shapeBlocks[index].isDragging) return;
+    setState(() {
+      _shapeBlocks[index].currentPos = globalPos - const Offset(38, 38);
+    });
+  }
+
+  void _onShapeDragEnd(int index) {
+    if (!_shapeBlocks[index].isDragging) return;
+    setState(() {
+      _shapeBlocks[index].isDragging = false;
+      bool matched = false;
+      final blockCenter = _shapeBlocks[index].currentPos + const Offset(38, 38);
+
+      for (final socket in _shapeSockets) {
+        if (socket.filled) continue;
+        final socketRect = Rect.fromLTWH(socket.pos.dx, socket.pos.dy, socket.size, socket.size);
+        if (socketRect.contains(blockCenter) && socket.type == _shapeBlocks[index].type) {
+          _shapeBlocks[index].isMatched = true;
+          _shapeBlocks[index].currentPos = socket.pos;
+          socket.filled = true;
+          matched = true;
+          
+          final random = math.Random();
+          for (int i = 0; i < 15; i++) {
+            final double angle = random.nextDouble() * math.pi * 2;
+            _particles.add(BubbleParticle(
+              pos: socket.pos + const Offset(38, 38),
+              vel: Offset(math.cos(angle) * 120, math.sin(angle) * 120),
+              color: _shapeBlocks[index].color,
+              size: 4 + random.nextDouble() * 6,
+            ));
+          }
+          break;
+        }
+      }
+
+      if (!matched) {
+        // Drop down with physics gravity
+        _shapeBlocks[index].vel = const Offset(0, -60); // initial small lift upward
+      }
+
+      final bool allMatched = _shapeBlocks.every((s) => s.isMatched);
+      if (allMatched) {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (!mounted) return;
+          _winGame(12);
+        });
+      }
+    });
+  }
+
   void _winGame(int rewardStars) {
     final state = Provider.of<AppState>(context, listen: false);
     state.awardStars(rewardStars);
     Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(rewardStars);
+
+    final tier = Provider.of<AgeTierController>(context, listen: false).activeTier;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Row(
-          children: [
-            const Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 36),
-            const SizedBox(width: 8),
-            Text("Ajoyib!", style: AppTheme.headerMedium),
-          ],
-        ),
-        content: Text(
-          "Yulduzchalar hisobingizga +$rewardStars ta qo'shildi! Siz barcha bosqichlarni muvaffaqiyatli yakunladingiz! ⭐",
-          style: AppTheme.bodyLarge,
-        ),
+        title: tier == AgeTier.intermediate
+            ? Center(child: Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 85))
+            : Row(
+                children: [
+                  const Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 36),
+                  const SizedBox(width: 8),
+                  Text("Ajoyib!", style: AppTheme.headerMedium),
+                ],
+              ),
+        content: tier == AgeTier.intermediate
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star_rounded, color: AppTheme.yellow, size: 90),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(3, (i) => const Icon(Icons.star_rounded, color: AppTheme.yellow, size: 32)),
+                  )
+                ],
+              )
+            : Text(
+                "Yulduzchalar hisobingizga +$rewardStars ta qo'shildi! Siz barcha bosqichlarni muvaffaqiyatli yakunladingiz! ⭐",
+                style: AppTheme.bodyLarge,
+              ),
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.mintGreen,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              "Sayohatni Davom Ettirish",
-              style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+          Center(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.mintGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              },
+              child: tier == AgeTier.intermediate
+                  ? const Icon(Icons.check_circle_rounded, color: AppTheme.white, size: 42)
+                  : Text(
+                      "Sayohatni Davom Ettirish",
+                      style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+                    ),
             ),
           )
         ],
@@ -745,12 +892,25 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       appBar: AppBar(
         backgroundColor: AppTheme.white,
         elevation: 0,
-        title: Text(
-          _activeGameIndex == 0 
-              ? "Meva pachinko shousi!" 
-              : (_activeGameIndex == 1 ? "Bo'g'inli So'zlar" : "3D Arxitektor"),
-          style: AppTheme.headerMedium,
-        ),
+        title: tier == AgeTier.intermediate
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _activeGameIndex == 0 
+                        ? Icons.gamepad_rounded 
+                        : (_activeGameIndex == 1 ? Icons.abc_rounded : Icons.construction_rounded), 
+                    color: AppTheme.darkPurple, 
+                    size: 36
+                  ),
+                ],
+              )
+            : Text(
+                _activeGameIndex == 0 
+                    ? "Meva pachinko shousi!" 
+                    : (_activeGameIndex == 1 ? "Bo'g'inli So'zlar" : "3D Arxitektor"),
+                style: AppTheme.headerMedium,
+              ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.darkPurple),
           onPressed: () => Navigator.of(context).pop(),
@@ -766,7 +926,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     if (_activeGameIndex == 0) {
       return _buildToddlerMathGame();
     } else if (_activeGameIndex == 1) {
-      return _buildIntermediatePhonicsGame();
+      return _buildIntermediatePhonicsGame(tier);
     } else {
       return BuildingGameTab(appState: Provider.of<AppState>(context, listen: false));
     }
@@ -840,10 +1000,328 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     );
   }
 
-  Widget _buildIntermediatePhonicsGame() {
-    final wordConfig = _wordLevels[_currentWordIndex];
-    final bool isCompleted = _syllableBlocks.every((s) => s.isMatched);
+  Widget _buildIntermediatePhonicsGame(AgeTier tier) {
+    if (tier == AgeTier.intermediate) {
+      // 5-6 Age Tier: Zero-Text Layout
+      return Column(
+        children: [
+          // Sub-game selection bar (tactile layout icons only)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _intermediateSubMode = 0),
+                  child: AnimatedScale(
+                    scale: _intermediateSubMode == 0 ? 1.15 : 0.95,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: _intermediateSubMode == 0 ? AppTheme.marineBlue : AppTheme.white,
+                        radius: 18,
+                        borderColor: _intermediateSubMode == 0 ? AppTheme.marineBlue : Colors.grey.shade300,
+                      ),
+                      child: Icon(Icons.abc_rounded, color: _intermediateSubMode == 0 ? AppTheme.white : AppTheme.marineBlue, size: 36),
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _intermediateSubMode = 1),
+                  child: AnimatedScale(
+                    scale: _intermediateSubMode == 1 ? 1.15 : 0.95,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: _intermediateSubMode == 1 ? AppTheme.mintGreen : AppTheme.white,
+                        radius: 18,
+                        borderColor: _intermediateSubMode == 1 ? AppTheme.mintGreen : Colors.grey.shade300,
+                      ),
+                      child: Icon(Icons.category_rounded, color: _intermediateSubMode == 1 ? AppTheme.white : AppTheme.mintGreen, size: 36),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
+          if (_intermediateSubMode == 0) ...[
+            // Phonics Syllables Game Mode
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: List.generate(3, (index) {
+                      final bool filled = index < _currentWordIndex;
+                      return Icon(
+                        Icons.star_rounded,
+                        color: filled ? AppTheme.yellow : Colors.grey.shade300,
+                        size: 32,
+                      );
+                    }),
+                  ),
+                  GestureDetector(
+                    onTap: () => _playVoiceGuide('guide_word.mp3'),
+                    child: AnimatedScale(
+                      scale: _kodiVoiceActive ? 1.25 : 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.mandarin.withAlpha(40)),
+                        child: Icon(
+                          _kodiVoiceActive ? Icons.volume_up_rounded : Icons.volume_mute_rounded,
+                          color: AppTheme.mandarin,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              height: 130,
+              width: double.infinity,
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 24, borderWidth: 2),
+              child: AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: SyllableObjectPainter(
+                      wordIndex: _currentWordIndex,
+                      pulseAnimation: _pulseController.value,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.pastelBlue, radius: 28),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: GestureDetector(
+                    onPanStart: (details) {
+                      final localPos = details.localPosition;
+                      for (int i = 0; i < _syllableBlocks.length; i++) {
+                        final blockRect = Rect.fromLTWH(_syllableBlocks[i].currentPos.dx, _syllableBlocks[i].currentPos.dy, 84, 68);
+                        if (blockRect.contains(localPos)) {
+                          _onSyllableDragStart(i, localPos);
+                          break;
+                        }
+                      }
+                    },
+                    onPanUpdate: (details) {
+                      for (int i = 0; i < _syllableBlocks.length; i++) {
+                        if (_syllableBlocks[i].isDragging) {
+                          _onSyllableDragUpdate(i, details.localPosition);
+                          break;
+                        }
+                      }
+                    },
+                    onPanEnd: (details) {
+                      for (int i = 0; i < _syllableBlocks.length; i++) {
+                        if (_syllableBlocks[i].isDragging) {
+                          _onSyllableDragEnd(i);
+                          break;
+                        }
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        // Target Slots
+                        ..._slots.map((slot) {
+                          return Positioned(
+                            left: slot.pos.dx,
+                            top: slot.pos.dy,
+                            child: Container(
+                              width: slot.size.width,
+                              height: slot.size.height,
+                              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white.withAlpha(160), radius: 20, borderWidth: 2),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.help_outline_rounded, color: Colors.grey, size: 28),
+                            ),
+                          );
+                        }),
+
+                        // Draggable blocks
+                        ..._syllableBlocks.map((s) {
+                          return Positioned(
+                            left: s.currentPos.dx,
+                            top: s.currentPos.dy,
+                            child: Container(
+                              width: 84,
+                              height: 68,
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: s.color,
+                                radius: 22,
+                                borderWidth: s.isDragging ? 4.0 : 3.0,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                s.text,
+                                style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 22),
+                              ),
+                            ),
+                          );
+                        }),
+
+                        // Animated visual pulsing hand overlay indicating path
+                        _buildBouncingTrajectoryGuide(),
+
+                        // Particle explosions
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: ToddlerPachinkoPainter(bubbles: [], particles: _particles, pegs: [], basketRecoils: []),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          ] else ...[
+            // Physics Shape Matcher Mode
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: List.generate(3, (index) {
+                      final bool filled = _shapeBlocks[index].isMatched;
+                      return Icon(
+                        Icons.star_rounded,
+                        color: filled ? AppTheme.yellow : Colors.grey.shade300,
+                        size: 32,
+                      );
+                    }),
+                  ),
+                  GestureDetector(
+                    onTap: () => _playVoiceGuide('guide_shape.mp3'),
+                    child: AnimatedScale(
+                      scale: _kodiVoiceActive ? 1.25 : 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.mintGreen.withAlpha(40)),
+                        child: Icon(
+                          _kodiVoiceActive ? Icons.volume_up_rounded : Icons.volume_mute_rounded,
+                          color: AppTheme.mintGreen,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.pastelMint, radius: 28),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: GestureDetector(
+                    onPanStart: (details) {
+                      final localPos = details.localPosition;
+                      for (int i = 0; i < _shapeBlocks.length; i++) {
+                        final blockRect = Rect.fromLTWH(_shapeBlocks[i].currentPos.dx, _shapeBlocks[i].currentPos.dy, 76, 76);
+                        if (blockRect.contains(localPos)) {
+                          _onShapeDragStart(i, localPos);
+                          break;
+                        }
+                      }
+                    },
+                    onPanUpdate: (details) {
+                      for (int i = 0; i < _shapeBlocks.length; i++) {
+                        if (_shapeBlocks[i].isDragging) {
+                          _onShapeDragUpdate(i, details.localPosition);
+                          break;
+                        }
+                      }
+                    },
+                    onPanEnd: (details) {
+                      for (int i = 0; i < _shapeBlocks.length; i++) {
+                        if (_shapeBlocks[i].isDragging) {
+                          _onShapeDragEnd(i);
+                          break;
+                        }
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        // Target Shape Sockets at the top
+                        ..._shapeSockets.map((socket) {
+                          return Positioned(
+                            left: socket.pos.dx,
+                            top: socket.pos.dy,
+                            child: Container(
+                              width: socket.size,
+                              height: socket.size,
+                              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white.withAlpha(160), radius: 20, borderWidth: 2),
+                              child: CustomPaint(
+                                painter: ShapeGamePainter(type: socket.type, color: AppTheme.darkPurpleBorder.withAlpha(80), outlineOnly: true),
+                              ),
+                            ),
+                          );
+                        }),
+
+                        // Draggable blocks at the bottom with gravity/bounce
+                        ..._shapeBlocks.map((s) {
+                          return Positioned(
+                            left: s.currentPos.dx,
+                            top: s.currentPos.dy,
+                            child: Container(
+                              width: 76,
+                              height: 76,
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: s.color,
+                                radius: s.type == ShapeType.circle ? 38 : 20,
+                                borderWidth: s.isDragging ? 4.0 : 3.0,
+                              ),
+                              child: CustomPaint(
+                                painter: ShapeGamePainter(type: s.type, color: AppTheme.white, outlineOnly: false),
+                              ),
+                            ),
+                          );
+                        }),
+
+                        // Animated visual pulsing hand overlay indicating shape matching trajectory
+                        _buildShapeBouncingTrajectoryGuide(),
+
+                        // Particle explosions
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: ToddlerPachinkoPainter(bubbles: [], particles: _particles, pegs: [], basketRecoils: []),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]
+        ],
+      );
+    }
+
+    // Default Intermediate Phonics Game with text
     return Column(
       children: [
         Padding(
@@ -851,29 +1329,17 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Mavzu: Bo'g'inlarni ulash",
-                style: AppTheme.headerSmall.copyWith(color: AppTheme.darkPurple),
-              ),
-              Text(
-                "Savol: ${_currentWordIndex + 1} / 3",
-                style: AppTheme.headerSmall.copyWith(color: AppTheme.mandarin),
-              ),
+              Text("Mavzu: Bo'g'inlarni ulash", style: AppTheme.headerSmall.copyWith(color: AppTheme.darkPurple)),
+              Text("Savol: ${_currentWordIndex + 1} / 3", style: AppTheme.headerSmall.copyWith(color: AppTheme.mandarin)),
             ],
           ),
         ),
 
-        // Visual Object Canvas Container
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           height: 140,
           width: double.infinity,
-          decoration: AppTheme.vibrant3DBoxDecoration(
-            color: AppTheme.white,
-            radius: 24,
-            borderWidth: 2,
-            shadowOffset: const Offset(3, 3),
-          ),
+          decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white, radius: 24, borderWidth: 2),
           child: AnimatedBuilder(
             animation: _pulseController,
             builder: (context, child) {
@@ -887,14 +1353,10 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           ),
         ),
 
-        // Syllable Drag Space
         Expanded(
           child: Container(
             margin: const EdgeInsets.all(16),
-            decoration: AppTheme.vibrant3DBoxDecoration(
-              color: AppTheme.pastelBlue,
-              radius: 28,
-            ),
+            decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.pastelBlue, radius: 28),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: GestureDetector(
@@ -926,7 +1388,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                 },
                 child: Stack(
                   children: [
-                    // Slots / Targets
                     ..._slots.map((slot) {
                       return Positioned(
                         left: slot.pos.dx,
@@ -934,22 +1395,13 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                         child: Container(
                           width: slot.size.width,
                           height: slot.size.height,
-                          decoration: AppTheme.vibrant3DBoxDecoration(
-                            color: AppTheme.white.withAlpha(160),
-                            radius: 20,
-                            borderWidth: 2,
-                            shadowOffset: const Offset(2, 2),
-                          ),
+                          decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white.withAlpha(160), radius: 20, borderWidth: 2),
                           alignment: Alignment.center,
-                          child: Text(
-                            "?",
-                            style: AppTheme.headerMedium.copyWith(color: Colors.grey.shade400, fontSize: 22),
-                          ),
+                          child: Text("?", style: AppTheme.headerMedium.copyWith(color: Colors.grey.shade400, fontSize: 22)),
                         ),
                       );
                     }),
 
-                    // Scrambled Draggable Syllables
                     ..._syllableBlocks.map((s) {
                       return Positioned(
                         left: s.currentPos.dx,
@@ -961,18 +1413,13 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                             color: s.color,
                             radius: 22,
                             borderWidth: s.isDragging ? 4.0 : 3.0,
-                            shadowOffset: s.isDragging ? const Offset(1, 1) : const Offset(4, 4),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            s.text,
-                            style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 22),
-                          ),
+                          child: Text(s.text, style: AppTheme.headerMedium.copyWith(color: AppTheme.white, fontSize: 22)),
                         ),
                       );
                     }),
 
-                    // Particle layer
                     Positioned.fill(
                       child: IgnorePointer(
                         child: CustomPaint(
@@ -980,31 +1427,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                         ),
                       ),
                     ),
-
-                    // Completed celebration text overlay
-                    if (isCompleted)
-                      Positioned.fill(
-                        child: Container(
-                          color: AppTheme.white.withAlpha(180),
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: AppTheme.vibrant3DBoxDecoration(
-                                  color: AppTheme.mintGreen,
-                                  radius: 16,
-                                ),
-                                child: Text(
-                                  "Barakalla! ${wordConfig.correctWord}",
-                                  style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -1013,5 +1435,77 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         ),
       ],
     );
+  }
+
+  Widget _buildBouncingTrajectoryGuide() {
+    int unmatchedIdx = _syllableBlocks.indexWhere((s) => !s.isMatched);
+    if (unmatchedIdx != -1) {
+      final block = _syllableBlocks[unmatchedIdx];
+      int slotIdx = _slots.indexWhere((slot) => slot.expectedText == block.text && !slot.filled);
+      if (slotIdx != -1) {
+        final slot = _slots[slotIdx];
+        final double t = _handDemoController.value;
+        final double progress = Curves.easeInOut.transform(t);
+        final Offset handPos = Offset.lerp(
+          block.originalPos + const Offset(20, 20),
+          slot.pos + const Offset(20, 20),
+          progress,
+        )!;
+        final double fingerScale = 1.0 + 0.25 * math.sin(t * math.pi * 4);
+
+        return Positioned(
+          left: handPos.dx,
+          top: handPos.dy,
+          child: IgnorePointer(
+            child: Transform.scale(
+              scale: fingerScale,
+              child: const Icon(
+                Icons.touch_app,
+                color: AppTheme.yellow,
+                size: 38,
+                shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildShapeBouncingTrajectoryGuide() {
+    int unmatchedIdx = _shapeBlocks.indexWhere((s) => !s.isMatched);
+    if (unmatchedIdx != -1) {
+      final block = _shapeBlocks[unmatchedIdx];
+      int socketIdx = _shapeSockets.indexWhere((socket) => socket.type == block.type && !socket.filled);
+      if (socketIdx != -1) {
+        final socket = _shapeSockets[socketIdx];
+        final double t = _handDemoController.value;
+        final double progress = Curves.easeInOut.transform(t);
+        final Offset handPos = Offset.lerp(
+          block.originalPos + const Offset(18, 18),
+          socket.pos + const Offset(18, 18),
+          progress,
+        )!;
+        final double fingerScale = 1.0 + 0.25 * math.sin(t * math.pi * 4);
+
+        return Positioned(
+          left: handPos.dx,
+          top: handPos.dy,
+          child: IgnorePointer(
+            child: Transform.scale(
+              scale: fingerScale,
+              child: const Icon(
+                Icons.touch_app,
+                color: AppTheme.yellow,
+                size: 38,
+                shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    return const SizedBox.shrink();
   }
 }
