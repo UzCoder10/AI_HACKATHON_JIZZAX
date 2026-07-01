@@ -193,6 +193,10 @@ class AgeTierController extends ChangeNotifier {
     }
   }
 
+  Future<void> advanceNode() async {
+    await syncNodeAdvance();
+  }
+
   Future<void> syncNodeAdvance() async {
     if (_activeNodeIndex < 4) {
       _activeNodeIndex++;

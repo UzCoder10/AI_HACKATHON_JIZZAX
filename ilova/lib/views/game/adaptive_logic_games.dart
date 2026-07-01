@@ -393,31 +393,15 @@ class ScholarVoiceConfig {
 }
 
 // =========================================================================
-// 3D SEISMIC TYCOON (MANUAL CONSTRUCTOR) BLOCK MODEL
+// 3D LEGO SEISMIC TYCOON PAINTER (TACTILE constructor RENDERING)
 // =========================================================================
-class SeismicBlock {
-  final int tier; // 0 to 4
-  final String material; // G'isht, Yog'och, Tosh
-  final Color color;
-  Offset fallOffset = Offset.zero;
-  double rotation = 0.0;
-
-  SeismicBlock({
-    required this.tier,
-    required this.material,
-    required this.color,
-  });
-}
-
 class SeismicTycoonPainter extends CustomPainter {
-  final List<SeismicBlock> blocks;
+  final List<Map<String, dynamic>> placedBlocks;
   final double shakeOffset;
-  final String activeMaterial;
 
   SeismicTycoonPainter({
-    required this.blocks,
+    required this.placedBlocks,
     required this.shakeOffset,
-    required this.activeMaterial,
   });
 
   @override
@@ -425,12 +409,11 @@ class SeismicTycoonPainter extends CustomPainter {
     final double cx = size.width / 2 + shakeOffset;
     final double cy = size.height - 110.0;
     
-    // Draw 3D Ground Platform
+    // Platform Baseline Ground Platform
     final pGroundTop = Paint()..color = const Color(0xFF8D6E63)..style = PaintingStyle.fill;
     final pGroundSide = Paint()..color = const Color(0xFF5D4037)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.5;
 
-    // Draw isometric baseline platform
     final pathTop = Path()
       ..moveTo(cx - 90, cy)
       ..lineTo(cx, cy - 25)
@@ -451,106 +434,45 @@ class SeismicTycoonPainter extends CustomPainter {
     canvas.drawPath(pathSide, pGroundSide);
     canvas.drawPath(pathSide, pBorder);
 
-    // Draw active stacked tiers isometrically
     const double blockHeight = 44.0;
 
-    for (int i = 0; i < blocks.length; i++) {
-      final block = blocks[i];
-      final double bx = cx + block.fallOffset.dx;
-      final double by = cy - (i * blockHeight) - 15.0 + block.fallOffset.dy;
+    for (int i = 0; i < placedBlocks.length; i++) {
+      final block = placedBlocks[i];
+      final double bx = cx;
+      final double by = cy - (i * blockHeight) - 15.0;
 
-      canvas.save();
-      if (block.rotation != 0.0) {
-        canvas.translate(bx, by);
-        canvas.rotate(block.rotation);
-        canvas.translate(-bx, -by);
-      }
+      final Color baseColor = block["color"] as Color;
+      final pFront = Paint()..color = baseColor..style = PaintingStyle.fill;
+      final pSide = Paint()..color = baseColor.withAlpha(200)..style = PaintingStyle.fill;
+      final pTop = Paint()..color = baseColor.withAlpha(235)..style = PaintingStyle.fill;
 
-      final pFront = Paint()..color = block.color..style = PaintingStyle.fill;
-      final pSide = Paint()..color = block.color.withAlpha(200)..style = PaintingStyle.fill;
-      final pTop = Paint()..color = block.color.withAlpha(235)..style = PaintingStyle.fill;
+      // 3D Isometric building box blocks
+      final pathBoxTop = Path()
+        ..moveTo(bx - 45, by - 16)
+        ..lineTo(bx, by - 30)
+        ..lineTo(bx + 45, by - 16)
+        ..lineTo(bx, by - 2)
+        ..close();
+      canvas.drawPath(pathBoxTop, pTop);
+      canvas.drawPath(pathBoxTop, pBorder);
 
-      // Draw different shapes based on materials for visual fidelity
-      if (block.material == "Tosh") {
-        // Heavy pillars or carved arches
-        final pathBoxTop = Path()
-          ..moveTo(bx - 45, by - 16)
-          ..lineTo(bx, by - 30)
-          ..lineTo(bx + 45, by - 16)
-          ..lineTo(bx, by - 2)
-          ..close();
-        canvas.drawPath(pathBoxTop, pTop);
-        canvas.drawPath(pathBoxTop, pBorder);
+      final pathBoxLeft = Path()
+        ..moveTo(bx - 45, by - 16)
+        ..lineTo(bx - 45, by + 16)
+        ..lineTo(bx, by + 30)
+        ..lineTo(bx, by - 2)
+        ..close();
+      canvas.drawPath(pathBoxLeft, pFront);
+      canvas.drawPath(pathBoxLeft, pBorder);
 
-        final pathBoxLeft = Path()
-          ..moveTo(bx - 45, by - 16)
-          ..lineTo(bx - 45, by + 16)
-          ..lineTo(bx, by + 30)
-          ..lineTo(bx, by - 2)
-          ..close();
-        canvas.drawPath(pathBoxLeft, pFront);
-        canvas.drawPath(pathBoxLeft, pBorder);
-
-        final pathBoxRight = Path()
-          ..moveTo(bx, by - 2)
-          ..lineTo(bx, by + 30)
-          ..lineTo(bx + 45, by + 16)
-          ..lineTo(bx + 45, by - 16)
-          ..close();
-        canvas.drawPath(pathBoxRight, pSide);
-        canvas.drawPath(pathBoxRight, pBorder);
-      } else if (block.material == "Yog'och") {
-        // Hollow crossbeams or log columns
-        final pathLog = Path()
-          ..moveTo(bx - 36, by - 10)
-          ..lineTo(bx, by - 22)
-          ..lineTo(bx + 36, by - 10)
-          ..lineTo(bx, by + 2)
-          ..close();
-        canvas.drawPath(pathLog, pTop);
-        canvas.drawPath(pathLog, pBorder);
-
-        final pathLogBody = Path()
-          ..moveTo(bx - 36, by - 10)
-          ..lineTo(bx - 36, by + 20)
-          ..lineTo(bx, by + 32)
-          ..lineTo(bx + 36, by + 20)
-          ..lineTo(bx + 36, by - 10)
-          ..lineTo(bx, by + 2)
-          ..close();
-        canvas.drawPath(pathLogBody, pFront);
-        canvas.drawPath(pathLogBody, pBorder);
-      } else {
-        // Brick layers
-        final pathBrickTop = Path()
-          ..moveTo(bx - 40, by - 12)
-          ..lineTo(bx, by - 24)
-          ..lineTo(bx + 40, by - 12)
-          ..lineTo(bx, by)
-          ..close();
-        canvas.drawPath(pathBrickTop, pTop);
-        canvas.drawPath(pathBrickTop, pBorder);
-
-        final pathBrickLeft = Path()
-          ..moveTo(bx - 40, by - 12)
-          ..lineTo(bx - 40, by + 18)
-          ..lineTo(bx, by + 30)
-          ..lineTo(bx, by)
-          ..close();
-        canvas.drawPath(pathBrickLeft, pFront);
-        canvas.drawPath(pathBrickLeft, pBorder);
-
-        final pathBrickRight = Path()
-          ..moveTo(bx, by)
-          ..lineTo(bx, by + 30)
-          ..lineTo(bx + 40, by + 18)
-          ..lineTo(bx + 40, by - 12)
-          ..close();
-        canvas.drawPath(pathBrickRight, pSide);
-        canvas.drawPath(pathBrickRight, pBorder);
-      }
-
-      canvas.restore();
+      final pathBoxRight = Path()
+        ..moveTo(bx, by - 2)
+        ..lineTo(bx, by + 30)
+        ..lineTo(bx + 45, by + 16)
+        ..lineTo(bx + 45, by - 16)
+        ..close();
+      canvas.drawPath(pathBoxRight, pSide);
+      canvas.drawPath(pathBoxRight, pBorder);
     }
   }
 
@@ -596,11 +518,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   final List<ShapeBlock> _shapeBlocks = [];
   final List<ShapeSocket> _shapeSockets = [];
 
-  // 3D Seismic Tycoon Game State
-  final List<SeismicBlock> _seismicBlocks = [];
+  // 3D Manual Constructor & Seismic Lab State
+  final List<Map<String, dynamic>> _placedBlocks = [];
   String _selectedBuildingMaterial = "Tosh"; // Tosh, Yog'och, G'isht
   double _seismicShakeOffset = 0.0;
   bool _seismicTesting = false;
+  bool _showSeismicSuccessOverlay = false;
   late final AnimationController _seismicController;
 
   // Kinetic Snap-back animation properties
@@ -678,37 +601,20 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
 
     _seismicController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: const Duration(seconds: 2),
     )..addListener(() {
         final double t = _seismicController.value;
         setState(() {
-          if (t < 0.4) {
-            // Seismic shaking phase: dynamic sinusoidal shake
-            _seismicShakeOffset = math.sin(t * math.pi * 32.0) * 14.0 * (1.0 - t * 2.5);
-          } else {
-            // Staggered collapse physics calculation
-            _seismicShakeOffset = 0.0;
-            final double collapseProgress = (t - 0.4) / 0.6;
-            
-            for (int i = 0; i < _seismicBlocks.length; i++) {
-              final double startFactor = 0.15 * (4 - i);
-              if (collapseProgress >= startFactor) {
-                final double itemT = ((collapseProgress - startFactor) / 0.45).clamp(0.0, 1.0);
-                final double fallDir = i % 2 == 0 ? -1.0 : 1.0;
-                
-                _seismicBlocks[i].fallOffset = Offset(
-                  fallDir * 350.0 * itemT,
-                  650.0 * itemT * itemT,
-                );
-                _seismicBlocks[i].rotation = fallDir * itemT * math.pi * 0.9;
-              }
-            }
-          }
+          // Dynamic sinusoidal shaking viewport offset
+          _seismicShakeOffset = math.sin(t * math.pi * 30.0) * 12.0 * (1.0 - t);
         });
       })..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          _seismicTesting = false;
-          _winGame(100);
+          setState(() {
+            _seismicTesting = false;
+            _seismicShakeOffset = 0.0;
+            _showSeismicSuccessOverlay = true;
+          });
         }
       });
 
@@ -752,11 +658,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     debugPrint("🎵 Simulated Audio Stream triggered: playing audio guide '$filename'");
     final ageController = Provider.of<AgeTierController>(context, listen: false);
     ageController.toggleVoiceAI(true);
-    
     setState(() {
       _kodiVoiceActive = true;
     });
-    
     Timer(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
@@ -1136,42 +1040,52 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _playVoiceGuide('scholar_select.mp3');
   }
 
-  // --- 3D SEISMIC TYCOON MANUAL PLACEMENT & TEST ENGINE ---
-  void _placeManualBlueprintBlock() {
-    if (_seismicBlocks.length >= 5 || _seismicTesting) return;
+  // --- 3D LEGO SEISMIC CONSTRUCTOR & SINASH ENGINE (NO AUTO-FALL / NO CRANE) ---
+  void _placeLegoConstructorBlock() {
+    if (_placedBlocks.length >= 5 || _seismicTesting) return;
 
-    final int nextTier = _seismicBlocks.length;
-    Color blockColor = AppTheme.porcelain;
-    if (_selectedBuildingMaterial == "G'isht") {
-      blockColor = AppTheme.mandarin;
-    } else if (_selectedBuildingMaterial == "Yog'och") {
+    Color blockColor = AppTheme.pastelGold;
+    double mass = 50.0;
+    double elasticity = 1.0;
+
+    if (_selectedBuildingMaterial == "Yog'och") {
       blockColor = AppTheme.cyan;
+      mass = 20.0;
+      elasticity = 1.5;
+    } else if (_selectedBuildingMaterial == "G'isht") {
+      blockColor = AppTheme.mandarin;
+      mass = 45.0;
+      elasticity = 0.8;
     } else {
-      blockColor = AppTheme.pastelGold;
+      blockColor = AppTheme.yellow;
+      mass = 80.0;
+      elasticity = 0.4;
     }
 
     setState(() {
-      _seismicBlocks.add(SeismicBlock(
-        tier: nextTier,
-        material: _selectedBuildingMaterial,
-        color: blockColor,
-      ));
+      _placedBlocks.add({
+        "material": _selectedBuildingMaterial,
+        "color": blockColor,
+        "mass": mass,
+        "elasticity": elasticity,
+      });
     });
   }
 
-  void _triggerSeismicTest() {
-    if (_seismicBlocks.length < 5 || _seismicTesting) return;
+  void _triggerLegoSeismicTest() {
+    if (_placedBlocks.length < 5 || _seismicTesting) return;
     setState(() {
       _seismicTesting = true;
     });
     _seismicController.forward(from: 0.0);
   }
 
-  void _resetSeismicConstructor() {
+  void _resetLegoConstructor() {
     setState(() {
-      _seismicBlocks.clear();
+      _placedBlocks.clear();
       _seismicTesting = false;
       _seismicShakeOffset = 0.0;
+      _showSeismicSuccessOverlay = false;
     });
     _seismicController.reset();
   }
@@ -1743,8 +1657,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     if (_syllableBlocks[i].isDragging) {
                       _onSyllableDragUpdate(i, details.localPosition);
                       break;
-                        }
-                      }
+                    }
+                  }
                 },
                 onPanEnd: (details) {
                   for (int i = 0; i < _syllableBlocks.length; i++) {
@@ -1806,148 +1720,216 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   }
 
   // =========================================================================
-  // 3D SEISMIC TYCOON (NO AUTOMATIC BLOCKS - MANUAL blueprint PLACE)
+  // 3D LEGO SEISMIC CONSTRUCTOR & SINASH LAB
   // =========================================================================
   Widget _build3DSeismicTycoonGame() {
-    return Column(
+    return Stack(
       children: [
-        // Building Status Info
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _seismicBlocks.length < 5 ? "Ttier: ${_seismicBlocks.length + 1} / 5" : "Barcha bloklar qo'yildi!",
-                style: AppTheme.headerSmall,
+        Column(
+          children: [
+            // Status/Progress indicators
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _placedBlocks.length < 5 
+                        ? "Qurilgan: ${_placedBlocks.length} / 5 qavat" 
+                        : "Minorani sinashga tayyor! 🌋",
+                    style: AppTheme.headerSmall,
+                  ),
+                  if (_placedBlocks.isNotEmpty && !_seismicTesting)
+                    GestureDetector(
+                      onTap: _resetLegoConstructor,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.appleRed, radius: 14),
+                        child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                ],
               ),
-              if (_seismicBlocks.isNotEmpty && !_seismicTesting)
-                GestureDetector(
-                  onTap: _resetSeismicConstructor,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.appleRed, radius: 12),
-                    child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+            ),
+
+            // Canvas Area
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: AppTheme.vibrant3DBoxDecoration(color: const Color(0xFFF1F8E9), radius: 28),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: GestureDetector(
+                    onTap: _placeLegoConstructorBlock,
+                    child: CustomPaint(
+                      painter: SeismicTycoonPainter(
+                        placedBlocks: _placedBlocks,
+                        shakeOffset: _seismicShakeOffset,
+                      ),
+                      child: Stack(
+                        children: [
+                          if (_placedBlocks.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: Text(
+                                  "Materialni tanlang va ekranga bosib stacked minorani quring! 🧱👇",
+                                  style: TextStyle(fontSize: 15, color: Colors.black54, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+
+                          // Volcano tester button
+                          if (_placedBlocks.length >= 5 && !_seismicTesting && !_showSeismicSuccessOverlay)
+                            Positioned(
+                              bottom: 20,
+                              left: 30,
+                              right: 30,
+                              child: GestureDetector(
+                                onTap: _triggerLegoSeismicTest,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  decoration: AppTheme.vibrant3DBoxDecoration(
+                                    color: AppTheme.mandarin,
+                                    radius: 24,
+                                    shadowColor: const Color(0xFFD84B1A),
+                                    shadowOffset: const Offset(4, 4),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.volcano_rounded, color: Colors.white, size: 26),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "ZILZILANI SINASH 🌋",
+                                        style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 15),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
+
+            // Material Selection Tray at the bottom
+            if (!_seismicTesting && _placedBlocks.length < 5)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildLegoMaterialTile("Yog'och", "Yog'och Sinchi", AppTheme.cyan),
+                    _buildLegoMaterialTile("G'isht", "Pishiq G'isht", AppTheme.mandarin),
+                    _buildLegoMaterialTile("Tosh", "Poydevor Tosh", AppTheme.pastelGold),
+                  ],
+                ),
+              ),
+          ],
         ),
 
-        // 3D Isometric Viewport Canvas Area
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: AppTheme.vibrant3DBoxDecoration(color: const Color(0xFFECEFF1), radius: 28),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: GestureDetector(
-                onTap: () {
-                  if (_seismicBlocks.length < 5) {
-                    _placeManualBlueprintBlock();
-                  }
-                },
-                child: CustomPaint(
-                  painter: SeismicTycoonPainter(
-                    blocks: _seismicBlocks,
-                    shakeOffset: _seismicShakeOffset,
-                    activeMaterial: _selectedBuildingMaterial,
+        // Amir Temur Success Overlay briefing
+        if (_showSeismicSuccessOverlay)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withAlpha(160),
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.white,
+                    radius: 32,
+                    borderColor: AppTheme.mintGreen,
+                    shadowOffset: const Offset(5, 5),
                   ),
-                  child: Stack(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Instructions Overlay for Kids
-                      if (_seismicBlocks.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Text(
-                              "Material tanlang va ekranga bosib stacklang! 👇",
-                              style: TextStyle(fontSize: 16, color: Colors.black54, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: AppTheme.vibrant3DBoxDecoration(
+                          color: AppTheme.pastelMint,
+                          radius: 45,
+                          borderColor: AppTheme.mintGreen,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text("AT", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.darkMintGreen)),
+                      ),
+                      const SizedBox(height: 14),
+                      Text("Amir Temur", style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
+                      Text("Sohibqiron Me'mor", style: AppTheme.bodySmall.copyWith(color: AppTheme.mintGreen, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 14),
+                      const Text(
+                        "Barakalla bolajon! Minoramiz zilzilaga chidadi. Sening mahorating evaziga minoramiz barqaror turibdi. Kelajakda buyuk me'mor bo'lasan! Sizga +100 yulduzcha sovg'a qilaman! ⭐",
+                        style: TextStyle(fontSize: 13, height: 1.4, color: AppTheme.darkPurple),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: () async {
+                          final controller = Provider.of<AgeTierController>(context, listen: false);
+                          final appState = Provider.of<AppState>(context, listen: false);
+                          await controller.advanceNode();
+                          appState.awardStars(100);
+                          
+                          if (mounted) {
+                            Navigator.pop(context); // Safe routing refresh pop
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: AppTheme.mintGreen,
+                            radius: 20,
+                            shadowOffset: const Offset(3, 3),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            "KEYINGI BOSQICH 🚀",
+                            style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 14),
                           ),
                         ),
-
-                      // Seismic vibration volcano tester button
-                      if (_seismicBlocks.length == 5 && !_seismicTesting)
-                        Positioned(
-                          bottom: 20,
-                          left: 40,
-                          right: 40,
-                          child: GestureDetector(
-                            onTap: _triggerSeismicTest,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              decoration: AppTheme.vibrant3DBoxDecoration(
-                                color: AppTheme.mandarin,
-                                radius: 24,
-                                shadowColor: const Color(0xFFD84B1A),
-                                shadowOffset: const Offset(4, 4),
-                              ),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.volcano_rounded, color: Colors.white, size: 28),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    "ZILZILANI SINASH 🌋",
-                                    style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-        ),
-
-        // Material Selector Tiles Row
-        if (!_seismicTesting && _seismicBlocks.length < 5)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildMaterialSelectorTile("G'isht", "Pishiq G'isht", AppTheme.mandarin),
-                _buildMaterialSelectorTile("Yog'och", "Yog'och Sinchi", AppTheme.cyan),
-                _buildMaterialSelectorTile("Tosh", "Poydevor Tosh", AppTheme.pastelGold),
-              ],
-            ),
-          ),
       ],
     );
   }
 
-  Widget _buildMaterialSelectorTile(String code, String displayName, Color color) {
+  Widget _buildLegoMaterialTile(String code, String name, Color color) {
     final bool isSelected = _selectedBuildingMaterial == code;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedBuildingMaterial = code;
-        });
-      },
+      onTap: () => setState(() => _selectedBuildingMaterial = code),
       child: AnimatedScale(
-        scale: isSelected ? 1.08 : 0.95,
+        scale: isSelected ? 1.06 : 0.94,
         duration: const Duration(milliseconds: 200),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: AppTheme.vibrant3DBoxDecoration(
             color: isSelected ? color : AppTheme.white,
-            radius: 20,
+            radius: 18,
             borderColor: isSelected ? Colors.transparent : Colors.grey.shade300,
             shadowOffset: isSelected ? const Offset(4, 4) : const Offset(1, 1),
           ),
           child: Text(
-            displayName,
+            name,
             style: AppTheme.headerSmall.copyWith(
               color: isSelected ? Colors.white : AppTheme.darkPurple,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ),
@@ -2165,6 +2147,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     );
   }
 
+  // =========================================================================
+  // HELPER PLACEMENT & TRAJECTORY WIDGETS
+  // =========================================================================
   Widget _buildBouncingTrajectoryGuide() {
     int unmatchedIdx = _syllableBlocks.indexWhere((s) => !s.isMatched);
     if (unmatchedIdx != -1) {
