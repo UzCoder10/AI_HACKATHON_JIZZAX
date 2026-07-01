@@ -5,9 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../controllers/age_tier_controller.dart';
 import '../../controllers/app_state.dart';
-import '../../models/data_models.dart';
 import '../game/adaptive_logic_games.dart';
-import 'drawing_quest_screen.dart';
 
 // =========================================================================
 // KODI THE BEAR IDLE BREATHING & NEON GLOW PAINTER
@@ -258,20 +256,12 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
 }
 
 // =========================================================================
-// 3D-STYLED environment LANDSCAPE ROADMAP CUSTOM PAINTER
+// 3D-STYLED environment LANDSCAPE BACKGROUND PAINTER
 // =========================================================================
-class LandscapeRoadmapPainter extends CustomPainter {
-  final AgeTier tier;
-  final int activeIndex;
-  final List<String> focusAreas;
-  final double timeVal; // For animated floating clouds
+class LandscapeBackdropPainter extends CustomPainter {
+  final double timeVal;
 
-  LandscapeRoadmapPainter({
-    required this.tier,
-    required this.activeIndex,
-    required this.focusAreas,
-    required this.timeVal,
-  });
+  LandscapeBackdropPainter({required this.timeVal});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -288,7 +278,7 @@ class LandscapeRoadmapPainter extends CustomPainter {
       ).createShader(skyRect);
     canvas.drawRect(skyRect, pSky);
 
-    // Distant procedural rolling green hills
+    // Distant rolling green hills
     final pFarHills = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
@@ -297,29 +287,29 @@ class LandscapeRoadmapPainter extends CustomPainter {
       ).createShader(skyRect);
 
     final pathFarHills = Path()
-      ..moveTo(0, h * 0.5)
-      ..quadraticBezierTo(w * 0.25, h * 0.38, w * 0.5, h * 0.48)
-      ..quadraticBezierTo(w * 0.75, h * 0.58, w, h * 0.45)
+      ..moveTo(0, h * 0.6)
+      ..quadraticBezierTo(w * 0.25, h * 0.45, w * 0.5, h * 0.58)
+      ..quadraticBezierTo(w * 0.75, h * 0.7, w, h * 0.55)
       ..lineTo(w, h)
       ..lineTo(0, h)
       ..close();
     canvas.drawPath(pathFarHills, pFarHills);
 
-    // Procedural Cascading River
+    // River
     final pRiver = Paint()
       ..color = const Color(0xFF4FC3F7).withAlpha(160)
       ..style = PaintingStyle.fill;
     final pathRiver = Path()
-      ..moveTo(w * 0.15, h)
-      ..quadraticBezierTo(w * 0.35, h * 0.75, w * 0.52, h * 0.65)
-      ..quadraticBezierTo(w * 0.7, h * 0.55, w * 0.85, 0)
-      ..lineTo(w * 0.92, 0)
-      ..quadraticBezierTo(w * 0.75, h * 0.58, w * 0.58, h * 0.68)
-      ..quadraticBezierTo(w * 0.42, h * 0.78, w * 0.28, h)
+      ..moveTo(w * 0.2, h)
+      ..quadraticBezierTo(w * 0.4, h * 0.78, w * 0.55, h * 0.7)
+      ..quadraticBezierTo(w * 0.7, h * 0.62, w * 0.9, 0)
+      ..lineTo(w * 0.98, 0)
+      ..quadraticBezierTo(w * 0.78, h * 0.65, w * 0.62, h * 0.75)
+      ..quadraticBezierTo(w * 0.45, h * 0.85, w * 0.32, h)
       ..close();
     canvas.drawPath(pathRiver, pRiver);
 
-    // Near procedural rolling green hills
+    // Near rolling green hills
     final pNearHills = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
@@ -328,9 +318,9 @@ class LandscapeRoadmapPainter extends CustomPainter {
       ).createShader(skyRect);
 
     final pathNearHills = Path()
-      ..moveTo(0, h * 0.65)
-      ..quadraticBezierTo(w * 0.3, h * 0.78, w * 0.65, h * 0.62)
-      ..quadraticBezierTo(w * 0.85, h * 0.52, w, h * 0.68)
+      ..moveTo(0, h * 0.75)
+      ..quadraticBezierTo(w * 0.3, h * 0.85, w * 0.65, h * 0.72)
+      ..quadraticBezierTo(w * 0.85, h * 0.65, w, h * 0.78)
       ..lineTo(w, h)
       ..lineTo(0, h)
       ..close();
@@ -338,49 +328,11 @@ class LandscapeRoadmapPainter extends CustomPainter {
 
     // Floating animated cotton clouds
     final pCloud = Paint()..color = Colors.white.withAlpha(200)..style = PaintingStyle.fill;
-    _drawCloud(canvas, w * 0.2 + (50 * math.sin(timeVal)), h * 0.2, pCloud);
-    _drawCloud(canvas, w * 0.7 + (40 * math.cos(timeVal)), h * 0.15, pCloud);
+    _drawCloud(canvas, w * 0.2 + (40 * math.sin(timeVal)), h * 0.2, pCloud);
+    _drawCloud(canvas, w * 0.75 + (30 * math.cos(timeVal)), h * 0.15, pCloud);
 
-    // Dotted Roadmap Pathway
-    final pPathShadow = Paint()
-      ..color = const Color(0xFFE4C39E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 36.0
-      ..strokeCap = StrokeCap.round;
-
-    final pPath = Paint()
-      ..color = const Color(0xFFFBE4C9)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 30.0
-      ..strokeCap = StrokeCap.round;
-
-    final pathRoad = Path();
-    pathRoad.moveTo(100, h * 0.75);
-    pathRoad.cubicTo(w * 0.28, h * 0.85, w * 0.35, h * 0.55, w * 0.52, h * 0.72);
-    pathRoad.cubicTo(w * 0.68, h * 0.88, w * 0.76, h * 0.58, w - 120, h * 0.68);
-
-    canvas.drawPath(pathRoad, pPathShadow);
-    canvas.drawPath(pathRoad, pPath);
-
-    // Traditional Uzbek Turquoise Archway at the start
-    _drawUzbekArchway(canvas, 100, h * 0.75, 42, 65);
-    // Traditional Uzbek Turquoise Archway at the end
-    _drawUzbekArchway(canvas, w - 120, h * 0.68, 42, 65);
-
-    // Draw decorators based on focus areas
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    for (final area in focusAreas) {
-      if (area.contains("Aniq Fanlar")) {
-        _drawEmojiLabel(canvas, "📐", Offset(w * 0.3, h * 0.68), textPainter);
-        _drawEmojiLabel(canvas, "🧮", Offset(w * 0.62, h * 0.75), textPainter);
-      } else if (area.contains("Tanqidiy Fikr")) {
-        _drawEmojiLabel(canvas, "🧠", Offset(w * 0.45, h * 0.62), textPainter);
-        _drawEmojiLabel(canvas, "⚙️", Offset(w * 0.78, h * 0.65), textPainter);
-      } else if (area.contains("Allomalar Tarixi")) {
-        _drawEmojiLabel(canvas, "🕌", Offset(w * 0.2, h * 0.72), textPainter);
-        _drawEmojiLabel(canvas, "📜", Offset(w * 0.85, h * 0.58), textPainter);
-      }
-    }
+    // Traditional Uzbek Turquoise Archway backdrop
+    _drawUzbekArchway(canvas, w * 0.5, h * 0.72, 60, 90);
   }
 
   void _drawCloud(Canvas canvas, double cx, double cy, Paint paint) {
@@ -394,31 +346,21 @@ class LandscapeRoadmapPainter extends CustomPainter {
     final pArch = Paint()..color = const Color(0xFF00ACC1)..style = PaintingStyle.fill;
     final pArchOutline = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.0;
 
-    final leftPillar = Rect.fromLTWH(x - width / 2, y - height, 8, height);
-    final rightPillar = Rect.fromLTWH(x + width / 2 - 8, y - height, 8, height);
+    final leftPillar = Rect.fromLTWH(x - width / 2, y - height, 10, height);
+    final rightPillar = Rect.fromLTWH(x + width / 2 - 10, y - height, 10, height);
 
     canvas.drawRect(leftPillar, pArch);
     canvas.drawRect(leftPillar, pArchOutline);
     canvas.drawRect(rightPillar, pArch);
     canvas.drawRect(rightPillar, pArchOutline);
 
-    // Arch dome top
     final pathDome = Path()
       ..moveTo(x - width / 2, y - height)
-      ..quadraticBezierTo(x, y - height - 24, x + width / 2, y - height)
-      ..quadraticBezierTo(x, y - height - 8, x - width / 2, y - height)
+      ..quadraticBezierTo(x, y - height - 30, x + width / 2, y - height)
+      ..quadraticBezierTo(x, y - height - 10, x - width / 2, y - height)
       ..close();
     canvas.drawPath(pathDome, pArch);
     canvas.drawPath(pathDome, pArchOutline);
-  }
-
-  void _drawEmojiLabel(Canvas canvas, String emoji, Offset pos, TextPainter painter) {
-    painter.text = TextSpan(
-      text: emoji,
-      style: const TextStyle(fontSize: 24),
-    );
-    painter.layout();
-    painter.paint(canvas, Offset(pos.dx - painter.width / 2, pos.dy - painter.height / 2));
   }
 
   @override
@@ -426,114 +368,7 @@ class LandscapeRoadmapPainter extends CustomPainter {
 }
 
 // =========================================================================
-// LIVING ROADMAP NODE WITH RADAR PULSES
-// =========================================================================
-class LivingNode extends StatefulWidget {
-  final int index;
-  final bool isLocked;
-  final bool isActive;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  const LivingNode({
-    super.key,
-    required this.index,
-    required this.isLocked,
-    required this.isActive,
-    required this.activeColor,
-    required this.onTap,
-  });
-
-  @override
-  State<LivingNode> createState() => _LivingNodeState();
-}
-
-class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
-    if (widget.isActive) {
-      _controller.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final Color nodeBg = widget.isLocked 
-        ? Colors.grey.shade300 
-        : (widget.isActive ? widget.activeColor : AppTheme.white);
-    final Color labelColor = widget.isLocked 
-        ? Colors.grey 
-        : (widget.isActive ? AppTheme.white : AppTheme.darkPurple);
-    final Color borderColor = widget.isLocked 
-        ? Colors.grey.shade400 
-        : AppTheme.getBorderColorFor(widget.activeColor);
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final double pulseScale = 1.0 + (widget.isActive ? 0.08 * math.sin(_controller.value * math.pi * 2) : 0.0);
-          return Transform.scale(
-            scale: pulseScale,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (widget.isActive)
-                  Container(
-                    width: 72 + (24 * _controller.value),
-                    height: 72 + (24 * _controller.value),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: widget.activeColor.withAlpha(((1.0 - _controller.value) * 255).round()),
-                        width: 3.0,
-                      ),
-                    ),
-                  ),
-                child!,
-              ],
-            ),
-          );
-        },
-        child: Container(
-          width: 72,
-          height: 72,
-          decoration: AppTheme.vibrant3DBoxDecoration(
-            color: nodeBg,
-            radius: 36,
-            borderWidth: widget.isActive ? 4 : 3,
-            borderColor: borderColor,
-            shadowColor: widget.isLocked ? Colors.transparent : widget.activeColor,
-          ),
-          alignment: Alignment.center,
-          child: widget.isLocked
-              ? const Icon(Icons.lock_rounded, color: Colors.grey, size: 28)
-              : Text(
-                  "${widget.index + 1}",
-                  style: AppTheme.headerMedium.copyWith(color: labelColor, fontSize: 26),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-// =========================================================================
-// MAIN ROADMAP PAGE WITH DOPAMINE SCROLLING BIOMES & REACTIVE AUDIO
+// INTERACTIVE "SEHRLI UY" TREEHOUSE HUB & ROADMAP WIDGET
 // =========================================================================
 class AdaptiveHomeTab extends StatefulWidget {
   final AppState appState;
@@ -549,9 +384,9 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _landscapeAnimController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    _landscapeAnimController = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
     
-    // Trigger simulated child-friendly audio and visual greeting loop on load
+    // Trigger loops & vocal briefing on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _playBackgroundMusic();
       _sayKodiWelcome();
@@ -579,251 +414,205 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
     });
   }
 
-  Offset _getNodeOffset(int index, Size size) {
-    final double w = size.width;
-    final double h = size.height;
-    
-    // Wide horizontal roadmap offsets
-    switch (index) {
-      case 0:
-        return Offset(100, h * 0.75);
-      case 1:
-        return Offset(w * 0.28, h * 0.81);
-      case 2:
-        return Offset(w * 0.42, h * 0.65);
-      case 3:
-        return Offset(w * 0.62, h * 0.76);
-      case 4:
-        return Offset(w - 120, h * 0.68);
-      default:
-        return Offset(w * 0.5, h * 0.5);
-    }
-  }
-
-  void _onNodeTap(int index, AgeTier tier) {
-    final ageController = Provider.of<AgeTierController>(context, listen: false);
-    if (index > ageController.activeNodeIndex) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ushbu bosqich qulflangan! Bosqichlarni ketma-ket bajaring! 🔒"),
-          backgroundColor: AppTheme.appleRed,
-        ),
-      );
-      return;
-    }
-
-    if (tier == AgeTier.toddler) {
-      if (index == 0) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 0)));
-      } else if (index == 1) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mavzu yakunlandi!")));
-      }
-    } else if (tier == AgeTier.intermediate) {
-      if (index == 0) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)));
-      } else if (index == 1) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
-      } else if (index == 2) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi kvest kutilmoqda!")));
-      }
-    } else {
-      if (index == 0) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi 3D kvest kutilmoqda!")));
-      }
-    }
-  }
-
-  void _openScholarGreeting(Scholar scholar) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(shape: BoxShape.circle, color: scholar.solidColor),
-              child: Text(scholar.initials, style: const TextStyle(color: Colors.white, fontSize: 14)),
-            ),
-            const SizedBox(width: 10),
-            Text(scholar.name, style: AppTheme.headerSmall),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Soha: ${scholar.field}", style: AppTheme.bodySmall.copyWith(color: scholar.solidColor, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text(scholar.automatedGreeting, style: AppTheme.bodyLarge),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: scholar.solidColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              widget.appState.selectScholar(scholar);
-              widget.appState.changeTab(1); // Nav to chat tab
-            },
-            child: Text("Suhbatlashish", style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13)),
-          )
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final ageController = Provider.of<AgeTierController>(context);
     final tier = ageController.activeTier;
     final accentColor = ageController.getAccentColor();
-    final size = MediaQuery.of(context).size;
-    final double roadmapWidth = size.width * 2.8;
+    final bool isPreLiterate = !ageController.canReadWrite;
 
     return Scaffold(
       backgroundColor: ageController.getBiomeBgColor(),
       body: SafeArea(
         child: Column(
           children: [
-            _buildInteractiveHeader(tier, accentColor, ageController),
+            _buildInteractiveHeader(tier, accentColor, ageController, isPreLiterate),
 
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: roadmapWidth,
-                  height: double.infinity,
-                  child: AnimatedBuilder(
-                    animation: _landscapeAnimController,
-                    builder: (context, child) {
-                      return Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: LandscapeRoadmapPainter(
-                                tier: tier,
-                                activeIndex: ageController.activeNodeIndex,
-                                focusAreas: ageController.focusAreas,
-                                timeVal: _landscapeAnimController.value * math.pi * 2,
-                              ),
-                            ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _landscapeAnimController,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          painter: LandscapeBackdropPainter(
+                            timeVal: _landscapeAnimController.value * math.pi * 2,
                           ),
-
-                          ...List.generate(5, (index) {
-                            final pos = _getNodeOffset(index, Size(roadmapWidth, size.height));
-                            final bool isLocked = index > ageController.activeNodeIndex;
-                            final bool isActive = index == ageController.activeNodeIndex;
-
-                            return Positioned(
-                              left: pos.dx - 36,
-                              top: pos.dy - 36,
-                              child: LivingNode(
-                                index: index,
-                                isLocked: isLocked,
-                                isActive: isActive,
-                                activeColor: accentColor,
-                                onTap: () => _onNodeTap(index, tier),
-                              ),
-                            );
-                          }),
-
-                          _buildScholarNode(scholarsList[0], Offset(roadmapWidth * 0.15, size.height * 0.58), "Al-Xorazmiy", tier),
-                          _buildScholarNode(scholarsList[1], Offset(roadmapWidth * 0.45, size.height * 0.52), "Abu Rayhon Beruniy", tier),
-                          _buildScholarNode(scholarsList[2], Offset(roadmapWidth * 0.72, size.height * 0.62), "Ibn Sino", tier),
-                          _buildScholarNode(scholarsList[3], Offset(roadmapWidth * 0.9, size.height * 0.48), "Mirzo Ulug'bek", tier),
-                        ],
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ),
-            ),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: _buildShortsRecommendationCard(accentColor, tier),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildScholarNode(Scholar scholar, Offset pos, String name, AgeTier tier) {
-    String assetName = "xorazmiy.png";
-    if (scholar.initials == "AB") assetName = "beruniy.png";
-    if (scholar.initials == "IS") assetName = "ibnsino.png";
-    if (scholar.initials == "MU") assetName = "ulugbek.png";
-
-    final bool isIntermediate = tier == AgeTier.intermediate;
-
-    return Positioned(
-      left: pos.dx - 32,
-      top: pos.dy - 32,
-      child: GestureDetector(
-        onTap: () => _openScholarGreeting(scholar),
-        child: Column(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: AppTheme.vibrant3DBoxDecoration(
-                color: scholar.pastelColor,
-                radius: 22,
-                borderWidth: 2,
-                shadowOffset: const Offset(2, 2),
-                borderColor: scholar.solidColor,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.asset(
-                  "assets/images/$assetName",
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Text(
-                        scholar.initials,
-                        style: AppTheme.headerMedium.copyWith(color: scholar.solidColor, fontSize: 16),
+                  // Tactile Treehouse Hub
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          _buildSehrliUy(context, isPreLiterate, accentColor),
+                          const SizedBox(height: 100),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (!isIntermediate) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.darkPurpleBorder, width: 1),
-                ),
-                child: Text(
-                  scholar.initials == "AX" ? "Matematika" : (scholar.initials == "IS" ? "Tibbiyot" : "Koinot"),
-                  style: AppTheme.bodySmall.copyWith(fontSize: 8, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInteractiveHeader(AgeTier tier, Color accentColor, AgeTierController controller) {
-    final bool isIntermediate = tier == AgeTier.intermediate;
+  Widget _buildSehrliUy(BuildContext context, bool isPreLiterate, Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          // Header of Sehrli Uy (Zero text for pre-literate)
+          if (!isPreLiterate) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.white,
+                radius: 20,
+                borderColor: AppTheme.darkPurpleBorder,
+              ),
+              child: Text(
+                "🏰 Sehrli Uy: Qiziqarli Olamlar!",
+                style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
 
+          // 1. Kodi the Bear (🐻): Voice AI
+          _buildTreehouseLayer(
+            icon: "🐻",
+            title: "Kodi Ovozli Companion",
+            subtitle: "Voice AI bilan jonli suhbatlar",
+            color: AppTheme.pastelGold,
+            borderColor: AppTheme.yellow,
+            isPreLiterate: isPreLiterate,
+            onTap: () {
+              final controller = Provider.of<AgeTierController>(context, listen: false);
+              controller.toggleVoiceAI(!controller.voiceAIActive);
+              _sayKodiWelcome();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isPreLiterate ? "🎤 🔊" : "Kodi ovozli yordamchisi faollashdi! Ovoz chiqarib gapiring."),
+                  backgroundColor: AppTheme.yellow,
+                ),
+              );
+            },
+            actionIcon: Icons.record_voice_over_rounded,
+          ),
+          const SizedBox(height: 20),
+
+          // 2. Alisher the Rabbit (🐰): Phonics Phonics Snap-back Grid
+          _buildTreehouseLayer(
+            icon: "🐰",
+            title: "Alisherning Harflar Uyasi",
+            subtitle: "Boshlang'ich Savodxonlik o'yini",
+            color: AppTheme.pastelBlue,
+            borderColor: AppTheme.marineBlue,
+            isPreLiterate: isPreLiterate,
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)));
+            },
+            actionIcon: Icons.spellcheck_rounded,
+          ),
+          const SizedBox(height: 20),
+
+          // 3. Temur the Fox (🦊): Lego Architecture
+          _buildTreehouseLayer(
+            icon: "🦊",
+            title: "Temurning Seysmik Laboratoriyasi",
+            subtitle: "3D Lego va Zilzila simulyatori",
+            color: AppTheme.pastelMint,
+            borderColor: AppTheme.mintGreen,
+            isPreLiterate: isPreLiterate,
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
+            },
+            actionIcon: Icons.architecture_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTreehouseLayer({
+    required String icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required Color borderColor,
+    required bool isPreLiterate,
+    required VoidCallback onTap,
+    required IconData actionIcon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: AppTheme.vibrant3DBoxDecoration(
+          color: color,
+          radius: 28,
+          borderColor: borderColor,
+          shadowOffset: const Offset(4, 4),
+        ),
+        child: Row(
+          children: [
+            // Animal Emblem
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(200),
+                shape: BoxShape.circle,
+                border: Border.all(color: borderColor, width: 3),
+              ),
+              alignment: Alignment.center,
+              child: Text(icon, style: const TextStyle(fontSize: 48)),
+            ),
+            const SizedBox(width: 18),
+
+            // Content Area (Zero text for pre-literate child)
+            Expanded(
+              child: isPreLiterate
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Giant tactile layout icons
+                        Icon(Icons.play_circle_fill_rounded, color: borderColor, size: 54),
+                        const SizedBox(width: 16),
+                        Icon(actionIcon, color: borderColor.withAlpha(180), size: 36),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.darkPurple.withAlpha(180))),
+                      ],
+                    ),
+            ),
+            if (!isPreLiterate) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_ios_rounded, color: borderColor, size: 20),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInteractiveHeader(AgeTier tier, Color accentColor, AgeTierController controller, bool isPreLiterate) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
@@ -841,7 +630,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
           AnimatedKodiAvatar(tier: tier),
           const SizedBox(width: 14),
           Expanded(
-            child: isIntermediate
+            child: isPreLiterate
                 ? const SizedBox.shrink()
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -851,7 +640,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
                         style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
                       ),
                       Text(
-                        "Xarita: ${controller.getBiomeName()}",
+                        "Sehrli Uy: ${controller.getBiomeName()}",
                         style: AppTheme.bodySmall.copyWith(color: accentColor, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -875,85 +664,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
                   style: AppTheme.headerMedium.copyWith(fontSize: 16, color: AppTheme.darkPurple),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShortsRecommendationCard(Color accentColor, AgeTier tier) {
-    final bool isIntermediate = tier == AgeTier.intermediate;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.vibrant3DBoxDecoration(
-        color: AppTheme.white,
-        radius: 28,
-        borderColor: AppTheme.getBorderColorFor(accentColor),
-        shadowOffset: const Offset(5, 5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: AppTheme.vibrant3DBoxDecoration(
-              color: accentColor.withAlpha(50),
-              radius: 18,
-              borderWidth: 2,
-              borderColor: accentColor,
-              shadowOffset: const Offset(2, 2),
-            ),
-            child: Icon(Icons.play_circle_fill_rounded, color: accentColor, size: 36),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: isIntermediate
-                ? Row(
-                    children: [
-                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
-                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
-                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Kunning qiziqarli kashfiyoti",
-                        style: AppTheme.headerSmall.copyWith(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      Text(
-                        "Astronomiya va yulduzlar olami",
-                        style: AppTheme.headerMedium.copyWith(fontSize: 14, color: AppTheme.darkPurple),
-                      ),
-                    ],
-                  ),
-          ),
-          GestureDetector(
-            onTap: () {
-              widget.appState.changeTab(2); // Navigate directly to Shorts tab
-            },
-            child: AnimatedScale(
-              scale: 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.bounceOut,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: AppTheme.vibrant3DBoxDecoration(
-                  color: accentColor,
-                  radius: 16,
-                  borderColor: AppTheme.getBorderColorFor(accentColor),
-                  shadowOffset: const Offset(3, 3),
-                ),
-                child: isIntermediate
-                    ? const Icon(Icons.check_circle_rounded, color: Colors.white, size: 24)
-                    : Text(
-                        "Ko'rish",
-                        style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
-                      ),
-              ),
             ),
           ),
         ],

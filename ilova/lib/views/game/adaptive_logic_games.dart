@@ -532,7 +532,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   // 3D Manual Constructor & Seismic Lab State
   final List<Map<String, dynamic>> _placedBlocks = [];
   String _selectedBuildingMaterial = "Tosh"; // Tosh, Yog'och, G'isht
-  double _seismicShakeOffset = 0.0;
   bool _seismicTesting = false;
   bool _isStructureStable = true;
   bool _showSeismicSuccessOverlay = false;
@@ -618,9 +617,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     )..addListener(() {
         final double t = _seismicController.value;
         setState(() {
-          // Dynamic sinusoidal shaking viewport offset
-          _seismicShakeOffset = math.sin(t * math.pi * 30.0) * 12.0 * (1.0 - t);
-
           if (!_isStructureStable && t >= 0.4) {
             final double collapseProgress = (t - 0.4) / 0.6;
             for (int i = 0; i < _placedBlocks.length; i++) {
@@ -641,7 +637,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         if (status == AnimationStatus.completed) {
           setState(() {
             _seismicTesting = false;
-            _seismicShakeOffset = 0.0;
             if (_isStructureStable) {
               _showSeismicSuccessOverlay = true;
             } else {
@@ -1135,7 +1130,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     setState(() {
       _placedBlocks.clear();
       _seismicTesting = false;
-      _seismicShakeOffset = 0.0;
       _showSeismicSuccessOverlay = false;
       _showSeismicFailureOverlay = false;
     });
@@ -1775,6 +1769,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   // 3D LEGO SEISMIC CONSTRUCTOR & SINASH LAB
   // =========================================================================
   Widget _build3DSeismicTycoonGame() {
+    final ageController = Provider.of<AgeTierController>(context);
+    final bool isPreLiterate = !ageController.canReadWrite;
+
     return Stack(
       children: [
         Column(
@@ -1804,66 +1801,85 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
               ),
             ),
 
-            // Canvas Area
+            // Canvas Area with multi-axis Matrix4 visual shaking layout wrapper
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: AppTheme.vibrant3DBoxDecoration(color: const Color(0xFFF1F8E9), radius: 28),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: GestureDetector(
-                    onTap: _placeLegoConstructorBlock,
-                    child: CustomPaint(
-                      painter: SeismicTycoonPainter(
-                        placedBlocks: _placedBlocks,
-                        shakeOffset: _seismicShakeOffset,
-                      ),
-                      child: Stack(
-                        children: [
-                          if (_placedBlocks.isEmpty)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(24.0),
-                                child: Text(
-                                  "Materialni tanlang va ekranga bosib stacked minorani quring! 🧱👇",
-                                  style: TextStyle(fontSize: 15, color: Colors.black54, fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
+              child: AnimatedBuilder(
+                animation: _seismicController,
+                builder: (context, child) {
+                  final double val = _seismicController.value;
+                  final double shakeX = math.sin(val * math.pi * 30.0) * 12.0 * (1.0 - val);
+                  final double shakeY = math.cos(val * math.pi * 25.0) * 8.0 * (1.0 - val);
+                  final double angle = math.sin(val * math.pi * 15.0) * 0.04 * (1.0 - val);
 
-                          // Volcano tester button
-                          if (_placedBlocks.length >= 5 && !_seismicTesting && !_showSeismicSuccessOverlay && !_showSeismicFailureOverlay)
-                            Positioned(
-                              bottom: 20,
-                              left: 30,
-                              right: 30,
-                              child: GestureDetector(
-                                onTap: _triggerLegoSeismicTest,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
-                                  decoration: AppTheme.vibrant3DBoxDecoration(
-                                    color: AppTheme.mandarin,
-                                    radius: 24,
-                                    shadowColor: const Color(0xFFD84B1A),
-                                    shadowOffset: const Offset(4, 4),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.volcano_rounded, color: Colors.white, size: 26),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        "SINOVNI BOSHLASH 🌋",
-                                        style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 15),
-                                      ),
-                                    ],
+                  final Matrix4 transform = _seismicTesting
+                      ? (Matrix4.translationValues(shakeX, shakeY, 0.0)..rotateZ(angle))
+                      : Matrix4.identity();
+
+                  return Transform(
+                    transform: transform,
+                    alignment: Alignment.bottomCenter,
+                    child: child,
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: AppTheme.vibrant3DBoxDecoration(color: const Color(0xFFF1F8E9), radius: 28),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: GestureDetector(
+                      onTap: _placeLegoConstructorBlock,
+                      child: CustomPaint(
+                        painter: SeismicTycoonPainter(
+                          placedBlocks: _placedBlocks,
+                          shakeOffset: 0.0,
+                        ),
+                        child: Stack(
+                          children: [
+                            if (_placedBlocks.isEmpty)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(24.0),
+                                  child: Text(
+                                    "Materialni tanlang va ekranga bosib stacked minorani quring! 🧱👇",
+                                    style: TextStyle(fontSize: 15, color: Colors.black54, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+
+                            // Volcano tester button
+                            if (_placedBlocks.length >= 5 && !_seismicTesting && !_showSeismicSuccessOverlay && !_showSeismicFailureOverlay)
+                              Positioned(
+                                bottom: 20,
+                                left: 30,
+                                right: 30,
+                                child: GestureDetector(
+                                  onTap: _triggerLegoSeismicTest,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                    decoration: AppTheme.vibrant3DBoxDecoration(
+                                      color: AppTheme.mandarin,
+                                      radius: 24,
+                                      shadowColor: const Color(0xFFD84B1A),
+                                      shadowOffset: const Offset(4, 4),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.volcano_rounded, color: Colors.white, size: 26),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "SINOVNI BOSHLASH 🌋",
+                                          style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1905,16 +1921,10 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: AppTheme.vibrant3DBoxDecoration(
-                          color: AppTheme.pastelMint,
-                          radius: 45,
-                          borderColor: AppTheme.mintGreen,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text("AT", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.darkMintGreen)),
+                      const FloatingTalkingScholar(
+                        initials: "AT",
+                        name: "Amir Temur",
+                        themeColor: AppTheme.mintGreen,
                       ),
                       const SizedBox(height: 14),
                       Text("Amir Temur", style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
@@ -1977,16 +1987,10 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: AppTheme.vibrant3DBoxDecoration(
-                          color: AppTheme.pastelRed,
-                          radius: 45,
-                          borderColor: AppTheme.appleRed,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text("AT", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.darkAppleRed)),
+                      const FloatingTalkingScholar(
+                        initials: "AT",
+                        name: "Amir Temur",
+                        themeColor: AppTheme.appleRed,
                       ),
                       const SizedBox(height: 14),
                       Text("Amir Temur", style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
@@ -2021,6 +2025,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
               ),
             ),
           ),
+        _buildLegoGuide(isPreLiterate),
       ],
     );
   }
@@ -2288,7 +2293,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             child: Transform.scale(
               scale: fingerScale,
               child: const Icon(
-                Icons.touch_app,
+                Icons.pan_tool_alt_rounded,
                 color: AppTheme.yellow,
                 size: 38,
                 shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
@@ -2324,7 +2329,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             child: Transform.scale(
               scale: fingerScale,
               child: const Icon(
-                Icons.touch_app,
+                Icons.pan_tool_alt_rounded,
                 color: AppTheme.yellow,
                 size: 38,
                 shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
@@ -2335,5 +2340,147 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildLegoGuide(bool isPreLiterate) {
+    if (!isPreLiterate) return const SizedBox.shrink();
+
+    final double t = _handDemoController.value;
+    final double fingerScale = 1.0 + 0.25 * math.sin(t * math.pi * 4);
+
+    if (_placedBlocks.length < 5) {
+      return Positioned(
+        bottom: 20,
+        left: MediaQuery.of(context).size.width * 0.45,
+        child: IgnorePointer(
+          child: Transform.scale(
+            scale: fingerScale,
+            child: const Icon(
+              Icons.pan_tool_alt_rounded,
+              color: AppTheme.mandarin,
+              size: 48,
+              shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
+            ),
+          ),
+        ),
+      );
+    } else if (!_seismicTesting && !_showSeismicSuccessOverlay && !_showSeismicFailureOverlay) {
+      return Positioned(
+        bottom: 30,
+        left: MediaQuery.of(context).size.width * 0.45,
+        child: IgnorePointer(
+          child: Transform.scale(
+            scale: fingerScale,
+            child: const Icon(
+              Icons.pan_tool_alt_rounded,
+              color: AppTheme.mandarin,
+              size: 48,
+              shadows: [Shadow(color: Colors.black45, offset: Offset(2, 2), blurRadius: 4)],
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+// =========================================================================
+// LIVE TALKING SCHOLAR ENGINE (TRANSPARENT FLOATING PORTRAIT)
+// =========================================================================
+class FloatingTalkingScholar extends StatefulWidget {
+  final String initials;
+  final String name;
+  final Color themeColor;
+
+  const FloatingTalkingScholar({
+    super.key,
+    required this.initials,
+    required this.name,
+    required this.themeColor,
+  });
+
+  @override
+  State<FloatingTalkingScholar> createState() => _FloatingTalkingScholarState();
+}
+
+class _FloatingTalkingScholarState extends State<FloatingTalkingScholar> with TickerProviderStateMixin {
+  late final AnimationController _slideController;
+  late final AnimationController _speakController;
+
+  @override
+  void initState() {
+    super.initState();
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..forward();
+
+    _speakController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _speakController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String assetName = "ulugbek.png";
+    if (widget.initials == "AX") assetName = "xorazmiy.png";
+    if (widget.initials == "AB") assetName = "beruniy.png";
+    if (widget.initials == "IS") assetName = "ibnsino.png";
+    if (widget.initials == "AT") assetName = "ulugbek.png";
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_slideController, _speakController]),
+      builder: (context, child) {
+        final double slideProgress = CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack).value;
+        final double slideY = (1.0 - slideProgress) * 150.0;
+        final double speakY = math.sin(_speakController.value * math.pi * 2) * 5.0;
+
+        return Transform.translate(
+          offset: Offset(0, slideY + speakY),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 130,
+                height: 130,
+                child: Image.asset(
+                  "assets/images/$assetName",
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: widget.themeColor.withAlpha(200),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.themeColor.withAlpha(100),
+                            blurRadius: 12,
+                            spreadRadius: 3,
+                          )
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        widget.initials,
+                        style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
