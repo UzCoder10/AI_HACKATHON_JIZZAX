@@ -1,4 +1,4 @@
-/** Smart Edu dizaynidagi 3D avatar URLlari */
+/** Nihol dizaynidagi 3D avatar URLlari */
 export const FIGURE_AVATARS: Record<string, string> = {
   "al-xorazmiy":
     "https://lh3.googleusercontent.com/aida-public/AB6AXuAEt77LqAJbVo9TMdKFoMxt-YhGtmNM_IOr8A-QwNzNLAeWsRGdAoYRkf8AmM3UDo_TyPhezzFz67eAUfoIPAKUuBoVvX7FG___T6Xg9KkeLPNNFYfZfu92MIVkHB6vVpkuqna2TVOvnFO6LKmA6kn42xcnGhZ9XolAlqWDOvEC9Oy044V5IoU4_x5ydzmPkOpe_xAbDmAKCh5seVCeQyo6-eBiSQd47FzR7kK4s0cEwRxqkHv0mUhDTsFxKbpCRZshPhzaPK7dqva1",

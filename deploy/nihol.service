@@ -1,0 +1,21 @@
+[Unit]
+Description=Nihol Next.js Application
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=nihol
+WorkingDirectory=/opt/nihol
+EnvironmentFile=/opt/nihol/.env.production
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -p 3000
+Restart=on-failure
+RestartSec=10
+
+# Loglar journald ga
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nihol
+
+[Install]
+WantedBy=multi-user.target

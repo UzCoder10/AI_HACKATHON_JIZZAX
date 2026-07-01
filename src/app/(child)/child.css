@@ -1,3 +1,164 @@
-.child-theme {
-  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap");
+
+.child-aqlli {
+  --aqlli-bg: #fdf9e9;
+  --aqlli-on-surface: #1c1c13;
+  --aqlli-on-surface-variant: #4d4633;
+  --aqlli-outline: #7e7761;
+  --aqlli-primary: #705d00;
+  --aqlli-primary-container: #ffd93d;
+  --aqlli-on-primary-container: #725e00;
+  --aqlli-secondary: #005db8;
+  --aqlli-secondary-container: #4c96fe;
+  --aqlli-tertiary: #ab3500;
+  --aqlli-tertiary-container: #ffd2c4;
+  --aqlli-surface-container: #f2eede;
+  --aqlli-surface-container-high: #ece8d9;
+  --aqlli-surface-container-low: #f8f4e4;
+  font-family: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--aqlli-bg);
+  color: var(--aqlli-on-surface);
+}
+
+.child-aqlli .aqlli-icon {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  display: inline-block;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.child-aqlli .aqlli-icon.filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+@keyframes aqlli-pulse-ring {
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+}
+
+@keyframes aqlli-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes aqlli-wave {
+  0%,
+  100% {
+    height: 12px;
+  }
+  50% {
+    height: 48px;
+  }
+}
+
+.child-aqlli .aqlli-pulse-ring {
+  animation: aqlli-pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.child-aqlli .aqlli-float {
+  animation: aqlli-float 4s ease-in-out infinite;
+}
+
+.child-aqlli .aqlli-wave-bar {
+  animation: aqlli-wave 1.2s ease-in-out infinite;
+}
+
+.child-aqlli .aqlli-bubbly {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.child-aqlli .aqlli-sunken {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Bosh sahifa hero */
+.child-aqlli .aqlli-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid rgba(236, 232, 217, 0.9);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 249, 233, 0.95) 45%, rgba(255, 217, 61, 0.14) 100%);
+  box-shadow:
+    0 20px 50px -24px rgba(112, 93, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.child-aqlli .aqlli-hero-blob {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: -2rem;
+  height: 14rem;
+  width: 14rem;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 217, 61, 0.35) 0%, rgba(255, 217, 61, 0) 70%);
+  filter: blur(8px);
+}
+
+.child-aqlli .aqlli-mascot-ring {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 9.5rem;
+  width: 9.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #fffef6 0%, #fff6d6 55%, #ffeaa0 100%);
+  padding: 0.65rem;
+  box-shadow:
+    0 14px 28px rgba(112, 93, 0, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
+.child-aqlli .aqlli-mascot-ring img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(112, 93, 0, 0.12));
+}
+
+.child-aqlli .aqlli-stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(236, 232, 217, 0.85);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .child-aqlli .aqlli-page {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 28rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .child-aqlli .aqlli-pulse-ring,
+  .child-aqlli .aqlli-float,
+  .child-aqlli .aqlli-wave-bar {
+    animation: none !important;
+  }
 }

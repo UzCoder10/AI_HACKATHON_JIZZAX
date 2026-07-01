@@ -37,7 +37,8 @@ export const CRISIS_PATTERNS: PatternRule[] = [
 
 /** Shubhali — LLM moderatsiya yoki bloklash */
 export const SUSPICIOUS_PATTERNS: PatternRule[] = [
-  { pattern: /o['']?ldir|death|death|o['']?lim|смерть/i, category: "violence", crisis: false },
+  /** Shubhali — LLM moderatsiya yoki bloklash (o'lim=death; olim=scholar emas) */
+  { pattern: /\bo['']lim\b|\bölüm\b|\bdeath\b|смерть/i, category: "violence", crisis: false },
   { pattern: /yolg['']?iz|yolg['']?on|alcohol|spirt|alkogol|наркот|drug/i, category: "inappropriate", crisis: false },
   { pattern: /yolg['']?on\s*sevgi|love\s*you\s*ai|seni\s*sevaman/i, category: "companion", crisis: false },
   { pattern: /o['']?zimni\s*yomon\s*his|yolg['']?iz|грустно|плохо\s*себе/i, category: "fear", crisis: false },

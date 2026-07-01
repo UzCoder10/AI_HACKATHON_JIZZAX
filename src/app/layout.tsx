@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Smart Edu UZ — SafarAI",
+  title: "Nihol — bolalar uchun AI hamroh",
   description: "Bolalar uchun xavfsiz AI yordamchi — ta'lim, mashg'ulot va kuzatuv",
 };
 

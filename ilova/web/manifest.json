@@ -1,11 +1,11 @@
 {
-    "name": "smart_edu_uzbekistan",
-    "short_name": "smart_edu_uzbekistan",
+    "name": "Nihol",
+    "short_name": "Nihol",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Bolalar uchun AI hamroh — Nihol",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

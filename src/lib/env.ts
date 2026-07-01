@@ -18,11 +18,23 @@ function optional(name: string, fallback = ""): string {
 export const env = {
   port: parseInt(optional("PORT", "3000"), 10),
 
-  // AlemLLM
+  // AlemLLM (OpenAI-compatible — Alem hosting)
   alemlLm: {
     apiUrl: optional("ALEMLLM_API_URL"),
     apiKey: optional("ALEMLLM_API_KEY"),
     model: optional("ALEMLLM_MODEL", "gemma4"),
+  },
+
+  // OpenAI
+  openai: {
+    apiKey: optional("OPENAI_API_KEY"),
+    model: optional("OPENAI_MODEL", "gpt-4o-mini"),
+  },
+
+  // Anthropic (Claude)
+  anthropic: {
+    apiKey: optional("ANTHROPIC_API_KEY"),
+    model: optional("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
   },
 
   // RAGFlow
@@ -40,6 +52,11 @@ export const env = {
     apiUrl: optional("LANGFLOW_API_URL"),
     flowId: optional("LANGFLOW_FLOW_ID"),
     apiKey: optional("LANGFLOW_API_KEY"),
+  },
+
+  // YouTube Data API (video metadata — admin)
+  youtube: {
+    apiKey: optional("YOUTUBE_API_KEY"),
   },
 
   // PostgreSQL (Langflow infra — hozircha backend ishlatmaydi)

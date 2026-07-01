@@ -247,7 +247,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(width: 10),
             Text(
-              "Smart Edu",
+              "Nihol",
               style: AppTheme.headerMedium.copyWith(fontSize: 18),
             ),
           ],

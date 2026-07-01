@@ -29,18 +29,18 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => AgeTierController()),
       ],
-      child: const SmartEduApp(),
+      child: const NiholApp(),
     ),
   );
 }
 
-class SmartEduApp extends StatelessWidget {
-  const SmartEduApp({super.key});
+class NiholApp extends StatelessWidget {
+  const NiholApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Smart Edu Uzbekistan",
+      title: "Nihol",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: AppTheme.white,

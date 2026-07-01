@@ -8,13 +8,16 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ChildLanguage, ChildProfile, ChildProgress } from "@/types/childUI";
+import { fetchChildProfile } from "@/lib/child/childData";
+import { useChildMock } from "@/lib/config/dataMode";
 
-const PROFILE_KEY = "safarai_child_profile";
-const PROGRESS_KEY = "safarai_child_progress";
+const PROFILE_KEY = "nihol_child_profile";
+const PROGRESS_KEY = "nihol_child_progress";
 
 const DEFAULT_PROFILE: ChildProfile = {
-  childId: "child-demo-001",
+  childId: "",
   name: "Bola",
   age: 10,
   language: "uz",
@@ -32,12 +35,15 @@ const DEFAULT_PROGRESS: ChildProgress = {
 interface ChildContextValue {
   profile: ChildProfile;
   progress: ChildProgress;
+  ready: boolean;
+  profileError: string | null;
   setLanguage: (lang: ChildLanguage) => void;
   addStars: (count?: number) => void;
   markMoodDone: (emoji: string) => void;
   markDailyTaskDone: () => void;
   hasMoodToday: boolean;
   hasDailyTaskToday: boolean;
+  reloadProfile: () => Promise<void>;
 }
 
 const ChildContext = createContext<ChildContextValue | null>(null);
@@ -61,9 +67,58 @@ function levelFromStars(stars: number): number {
 }
 
 export function ChildProvider({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<ChildProfile>(DEFAULT_PROFILE);
   const [progress, setProgress] = useState<ChildProgress>(DEFAULT_PROGRESS);
   const [hydrated, setHydrated] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const reloadProfile = useCallback(async () => {
+    const urlChildId = searchParams.get("childId")?.trim();
+    const stored = loadJson<ChildProfile>(PROFILE_KEY, DEFAULT_PROFILE);
+    const childId =
+      urlChildId ||
+      stored.childId ||
+      process.env.NEXT_PUBLIC_DEMO_CHILD_ID?.trim() ||
+      "";
+
+    if (useChildMock()) {
+      setProfile({ ...stored, childId: stored.childId || "child-demo-001", name: stored.name || "Jasur" });
+      setProfileError(null);
+      setReady(true);
+      return;
+    }
+
+    if (!childId) {
+      setProfileError(
+        "Bola profili tanlanmagan. Ota-ona panelidagi «Bola rejimi» tugmasi orqali kiriting."
+      );
+      setReady(true);
+      return;
+    }
+
+    const apiProfile = await fetchChildProfile(childId);
+    if (!apiProfile) {
+      setProfileError(
+        childId
+          ? "Bola profili topilmadi. Ota-ona panelidan bolani tanlang yoki ?childId= parametrini tekshiring."
+          : "Bola profili tanlanmagan. Ota-ona panelidagi «Bola rejimi» tugmasi orqali kiriting."
+      );
+      setReady(true);
+      return;
+    }
+
+    const next: ChildProfile = {
+      childId: apiProfile.childId,
+      name: apiProfile.name,
+      age: apiProfile.age,
+      language: apiProfile.language,
+    };
+    setProfile(next);
+    setProfileError(null);
+    setReady(true);
+  }, [searchParams]);
 
   useEffect(() => {
     setProfile(loadJson(PROFILE_KEY, DEFAULT_PROFILE));
@@ -73,6 +128,11 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
+    void reloadProfile();
+  }, [hydrated, reloadProfile]);
+
+  useEffect(() => {
+    if (!hydrated || !profile.childId) return;
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   }, [profile, hydrated]);
 
@@ -93,10 +153,9 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const markMoodDone = useCallback((emoji: string) => {
-    const today = todayKey();
     setProgress((prev) => ({
       ...prev,
-      lastMoodDate: today,
+      lastMoodDate: todayKey(),
       lastMoodEmoji: emoji,
     }));
   }, []);
@@ -117,22 +176,28 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
     () => ({
       profile,
       progress,
+      ready,
+      profileError,
       setLanguage,
       addStars,
       markMoodDone,
       markDailyTaskDone,
       hasMoodToday,
       hasDailyTaskToday,
+      reloadProfile,
     }),
     [
       profile,
       progress,
+      ready,
+      profileError,
       setLanguage,
       addStars,
       markMoodDone,
       markDailyTaskDone,
       hasMoodToday,
       hasDailyTaskToday,
+      reloadProfile,
     ]
   );
 

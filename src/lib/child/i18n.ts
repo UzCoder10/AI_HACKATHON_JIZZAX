@@ -3,7 +3,7 @@ import type { ChildLanguage } from "@/types/childUI";
 type Strings = Record<string, { uz: string; ru: string }>;
 
 const UI: Strings = {
-  appName: { uz: "Smart Edu UZ", ru: "Smart Edu UZ" },
+  appName: { uz: "Nihol", ru: "Nihol" },
   assistant: { uz: "Yordamchi", ru: "Помощник" },
   home: { uz: "Bosh", ru: "Главная" },
   chat: { uz: "Suhbat", ru: "Чат" },

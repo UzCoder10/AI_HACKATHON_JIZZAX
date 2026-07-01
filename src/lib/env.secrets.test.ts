@@ -14,6 +14,9 @@ describe("API kalitlar kodda yo'q", () => {
   const filesToScan = [
     "lib/env.ts",
     "lib/ai/alemClient.ts",
+    "lib/llm/openai_client.ts",
+    "lib/llm/claude_client.ts",
+    "lib/llm/alem_client.ts",
     "lib/payments/webhookVerify.ts",
     "lib/payments/paymeClient.ts",
     "lib/payments/clickClient.ts",

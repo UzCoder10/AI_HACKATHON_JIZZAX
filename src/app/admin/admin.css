@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap");
+
+.admin-portal {
+  --admin-bg: #f7f9fb;
+  --admin-surface: #ffffff;
+  --admin-surface-low: #f2f4f6;
+  --admin-surface-container: #eceef0;
+  --admin-border: #c6c6ce;
+  --admin-border-light: #e0e3e5;
+  --admin-text: #191c1e;
+  --admin-text-muted: #45464e;
+  --admin-text-subtle: #75777e;
+  --admin-primary: #182442;
+  --admin-primary-container: #2e3a59;
+  --admin-primary-light: #dae2ff;
+  --admin-accent: #3e41de;
+  --admin-accent-teal: #006c49;
+  --admin-accent-teal-light: #6cf8bb;
+  --admin-error: #ba1a1a;
+  --admin-error-light: #ffdad6;
+  --admin-warning: #b65a12;
+  --admin-warning-light: #fff1e3;
+  --admin-sidebar-width: 260px;
+
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  min-height: 100vh;
+}
+
+.admin-portal .material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+.admin-portal .admin-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.admin-portal ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-portal ::-webkit-scrollbar-thumb {
+  background: var(--admin-border);
+  border-radius: 10px;
+}
+
+.admin-portal ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+}
+
+.admin-table-row {
+  height: 40px;
+}
+
+.admin-table-row:hover {
+  background: var(--admin-surface-low);
+}
+
+.admin-nav-active {
+  border-left: 4px solid var(--admin-accent-teal-light);
+  background: rgba(58, 70, 102, 0.45);
+  color: #6ffbbe;
+  font-weight: 600;
+}
+
+.admin-label-caps {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-secure-zone {
+  background: rgba(24, 36, 66, 0.03);
+  border: 1px solid rgba(24, 36, 66, 0.08);
+}

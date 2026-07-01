@@ -1,5 +1,11 @@
 import type { AppLanguage, SafetyCategory } from "@/types/safety";
-import { env } from "@/lib/env";
+import {
+  generateModerationText,
+  isAlemConfigured,
+  isAnthropicConfigured,
+  isOpenAiConfigured,
+} from "@/lib/llm";
+import { AI_CONFIG } from "@/lib/llm/config";
 
 export interface LlmModerationResult {
   safe: boolean;
@@ -8,13 +14,25 @@ export interface LlmModerationResult {
   reason?: string;
 }
 
+function isProviderConfigured(): boolean {
+  switch (AI_CONFIG.moderation) {
+    case "openai":
+      return isOpenAiConfigured();
+    case "anthropic":
+      return isAnthropicConfigured();
+    case "alem":
+    default:
+      return isAlemConfigured();
+  }
+}
+
 export function isLlmModerationAvailable(): boolean {
-  return Boolean(env.alemlLm.apiUrl && env.alemlLm.apiKey);
+  return isProviderConfigured();
 }
 
 /**
  * Ikkinchi bosqich: LLM-asoslangan moderatsiya.
- * API mavjud bo'lmasa — xavfsizlik uchun safe=false (fail-closed).
+ * AI_CONFIG.moderation provayderi orqali ishlaydi.
  */
 export async function moderateWithLlm(
   text: string,
@@ -42,36 +60,7 @@ crisis=true faqat o'z-o'ziga zarar, suiiste'mol yoki jiddiy qo'rquv bo'lsa.
 Til: ${langLabel}.`;
 
   try {
-    const response = await fetch(env.alemlLm.apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.alemlLm.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: env.alemlLm.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: text },
-        ],
-        temperature: 0,
-        max_tokens: 200,
-      }),
-    });
-
-    if (!response.ok) {
-      return {
-        safe: false,
-        crisis: false,
-        category: "other",
-        reason: `LLM moderatsiya xatolik: ${response.status}`,
-      };
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const raw = data.choices?.[0]?.message?.content ?? "";
+    const raw = await generateModerationText(text, systemPrompt);
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return {

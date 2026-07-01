@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 import { BRAND_LOGO } from "@/lib/design/avatars";
 
 export function BrandLogo({
@@ -21,7 +22,7 @@ export function BrandLogo({
     >
       <Image
         src={BRAND_LOGO}
-        alt="Smart Edu Uzbekistan"
+        alt={BRAND.name}
         width={sizes[size]}
         height={sizes[size]}
         className="rounded-full shadow-sm object-contain"
@@ -31,7 +32,7 @@ export function BrandLogo({
         <span
           className={`font-extrabold text-primary group-hover:text-primary-hover tracking-tight ${textSizes[size]}`}
         >
-          Smart Edu UZ
+          {BRAND.name}
         </span>
       )}
     </Link>

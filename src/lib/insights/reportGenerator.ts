@@ -285,5 +285,58 @@ export async function generateWeeklyReport(
   return { ...reportData, reportId };
 }
 
+/**
+ * Bepul tarif — faqat DB statistikasi, LLM va premium interest extraction yo'q.
+ */
+export async function generateBasicReport(
+  options: ReportGeneratorOptions
+): Promise<InsightReportData> {
+  const { childId, language = "uz", periodDays = DEFAULT_PERIOD_DAYS } = options;
+  const { start, end } = periodBounds(periodDays);
+
+  const [moodEntries, messages, conversations] = await Promise.all([
+    getMoodEntries(childId, start, end).catch(() => []),
+    getChildMessagesInPeriod(childId, start, end).catch(() => []),
+    getChildConversationsInPeriod(childId, start, end).catch(() => []),
+  ]);
+
+  const moodAnalysis = analyzeMoodTrend(
+    moodEntries.map((e) => ({
+      entryDate: e.entryDate,
+      emoji: e.emoji,
+      score: e.score,
+    })),
+    start,
+    end
+  );
+
+  const activity = computeActivityStats(messages, conversations, periodDays);
+  const activitySummary = buildActivitySummary(activity, language);
+  const interests: InsightReportData["interests"] = [];
+
+  const summary =
+    language === "uz"
+      ? `${activitySummary} To'liq AI tahlil va haftalik hisobot Standart yoki Oilaviy tarifda ochiladi.`
+      : `${activitySummary} Полный AI-анализ доступен на тарифах Стандарт и Семейный.`;
+
+  const recommendations = buildRuleBasedRecommendations(
+    interests,
+    moodAnalysis.trend,
+    language
+  );
+
+  return {
+    childId,
+    periodStart: start.toISOString(),
+    periodEnd: end.toISOString(),
+    moodAnalysis,
+    interests,
+    activity,
+    activitySummary,
+    summary,
+    recommendations,
+  };
+}
+
 export { analyzeMoodTrend } from "./moodAnalyzer";
 export { extractInterests } from "./interestExtractor";

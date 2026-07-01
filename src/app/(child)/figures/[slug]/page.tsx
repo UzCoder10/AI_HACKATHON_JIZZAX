@@ -1,35 +1,17 @@
-"use client";
-
-import { use } from "react";
-import { notFound } from "next/navigation";
-import { ChildShell } from "@/components/child/ChildShell";
-import { ChatWindow } from "@/components/child/ChatWindow";
+import { redirect } from "next/navigation";
 import { getFigureFromCatalog } from "@/lib/rag/figuresCatalog";
-import { FIGURE_EMOJIS } from "@/types/childUI";
-import { useChildSession } from "@/lib/child/ChildProvider";
+import { CHILD_ROUTES } from "@/lib/child/routes";
 
-export default function FigureChatPage({
+/** Eski mentor chat — Aqlli talk + figure query */
+export default async function LegacyFigureChatRedirect({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = use(params);
-  const { profile } = useChildSession();
+  const { slug } = await params;
   const figure = getFigureFromCatalog(slug);
-
-  if (!figure) notFound();
-
-  const name = profile.language === "uz" ? figure.nameUz : figure.nameRu;
-  const emoji = FIGURE_EMOJIS[slug] ?? "🌟";
-
-  return (
-    <ChildShell title={name} subtitle={figure.field} fullWidth>
-      <ChatWindow
-        mode="figure"
-        figureSlug={slug}
-        figureName={name}
-        headerEmoji={emoji}
-      />
-    </ChildShell>
-  );
+  if (!figure) {
+    redirect(CHILD_ROUTES.talk);
+  }
+  redirect(CHILD_ROUTES.talkWithFigure(slug));
 }

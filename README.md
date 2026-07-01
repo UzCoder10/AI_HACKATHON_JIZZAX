@@ -1,4 +1,4 @@
-# SafarAI
+# Nihol
 
 7–12 yoshli bolalar uchun xavfsiz AI yordamchi — Next.js 15 (App Router), PostgreSQL, ALEMLLM, RAGFlow.
 
@@ -17,7 +17,7 @@ cp .env.example .env
 # .env ni to'ldiring
 
 npm run prisma:generate
-# DATABASE_URL ni .env ga yozing (bo'sh SafarAI DB — Langflow DB emas!)
+# DATABASE_URL ni .env ga yozing (bo'sh Nihol DB — Langflow DB emas!)
 npm run prisma:migrate:deploy   # production / shadow DB yo'q muhitda
 npm run prisma:seed             # 7 Buyuk Siymo
 
@@ -73,8 +73,8 @@ Ma'lumotlar **O'zbekiston hududida** saqlanishi kerak:
 
 ```bash
 # Serverda
-git clone <repo-url> /opt/safarai
-cd /opt/safarai
+git clone <repo-url> /opt/nihol
+cd /opt/nihol
 npm ci
 cp .env.production.example .env.production
 nano .env.production   # barcha qiymatlarni to'ldiring
@@ -86,9 +86,9 @@ nano .env.production   # barcha qiymatlarni to'ldiring
 # Majburiy production
 NODE_ENV=production
 DATA_RESIDENCY_REGION=UZ
-DATABASE_URL=postgresql://...@db.safarai.internal.uz:5432/safarai
+DATABASE_URL=postgresql://...@db.nihol.internal.uz:5432/nihol
 JWT_SECRET=<uzun-random-string>
-APP_URL=https://safarai.uz
+APP_URL=https://nihol.uz
 
 # API kalitlar — faqat .env.production da, git ga commit qilmang
 ALEMLLM_API_KEY=...
@@ -103,7 +103,7 @@ CLICK_SECRET_KEY=...
 **Ma'lumotlar bazasi (production):**
 
 ```bash
-# 1. Alem/administrator dan BO'SH SafarAI DB so'rang (Langflow DB dan ALOHIDA!)
+# 1. Alem/administrator dan BO'SH Nihol DB so'rang (Langflow DB dan ALOHIDA!)
 # 2. .env.production ga DATABASE_URL yozing:
 #    postgresql://USER:PASS@a1-postgres1.alem.ai:30100/safarai_... 
 
@@ -122,15 +122,15 @@ NODE_ENV=production node node_modules/next/dist/bin/next start -p 3000
 
 **pm2 misol:**
 ```bash
-pm2 start npm --name safarai -- start
+pm2 start npm --name nihol -- start
 pm2 save
 ```
 
 ### 4. nginx sozlash
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/safarai
-sudo ln -s /etc/nginx/sites-available/safarai /etc/nginx/sites-enabled/
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/nihol
+sudo ln -s /etc/nginx/sites-available/nihol /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -138,20 +138,20 @@ nginx `/api/*` va frontend ni bir xil Next.js upstream ga yo'naltiradi. To'lov w
 
 | Provayder | URL |
 |-----------|-----|
-| Payme | `https://safarai.uz/api/webhooks/payme` |
-| Click prepare | `https://safarai.uz/api/webhooks/click/prepare` |
-| Click complete | `https://safarai.uz/api/webhooks/click/complete` |
+| Payme | `https://nihol.uz/api/webhooks/payme` |
+| Click prepare | `https://nihol.uz/api/webhooks/click/prepare` |
+| Click complete | `https://nihol.uz/api/webhooks/click/complete` |
 
 ### 5. SSL
 
 ```bash
-sudo certbot --nginx -d safarai.uz -d www.safarai.uz
+sudo certbot --nginx -d nihol.uz -d www.nihol.uz
 ```
 
 ### 6. Post-deploy tekshiruv
 
 ```bash
-curl https://safarai.uz/api/health
+curl https://nihol.uz/api/health
 npm test
 ```
 

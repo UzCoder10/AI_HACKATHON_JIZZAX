@@ -1,8 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { PIN_COOKIE, SESSION_COOKIE } from "@/lib/auth/cookies";
 
-const COOKIE_NAME = "safarai_session";
-const PIN_COOKIE_NAME = "safarai_pin";
+const COOKIE_NAME = SESSION_COOKIE;
+const PIN_COOKIE_NAME = PIN_COOKIE;
 const SESSION_DAYS = 7;
 const PIN_HOURS = 2;
 

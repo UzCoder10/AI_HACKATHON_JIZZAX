@@ -76,7 +76,7 @@ async function auditPostgres() {
       result.demo.childRowsWithDemo = null;
     }
 
-    // Langflow jadvallari (SafarAI emas)
+    // Langflow jadvallari (Nihol emas)
     const langflowTables = ["flow", "user", "message", "folder", "file"];
     result.langflowInfra = {};
     for (const t of langflowTables) {

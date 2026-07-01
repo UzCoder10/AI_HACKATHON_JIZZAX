@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ParentShell } from "@/components/parent/ParentShell";
+import { PARENT_ROUTES } from "@/lib/parent/routes";
 import { useParentSession } from "@/lib/parent/ParentProvider";
 
 interface ChildForm {
@@ -11,7 +13,7 @@ interface ChildForm {
 }
 
 const inputClass =
-  "w-full px-4 py-3 border-2 border-surface-variant rounded-xl focus:border-primary focus:outline-none min-h-[44px] font-medium bg-brand-bg focus:bg-white";
+  "w-full rounded-xl border-2 border-[#c7c4d8] bg-white px-4 py-3 text-sm font-semibold text-[#111c2d] focus:border-[#3525cd] focus:outline-none min-h-[44px]";
 
 export default function ChildrenPage() {
   const { user, refresh } = useParentSession();
@@ -59,8 +61,8 @@ export default function ChildrenPage() {
   return (
     <ParentShell title="Bola profillari" subtitle="Farzandlar uchun AI muhitini sozlang">
       <div className="grid md:grid-cols-2 gap-6">
-        <section className="bg-white rounded-2xl border border-surface-container-low p-6 shadow-vibrant-primary">
-          <h2 className="font-extrabold text-on-surface mb-4">
+        <section className="nurture-card rounded-3xl border border-[#c7c4d8]/10 bg-white p-6">
+          <h2 className="mb-4 text-xl font-bold text-[#111c2d]">
             {editId ? "Profilni tahrirlash" : "Yangi bola qo'shish"}
           </h2>
           {error && (
@@ -97,7 +99,7 @@ export default function ChildrenPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={loading}
-                className="flex-1 py-3 bg-primary text-on-primary rounded-full font-extrabold min-h-[44px] shadow-btn-primary hover:bg-primary-hover text-sm"
+                className="flex-1 rounded-xl bg-[#3525cd] py-3 text-sm font-bold text-white min-h-[44px] shadow-lg shadow-[#3525cd]/20 hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? "..." : "Saqlash"}
               </button>
@@ -121,14 +123,27 @@ export default function ChildrenPage() {
           {user?.children.map((child) => (
             <div
               key={child.id}
-              className="bg-white rounded-2xl border border-surface-container-low p-5 flex justify-between items-center shadow-vibrant-secondary bento-tile"
+              className="nurture-card flex items-center justify-between rounded-3xl border border-[#c7c4d8]/10 bg-white p-5"
             >
               <div>
-                <p className="font-extrabold text-on-surface">{child.name}</p>
-                <p className="text-sm text-outline font-medium">
+                <p className="font-bold text-[#111c2d]">{child.name}</p>
+                <p className="text-sm font-medium text-[#777587]">
                   {child.age} yosh · {child.language === "uz" ? "O'zbek" : "Русский"}
                 </p>
-                <p className="text-xs text-outline/70 mt-1 font-mono">ID: {child.id.slice(0, 12)}...</p>
+                <div className="mt-1 flex flex-wrap gap-3">
+                  <Link
+                    href={PARENT_ROUTES.child(child.id)}
+                    className="text-xs font-semibold text-[#3525cd] hover:underline"
+                  >
+                    Profilni ko&apos;rish →
+                  </Link>
+                  <Link
+                    href={`/child?childId=${encodeURIComponent(child.id)}`}
+                    className="text-xs font-semibold text-[#005523] hover:underline"
+                  >
+                    Bola rejimiga o&apos;tish →
+                  </Link>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

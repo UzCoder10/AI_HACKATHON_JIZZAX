@@ -1,68 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useParentSession } from "@/lib/parent/ParentProvider";
-import { BrandLogo } from "@/components/ui/BrandLogo";
+import { NurtureSidebar } from "@/components/parent/nurture/NurtureSidebar";
+import { NurtureTopbar } from "@/components/parent/nurture/NurtureTopbar";
+import { PARENT_ROUTES } from "@/lib/parent/routes";
 
-const NAV = [
-  { href: "/dashboard", label: "Command Center", icon: "📊" },
-  { href: "/children", label: "Bolalar", icon: "👧" },
-  { href: "/safety", label: "Xavfsizlik", icon: "🛡️" },
-  { href: "/transparency", label: "Shaffoflik", icon: "👁️" },
-  { href: "/subscription", label: "Tariflar", icon: "💳" },
-  { href: "/settings", label: "Sozlamalar", icon: "⚙️" },
-];
-
-export function ParentSidebar() {
-  const pathname = usePathname();
-  const { user, logout } = useParentSession();
+/**
+ * Eski ParentShell — endi Nurture vizual qatlamidan foydalanadi.
+ * ParentProvider va sahifa mantiqini o'zgartirmaydi.
+ */
+export function ParentShell({
+  children,
+  title,
+  subtitle,
+}: {
+  children: React.ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside className="w-full md:w-64 flex-shrink-0 bg-white border-r border-surface-variant min-h-screen p-5 flex flex-col shadow-soft-blue">
-      <div className="mb-8">
-        <BrandLogo href="/dashboard" size="sm" />
-        <p className="text-xs text-outline truncate mt-2 font-medium">{user?.email}</p>
-      </div>
-
-      <nav className="flex-1 space-y-1">
-        {NAV.map(({ href, label, icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-bold transition ${
-              pathname.startsWith(href)
-                ? "bg-primary text-on-primary shadow-btn-primary"
-                : "text-on-surface-variant hover:bg-surface-container hover:text-primary"
-            }`}
-          >
-            <span>{icon}</span>
-            {label}
-          </Link>
-        ))}
-      </nav>
-
-      <button
-        type="button"
-        onClick={logout}
-        className="mt-4 w-full py-3 text-sm text-red-600 hover:bg-red-50 rounded-xl font-bold border border-red-100"
-      >
-        Chiqish
-      </button>
-    </aside>
-  );
-}
-
-export function ParentShell({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
-  return (
-    <div className="min-h-screen bg-brand-bg flex flex-col md:flex-row">
-      <ParentSidebar />
-      <div className="flex-1 px-4 md:px-16 py-8 max-w-6xl">
-        <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">{title}</h1>
-          {subtitle && <p className="text-body-lg text-outline mt-1 font-medium">{subtitle}</p>}
-        </header>
-        {children}
+    <div className="min-h-screen bg-[#f9f9ff]">
+      <NurtureSidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <div className="md:ml-64">
+        <NurtureTopbar title={title} onMenuClick={() => setMobileOpen(true)} />
+        <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
+          {subtitle && (
+            <p className="mb-6 text-base font-medium text-[#777587]">{subtitle}</p>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -73,9 +43,9 @@ export function ChildSelector() {
 
   if (!user?.children.length) {
     return (
-      <p className="text-sm text-on-secondary-container bg-secondary-container/30 px-4 py-3 rounded-xl font-semibold border border-secondary-container/40">
+      <p className="rounded-xl border border-[#ffdbca]/60 bg-[#ffdbca]/30 px-4 py-3 text-sm font-semibold text-[#783200]">
         Avval bola profili qo&apos;shing →{" "}
-        <Link href="/children" className="underline font-bold text-primary">
+        <Link href={PARENT_ROUTES.children} className="font-bold text-[#3525cd] underline">
           Bolalar
         </Link>
       </p>
@@ -86,7 +56,7 @@ export function ChildSelector() {
     <select
       value={selectedChildId ?? ""}
       onChange={(e) => setSelectedChildId(e.target.value)}
-      className="px-4 py-2.5 border-2 border-surface-variant rounded-xl text-sm bg-white min-h-[44px] font-semibold focus:border-primary focus:outline-none"
+      className="min-h-[44px] rounded-xl border-2 border-[#c7c4d8] bg-white px-4 py-2.5 text-sm font-semibold text-[#111c2d] focus:border-[#3525cd] focus:outline-none"
       aria-label="Farzand tanlash"
     >
       {user.children.map((c) => (
@@ -97,3 +67,5 @@ export function ChildSelector() {
     </select>
   );
 }
+
+export { NurtureSidebar as ParentSidebar };

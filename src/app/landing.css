@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap");
+
+.landing-page {
+  --lp-bg: #faf8f4;
+  --lp-ink: #16162a;
+  --lp-muted: #4a4a63;
+  --lp-subtle: #5a5a72;
+  --lp-primary: #3e41de;
+  --lp-orange: #ff8c42;
+  --lp-gold: #ffbe3d;
+  --lp-green: #1b8a6b;
+  --lp-navy: #1e2066;
+  --lp-footer: #191b57;
+
+  font-family: "Manrope", system-ui, sans-serif;
+  background: var(--lp-bg);
+  color: var(--lp-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.landing-page ::selection {
+  background: var(--lp-gold);
+  color: var(--lp-ink);
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-font-display {
+  font-family: "Sora", system-ui, sans-serif;
+}
+
+@keyframes lp-vwave {
+  0%,
+  100% {
+    transform: scaleY(0.28);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes lp-floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes lp-pulsering {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.lp-animate-float {
+  animation: lp-floaty 7s ease-in-out infinite;
+}
+
+.lp-animate-float-fast {
+  animation: lp-floaty 5s ease-in-out infinite;
+}
+
+.lp-animate-pulse-ring {
+  animation: lp-pulsering 2.4s ease-out infinite;
+}
+
+.lp-wave-bar {
+  display: block;
+  width: 3.5px;
+  border-radius: 4px;
+  transform-origin: center;
+  animation: lp-vwave 0.9s ease-in-out infinite;
+}

@@ -1,4 +1,4 @@
-// SafarAI — PostgreSQL (safarai schema via DATABASE_URL ?schema=safarai)
+// Nihol — PostgreSQL (safarai schema via DATABASE_URL ?schema=safarai)
 
 generator client {
   provider = "prisma-client-js"
@@ -52,6 +52,50 @@ enum PaymentStatus {
   COMPLETED
   CANCELLED
   FAILED
+}
+
+enum LessonStatus {
+  DRAFT
+  ACTIVE
+}
+
+model LessonTopic {
+  id                   String       @id @default(cuid())
+  slug                 String       @unique
+  title                String
+  subject              String
+  description          String?      @db.Text
+  youtubeId            String?
+  videoTitle           String?
+  videoUrl             String?
+  videoDurationSeconds Int?
+  status               LessonStatus @default(DRAFT)
+  author               String?
+  sortOrder            Int          @default(0)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  pausePoints LessonPausePoint[]
+
+  @@index([status])
+  @@index([slug])
+}
+
+/// Fonus Kids: video ma'lum vaqtda to'xtaydi, AI topshiriq beriladi (keyin ulanadi)
+model LessonPausePoint {
+  id               String   @id @default(cuid())
+  lessonId         String
+  timestampSeconds Int
+  label            String?
+  taskType         String   @default("ai_task")
+  taskPayload      Json?
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  lesson LessonTopic @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }
 
 model GreatFigure {

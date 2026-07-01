@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         ? buildPaymeCheckoutUrl({
             merchantTransId: transaction.merchantTransId,
             amountTiyin: plan.amountTiyin,
-            description: `SafarAI ${plan.nameUz} obuna`,
+            description: `Nihol ${plan.nameUz} obuna`,
           })
         : buildClickCheckoutUrl({
             merchantTransId: transaction.merchantTransId,

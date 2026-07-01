@@ -109,7 +109,7 @@ spacing:
 ---
 
 ## Brand & Style
-The brand personality is high-energy, optimistic, and intellectually stimulating, specifically tailored for the "Smart Edu Uzbekistan" initiative. It moves away from passive pastels toward a proactive, "punchy" aesthetic that celebrates learning as an active adventure.
+The brand personality is high-energy, optimistic, and intellectually stimulating, specifically tailored for the **Nihol** initiative. It moves away from passive pastels toward a proactive, "punchy" aesthetic that celebrates learning as an active adventure.
 
 The design style merges **Modern Minimalism** with **Tactile Vibrancy**. It utilizes a pure white canvas to allow saturated, electric hues to pop, creating a sense of clarity and focus. The UI should evoke a "joyful precision"—professional enough for an educational platform, but playful enough to engage young learners and educators. Key characteristics include thick, soft colorful shadows that give elements a "floating" physical presence and high-contrast interactions.
 
@@ -146,7 +146,7 @@ Surfaces do not use borders; instead, they are separated from the pure white bac
 ## Shapes
 Shapes are unapologetically rounded to maintain a friendly and safe atmosphere for education. 
 
-Standard components (buttons, inputs) use a 0.5rem (8px) radius. Larger containers like cards and content modules use "rounded-xl" at 1.5rem (24px) to emphasize the soft, tactile nature of the UI. Avoid sharp corners entirely to stay consistent with the "Smart Edu" inviting aesthetic.
+Standard components (buttons, inputs) use a 0.5rem (8px) radius. Larger containers like cards and content modules use "rounded-xl" at 1.5rem (24px) to emphasize the soft, tactile nature of the UI. Avoid sharp corners entirely to stay consistent with the **Nihol** inviting aesthetic.
 
 ## Components
 - **Buttons:** Large, high-contrast blocks. The primary button is Electric Blue with white text and a thick, soft blue shadow. On hover, the shadow intensity increases.

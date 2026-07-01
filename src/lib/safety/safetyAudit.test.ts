@@ -10,7 +10,7 @@ const mockCreateChatCompletion = vi.fn();
 const mockGetOrCreateConversation = vi.fn();
 const mockGetConversationMessages = vi.fn();
 const mockSaveConversationMessage = vi.fn();
-const mockRetrieveFromKnowledgeBase = vi.fn();
+const mockGetAllomaContext = vi.fn();
 const mockGetGreatFigureBySlug = vi.fn();
 const mockGetOrCreateFigureConversation = vi.fn();
 
@@ -23,6 +23,16 @@ vi.mock("@/lib/ai/alemClient", () => ({
   createChatCompletion: (...args: unknown[]) => mockCreateChatCompletion(...args),
 }));
 
+vi.mock("@/lib/llm", () => ({
+  getClient: () => ({
+    generateChatCompletion: (...args: unknown[]) => mockCreateChatCompletion(...args),
+  }),
+  clientFor: () => ({
+    generateChatCompletion: (...args: unknown[]) => mockCreateChatCompletion(...args),
+  }),
+  isAnthropicConfigured: () => true,
+}));
+
 vi.mock("@/lib/db/queries", () => ({
   getOrCreateConversation: (...args: unknown[]) => mockGetOrCreateConversation(...args),
   getConversationMessages: (...args: unknown[]) => mockGetConversationMessages(...args),
@@ -31,11 +41,14 @@ vi.mock("@/lib/db/queries", () => ({
   getOrCreateFigureConversation: (...args: unknown[]) => mockGetOrCreateFigureConversation(...args),
 }));
 
+vi.mock("@/lib/rag/allomaContext", () => ({
+  getAllomaContext: (...args: unknown[]) => mockGetAllomaContext(...args),
+}));
+
 vi.mock("@/lib/rag/ragflowClient", () => ({
-  retrieveFromKnowledgeBase: (...args: unknown[]) => mockRetrieveFromKnowledgeBase(...args),
+  isRagflowConfigured: () => true,
   buildRagContext: () => "[Manba] Test kontekst",
   getSourceNames: () => ["test.pdf"],
-  isRagflowConfigured: () => true,
 }));
 
 vi.mock("@/lib/rag/langflowClient", () => ({
@@ -61,9 +74,15 @@ describe("xavfsizlik audit — AI oqimlari", () => {
       personaPrompt: "Ulug'bek persona",
     });
     mockGetOrCreateFigureConversation.mockResolvedValue({ id: "fig-conv-1" });
-    mockRetrieveFromKnowledgeBase.mockResolvedValue({
+    mockGetAllomaContext.mockResolvedValue({
+      allomaId: "mirzo-ulugbek",
+      slug: "mirzo-ulugbek",
+      figureName: "Mirzo Ulug'bek",
+      question: "test",
+      context: "[Manba 1: doc.pdf]\nRAG chunk",
       chunks: [{ content: "RAG chunk", source: "doc.pdf", score: 0.9 }],
-      hasRelevantContent: true,
+      sources: ["doc.pdf"],
+      found: true,
     });
   });
 
@@ -145,9 +164,15 @@ describe("xavfsizlik audit — AI oqimlari", () => {
   });
 
   it("figureService: RAG bo'sh bo'lsa LLM chaqirilmaydi", async () => {
-    mockRetrieveFromKnowledgeBase.mockResolvedValue({
+    mockGetAllomaContext.mockResolvedValue({
+      allomaId: "mirzo-ulugbek",
+      slug: "mirzo-ulugbek",
+      figureName: "Mirzo Ulug'bek",
+      question: "test",
+      context: "",
       chunks: [],
-      hasRelevantContent: false,
+      sources: [],
+      found: false,
     });
 
     const { sendFigureMessage } = await import("@/lib/rag/figureService");

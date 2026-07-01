@@ -1,16 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
+import { CHILD_ROUTES } from "@/lib/child/routes";
 
-import { ChildShell } from "@/components/child/ChildShell";
-import { ChatWindow } from "@/components/child/ChatWindow";
-import { useChildSession } from "@/lib/child/ChildProvider";
-import { t } from "@/lib/child/i18n";
-
-export default function ChildChatPage() {
-  const { profile } = useChildSession();
-
-  return (
-    <ChildShell title={t("chat", profile.language)} subtitle={t("assistant", profile.language)} fullWidth>
-      <ChatWindow mode="assistant" headerEmoji="📚" />
-    </ChildShell>
-  );
+export default function LegacyChatRedirect() {
+  redirect(CHILD_ROUTES.talk);
 }

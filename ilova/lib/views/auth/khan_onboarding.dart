@@ -351,8 +351,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         ),
         const SizedBox(height: 8),
         Text(
-          "Smart Edu Uzbekistan",
-          style: AppTheme.headerLarge.copyWith(color: AppTheme.darkPurple, fontSize: 24),
+          "Nihol",
+          style: AppTheme.headerLarge.copyWith(color: AppTheme.darkPurple),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),

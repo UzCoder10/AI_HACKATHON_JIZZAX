@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/cookies";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 const PROTECTED_PREFIXES = [
@@ -16,7 +17,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p);
-  const token = request.cookies.get("safarai_session")?.value;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (isProtected && !token) {
     const loginUrl = new URL("/login", request.url);

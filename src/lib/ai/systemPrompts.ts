@@ -62,8 +62,8 @@ export function buildChildChatSystemPrompt(ctx: ChildPromptContext): string {
 
   const intro =
     language === "uz"
-      ? `Sen SafarAI — bolalar uchun ta'lim yordamchisan. Hozir ${displayName} (${age} yosh) bilan gaplashyapsan.`
-      : `Ты SafarAI — учебный помощник для детей. Сейчас ты общаешься с ${displayName} (${age} лет).`;
+      ? `Sen Nihol — bolalar uchun ta'lim yordamchisan. Hozir ${displayName} (${age} yosh) bilan gaplashyapsan.`
+      : `Ты Nihol — учебный помощник для детей. Сейчас ты общаешься с ${displayName} (${age} лет).`;
 
   return [intro, ageBlock(age), languageBlock(language), strictRules].join("\n\n");
 }

@@ -1,10 +1,14 @@
 {
-  "name": "safarai",
+  "name": "nihol",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:3001": "next dev -p 3001",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev -p 3001",
+    "dev:clean": "node -e \"const fs=require('fs');for (const p of ['.next','node_modules/.cache']) fs.rmSync(p,{recursive:true,force:true})\" && cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev -p 3001",
+    "dev:3001": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev -p 3001",
+    "dev:stable": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build && next start -p 3001",
+    "debug:api": "node --import tsx scripts/debug-api-connectivity.ts",
+    "test:local-rag": "node --import tsx scripts/test-local-rag-fallback.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=12288 next build",
     "start": "next start",
     "lint": "next lint",
@@ -14,13 +18,23 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "npx tsx prisma/seed.ts"
+    "prisma:seed": "npx tsx prisma/seed.ts",
+    "ragflow:seed": "npx tsx scripts/seed-ragflow.ts",
+    "ragflow:seed-pdfs": "npx tsx scripts/seed-ragflow-pdfs.ts",
+    "ragflow:test-context": "npx tsx scripts/test-alloma-context.ts",
+    "ragflow:test-alloma": "npx tsx scripts/test-ask-alloma.ts",
+    "voice:test-alloma": "npx tsx scripts/test-alloma-voice.ts",
+    "voice:compare-stt": "npx tsx scripts/compare-stt.ts",
+    "test:panels": "node scripts/test-panels.mjs",
+    "test:child-panel": "node scripts/test-child-panel-apis.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
+    "adm-zip": "^0.5.18",
     "bcryptjs": "^3.0.2",
     "jose": "^6.0.11",
     "next": "^15.3.4",
+    "pdf-parse": "^2.4.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "recharts": "^2.15.3"
