@@ -253,6 +253,14 @@ class AgeTierController extends ChangeNotifier {
     }
   }
 
+  bool _voiceAIActive = false;
+  bool get voiceAIActive => _voiceAIActive;
+
+  void toggleVoiceAI(bool active) {
+    _voiceAIActive = active;
+    notifyListeners();
+  }
+
   void selectMaterial(BuildingMaterial material) {
     if (_unlockedMaterials.contains(material)) {
       _selectedMaterial = material;

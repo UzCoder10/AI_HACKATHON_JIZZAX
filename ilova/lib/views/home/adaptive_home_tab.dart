@@ -11,13 +11,14 @@ import '../game/building_game_tab.dart';
 import 'drawing_quest_screen.dart';
 
 // =========================================================================
-// INTERACTIVE KODI THE BEAR AVATAR
+// INTERACTIVE KODI THE BEAR AVATAR (AAA JUMP & SPEECH STATE-MACHINE)
 // =========================================================================
 class KodiPainter extends CustomPainter {
   final double blinkVal;
   final double waveVal;
   final double breatheOffset;
   final double earTwitch;
+  final double mouthScale;
   final AgeTier tier;
 
   KodiPainter({
@@ -25,13 +26,13 @@ class KodiPainter extends CustomPainter {
     required this.waveVal,
     required this.breatheOffset,
     required this.earTwitch,
+    required this.mouthScale,
     required this.tier,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final double cx = size.width / 2;
-    // Apply floating vertical offset to the whole center point of the bear
     final double cy = size.height / 2 + 10 + breatheOffset;
     final double r = size.width * 0.35;
 
@@ -39,7 +40,7 @@ class KodiPainter extends CustomPainter {
     final pMuzzle = Paint()..color = const Color(0xFFF3C598)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
 
-    // Left Ear (With custom earTwitch rotation)
+    // Left Ear (With earTwitch rotation)
     canvas.save();
     canvas.translate(cx - r * 0.8, cy - r * 0.8);
     canvas.rotate(earTwitch);
@@ -61,7 +62,7 @@ class KodiPainter extends CustomPainter {
     canvas.drawCircle(Offset(cx, cy), r, pBear);
     canvas.drawCircle(Offset(cx, cy), r, pBorder);
 
-    // Uzbek Do'ppi (Skullcap) on Bear's head
+    // Uzbek Do'ppi (Skullcap)
     final pathDoppi = Path();
     pathDoppi.moveTo(cx - r * 0.6, cy - r * 0.7);
     pathDoppi.quadraticBezierTo(cx, cy - r * 1.1, cx + r * 0.6, cy - r * 0.7);
@@ -106,14 +107,16 @@ class KodiPainter extends CustomPainter {
     // Nose
     canvas.drawOval(Rect.fromCenter(center: Offset(cx, cy + r * 0.22), width: r * 0.25, height: r * 0.16), pEye);
 
-    // Mouth
+    // Mouth (Dynamically wiggles/scales mimicking voice frequencies)
     final pMouth = Paint()
       ..color = AppTheme.darkPurpleBorder
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx - r * 0.08, cy + r * 0.32), radius: r * 0.1), 0, math.pi, false, pMouth);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx + r * 0.08, cy + r * 0.32), radius: r * 0.1), 0, math.pi, false, pMouth);
+    
+    final double mouthRadius = r * 0.1 * mouthScale;
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx - r * 0.08, cy + r * 0.32), radius: mouthRadius), 0, math.pi, false, pMouth);
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx + r * 0.08, cy + r * 0.32), radius: mouthRadius), 0, math.pi, false, pMouth);
 
     // Waving Paw
     canvas.save();
@@ -145,25 +148,30 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
   late final AnimationController _waveController;
   late final AnimationController _breatheController;
   late final AnimationController _earController;
+  late final AnimationController _speechController;
+  late final AnimationController _jumpController;
+  
   Timer? _waveTimer;
+  Timer? _speechTimer;
 
   @override
   void initState() {
     super.initState();
-    _blinkController = AnimationController(vsync: this, duration: const Duration(seconds: 4))
-      ..repeat();
-      
+    _blinkController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _waveController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-    
-    _breatheController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))
-      ..repeat(reverse: true);
+    _breatheController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat(reverse: true);
+    _earController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
+    _speechController = AnimationController(vsync: this, duration: const Duration(milliseconds: 250))..repeat(reverse: true);
+    _jumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
 
-    _earController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))
-      ..repeat(reverse: true);
-
-    // Welcome wave auto-triggers
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) _triggerWave();
+    // Periodic voice companion mouth scaling
+    _speechTimer = Timer.periodic(const Duration(seconds: 9), (timer) {
+      if (mounted) {
+        _speechController.repeat(reverse: true);
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) _speechController.stop();
+        });
+      }
     });
 
     _waveTimer = Timer.periodic(const Duration(seconds: 8), (t) {
@@ -177,7 +185,10 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
     _waveController.dispose();
     _breatheController.dispose();
     _earController.dispose();
+    _speechController.dispose();
+    _jumpController.dispose();
     _waveTimer?.cancel();
+    _speechTimer?.cancel();
     super.dispose();
   }
 
@@ -187,30 +198,70 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
     }
   }
 
+  void _triggerJump() {
+    if (!_jumpController.isAnimating) {
+      _jumpController.forward(from: 0.0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _triggerWave,
+      onTap: () {
+        _triggerJump();
+        _triggerWave();
+      },
       child: AnimatedBuilder(
-        animation: Listenable.merge([_blinkController, _waveController, _breatheController, _earController]),
+        animation: Listenable.merge([
+          _blinkController,
+          _waveController,
+          _breatheController,
+          _earController,
+          _speechController,
+          _jumpController,
+        ]),
         builder: (context, child) {
           double blinkVal = 0.0;
           if (_blinkController.value > 0.93) {
             blinkVal = 1.0;
           }
-          // Calculate gentle head breathe translation offset
+
+          // Sinusoidal Scale breathing
+          final double breatheScale = 0.96 + math.sin(_breatheController.value * math.pi * 2) * 0.04;
           final double breatheOffset = math.sin(_breatheController.value * math.pi * 2) * 3.5;
-          // Calculate ear twitch rotation offset
           final double earTwitch = math.sin(_earController.value * math.pi * 2) * 0.08;
 
-          return CustomPaint(
-            size: const Size(110, 100),
-            painter: KodiPainter(
-              blinkVal: blinkVal,
-              waveVal: _waveController.value,
-              breatheOffset: breatheOffset,
-              earTwitch: earTwitch,
-              tier: widget.tier,
+          // Voice speech scale mouth factor
+          final double mouthScale = _speechController.isAnimating 
+              ? 0.7 + math.sin(_speechController.value * math.pi * 2) * 0.6 
+              : 1.0;
+
+          // Squash-and-stretch jump sequence
+          double squashY = 1.0;
+          double stretchX = 1.0;
+          if (_jumpController.isAnimating) {
+            final double t = _jumpController.value;
+            final double elastic = Curves.elasticOut.transform(t);
+            squashY = 1.0 - 0.22 * math.sin(t * math.pi) * (1.0 - elastic);
+            stretchX = 1.0 + 0.16 * math.sin(t * math.pi) * (1.0 - elastic);
+          }
+
+          return Opacity(
+            opacity: breatheScale.clamp(0.9, 1.0),
+            child: Transform(
+              transform: Matrix4.diagonal3Values(stretchX * breatheScale, squashY * breatheScale, 1.0),
+              alignment: Alignment.bottomCenter,
+              child: CustomPaint(
+                size: const Size(110, 100),
+                painter: KodiPainter(
+                  blinkVal: blinkVal,
+                  waveVal: _waveController.value,
+                  breatheOffset: breatheOffset,
+                  earTwitch: earTwitch,
+                  mouthScale: mouthScale,
+                  tier: widget.tier,
+                ),
+              ),
             ),
           );
         },
@@ -238,7 +289,6 @@ class RoadmapPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    // Draw winding sand roadmap path
     final path = Path();
     path.moveTo(w * 0.25, h * 0.9);
     path.quadraticBezierTo(w * 0.65, h * 0.85, w * 0.76, h * 0.72);
@@ -261,20 +311,17 @@ class RoadmapPainter extends CustomPainter {
     canvas.drawPath(path, pPathShadow);
     canvas.drawPath(path, pPath);
 
-    // Draw dotted lane marks
     final pDotted = Paint()
       ..color = const Color(0xFFDCA776)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
-    // Draw dash pattern along the road
     for (double i = 0.05; i < 0.95; i += 0.06) {
       final p1 = _getPointOnBezier(i, w, h);
       final p2 = _getPointOnBezier(i + 0.03, w, h);
       canvas.drawLine(p1, p2, pDotted);
     }
 
-    // Dynamic Biome path decorations based on selected focusAreas
     _drawFocusDecorations(canvas, w, h);
   }
 
@@ -282,13 +329,13 @@ class RoadmapPainter extends CustomPainter {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
     for (final area in focusAreas) {
-      if (area == "Aniq Fanlar (Math & Geometry)") {
+      if (area.contains("Aniq Fanlar")) {
         _drawEmojiLabel(canvas, "📐", Offset(w * 0.52, h * 0.84), textPainter);
         _drawEmojiLabel(canvas, "🧮", Offset(w * 0.25, h * 0.49), textPainter);
-      } else if (area == "Tanqidiy Fikr (Logic & Space)") {
+      } else if (area.contains("Tanqidiy Fikr")) {
         _drawEmojiLabel(canvas, "⚙️", Offset(w * 0.82, h * 0.67), textPainter);
         _drawEmojiLabel(canvas, "🧠", Offset(w * 0.48, h * 0.26), textPainter);
-      } else if (area == "Allomalar Tarixi (History & Architecture)") {
+      } else if (area.contains("Allomalar Tarixi")) {
         _drawEmojiLabel(canvas, "📜", Offset(w * 0.15, h * 0.58), textPainter);
         _drawEmojiLabel(canvas, "🕌", Offset(w * 0.80, h * 0.35), textPainter);
       }
@@ -557,7 +604,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
       body: SafeArea(
         child: Column(
           children: [
-            // Interactive header with bear avatar
             _buildInteractiveHeader(tier, accentColor, ageController),
 
             Expanded(
@@ -569,7 +615,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                       width: double.infinity,
                       child: Stack(
                         children: [
-                          // Continuous roadmap CustomPainter
                           Positioned.fill(
                             child: CustomPaint(
                               painter: RoadmapPainter(
@@ -580,7 +625,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                             ),
                           ),
 
-                          // Circular Activity Nodes
                           ...List.generate(5, (index) {
                             final pos = _getNodeOffset(index, Size(size.width, roadmapHeight));
                             final bool isLocked = index > ageController.activeNodeIndex;
@@ -599,17 +643,16 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                             );
                           }),
 
-                          // Scholars (Quest Givers) placed along the path
-                          _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy"),
-                          _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy"),
-                          _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino"),
-                          _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek"),
+                          _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy", tier),
+                          _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy", tier),
+                          _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino", tier),
+                          _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek", tier),
                         ],
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(20.0),
-                      child: _buildShortsRecommendationCard(accentColor),
+                      child: _buildShortsRecommendationCard(accentColor, tier),
                     ),
                   ],
                 ),
@@ -621,11 +664,13 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
     );
   }
 
-  Widget _buildScholarNode(Scholar scholar, Offset pos, String name) {
+  Widget _buildScholarNode(Scholar scholar, Offset pos, String name, AgeTier tier) {
     String assetName = "xorazmiy.png";
     if (scholar.initials == "AB") assetName = "beruniy.png";
     if (scholar.initials == "IS") assetName = "ibnsino.png";
     if (scholar.initials == "MU") assetName = "ulugbek.png";
+
+    final bool isIntermediate = tier == AgeTier.intermediate;
 
     return Positioned(
       left: pos.dx - 32,
@@ -660,19 +705,21 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                 ),
               ),
             ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.darkPurpleBorder, width: 1),
+            if (!isIntermediate) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.darkPurpleBorder, width: 1),
+                ),
+                child: Text(
+                  scholar.initials == "AX" ? "Matematika" : (scholar.initials == "IS" ? "Tibbiyot" : "Koinot"),
+                  style: AppTheme.bodySmall.copyWith(fontSize: 8, fontWeight: FontWeight.bold),
+                ),
               ),
-              child: Text(
-                scholar.initials == "AX" ? "Matematika" : (scholar.initials == "IS" ? "Tibbiyot" : "Koinot"),
-                style: AppTheme.bodySmall.copyWith(fontSize: 8, fontWeight: FontWeight.bold),
-              ),
-            )
+            ],
           ],
         ),
       ),
@@ -680,6 +727,8 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
   }
 
   Widget _buildInteractiveHeader(AgeTier tier, Color accentColor, AgeTierController controller) {
+    final bool isIntermediate = tier == AgeTier.intermediate;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
@@ -697,33 +746,34 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
           AnimatedKodiAvatar(tier: tier),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  controller.activeChildName,
-                  style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
-                ),
-                Text(
-                  "Xarita: ${controller.getBiomeName()}",
-                  style: AppTheme.bodySmall.copyWith(color: accentColor, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+            child: isIntermediate
+                ? const SizedBox.shrink()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        controller.activeChildName,
+                        style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
+                      ),
+                      Text(
+                        "Xarita: ${controller.getBiomeName()}",
+                        style: AppTheme.bodySmall.copyWith(color: accentColor, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
           ),
           
-          // High-dopamine Live Star Count slot
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: AppTheme.vibrant3DBoxDecoration(
               color: AppTheme.yellow,
               radius: 16,
               borderWidth: 2,
-              shadowOffset: const Offset(2, 2),
+              shadowOffset: const Offset(3, 3),
             ),
             child: Row(
               children: [
-                const Icon(Icons.star_rounded, color: AppTheme.darkPurple, size: 20),
+                const Icon(Icons.star_rounded, color: AppTheme.darkPurple, size: 22),
                 const SizedBox(width: 4),
                 Text(
                   "${controller.starsCount}",
@@ -737,14 +787,17 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
     );
   }
 
-  Widget _buildShortsRecommendationCard(Color accentColor) {
+  Widget _buildShortsRecommendationCard(Color accentColor, AgeTier tier) {
+    final bool isIntermediate = tier == AgeTier.intermediate;
+
+    // Organic interactive button style with thick 3D offset (Offset(5, 5))
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.vibrant3DBoxDecoration(
         color: AppTheme.white,
-        radius: 24,
+        radius: 28,
         borderColor: AppTheme.getBorderColorFor(accentColor),
-        shadowOffset: const Offset(3, 3),
+        shadowOffset: const Offset(5, 5),
       ),
       child: Row(
         children: [
@@ -756,35 +809,58 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
               radius: 18,
               borderWidth: 2,
               borderColor: accentColor,
+              shadowOffset: const Offset(2, 2),
             ),
             child: Icon(Icons.play_circle_fill_rounded, color: accentColor, size: 36),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Kunning qiziqarli kashfiyoti",
-                  style: AppTheme.headerSmall.copyWith(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                Text(
-                  "Astronomiya va yulduzlar olami",
-                  style: AppTheme.headerMedium.copyWith(fontSize: 14, color: AppTheme.darkPurple),
-                ),
-              ],
-            ),
+            child: isIntermediate
+                ? Row(
+                    children: [
+                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
+                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
+                      Icon(Icons.star_rounded, color: AppTheme.yellow, size: 30),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Kunning qiziqarli kashfiyoti",
+                        style: AppTheme.headerSmall.copyWith(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      Text(
+                        "Astronomiya va yulduzlar olami",
+                        style: AppTheme.headerMedium.copyWith(fontSize: 14, color: AppTheme.darkPurple),
+                      ),
+                    ],
+                  ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accentColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               widget.appState.changeTab(2); // Navigate directly to Shorts tab
             },
-            child: Text("Ko'rish", style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 11)),
+            child: AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.bounceOut,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: AppTheme.vibrant3DBoxDecoration(
+                  color: accentColor,
+                  radius: 16,
+                  borderColor: AppTheme.getBorderColorFor(accentColor),
+                  shadowOffset: const Offset(3, 3),
+                ),
+                child: isIntermediate
+                    ? const Icon(Icons.check_circle_rounded, color: Colors.white, size: 24)
+                    : Text(
+                        "Ko'rish",
+                        style: AppTheme.headerSmall.copyWith(color: AppTheme.white, fontSize: 13),
+                      ),
+              ),
+            ),
           ),
         ],
       ),

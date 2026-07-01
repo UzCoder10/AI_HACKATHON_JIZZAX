@@ -9,7 +9,7 @@ import '../../controllers/age_tier_controller.dart';
 import 'building_game_tab.dart';
 
 // =========================================================================
-// PEG / PACHINKO / SHAPE BLOCKS FOR PHYSICS SIMULATION
+// TODDLER PEG / PACHINKO / PHYSICS MODEL DEFINITIONS
 // =========================================================================
 class Peg {
   final Offset pos;
@@ -37,7 +37,7 @@ class FruitBubble {
 
   void update(double dt, List<Peg> pegs) {
     if (!isPopped) {
-      vel = Offset(vel.dx, vel.dy + 250.0 * dt);
+      vel = Offset(vel.dx, vel.dy + 250.0 * dt); // Gravity acceleration
       pos += vel * dt;
 
       for (final peg in pegs) {
@@ -73,16 +73,12 @@ class BubbleParticle {
   });
 
   void update(double dt) {
-    // Gravity acceleration on particles!
-    vel = Offset(vel.dx, vel.dy + 300.0 * dt);
+    vel = Offset(vel.dx, vel.dy + 300.0 * dt); // Gravity physics on particles
     pos += vel * dt;
-
-    // Bounce off floor limit
     if (pos.dy >= 380) {
       pos = Offset(pos.dx, 380);
       vel = Offset(vel.dx * 0.7, -vel.dy * 0.4);
     }
-
     size = math.max(0.0, size - 4.0 * dt);
     opacity = math.max(0.0, opacity - 1.2 * dt);
   }
@@ -104,7 +100,6 @@ class ToddlerPachinkoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
     final pPeg = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
     final pPegBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.0;
 
@@ -139,7 +134,6 @@ class ToddlerPachinkoPainter extends CustomPainter {
     for (int i = 0; i < 3; i++) {
       final double bx = 8 + i * (size.width / 3) + 4;
       final double recoil = basketRecoils[i];
-
       final rect = Rect.fromLTWH(bx, basketY + recoil, basketWidth, basketHeight);
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), Paint()..color = basketColors[i]);
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), pPegBorder);
@@ -155,7 +149,7 @@ class ToddlerPachinkoPainter extends CustomPainter {
 }
 
 // =========================================================================
-// INTERMEDIATE SYLLABLE BUILDER MODELS
+// INTERMEDIATE DRAGGABLE PHONICS MODELS
 // =========================================================================
 class SyllableBlock {
   final String text;
@@ -217,7 +211,6 @@ class SyllableObjectPainter extends CustomPainter {
     final pStroke = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
 
     if (wordIndex == 0) {
-      // Draw Red Apple (OLMA)
       canvas.drawCircle(const Offset(-14, 0), 28, Paint()..color = AppTheme.appleRed);
       canvas.drawCircle(const Offset(14, 0), 28, Paint()..color = AppTheme.appleRed);
       canvas.drawCircle(const Offset(-14, 0), 28, pStroke);
@@ -232,7 +225,6 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathLeaf, pLeaf);
       canvas.drawPath(pathLeaf, pStroke);
     } else if (wordIndex == 1) {
-      // Draw Book (KITOB)
       final pBlue = Paint()..color = AppTheme.marineBlue..style = PaintingStyle.fill;
       final pPages = Paint()..color = AppTheme.white..style = PaintingStyle.fill;
       
@@ -254,7 +246,6 @@ class SyllableObjectPainter extends CustomPainter {
       canvas.drawPath(pathPages, pPages);
       canvas.drawPath(pathPages, pStroke);
     } else {
-      // Draw Pencil (QALAM)
       final pWood = Paint()..color = AppTheme.pastelGold..style = PaintingStyle.fill;
       final pLead = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.fill;
       final pPencilBody = Paint()..color = AppTheme.mandarin..style = PaintingStyle.fill;
@@ -292,7 +283,7 @@ class SyllableObjectPainter extends CustomPainter {
 }
 
 // =========================================================================
-// SHAPE MATCHING PHYSICS GAME FOR INTERMEDIATE EXTRA DETAILS
+// GEOMETRIC SHAPE MATCHING PHYSICS GAME DEFINITIONS
 // =========================================================================
 enum ShapeType { circle, square, triangle }
 
@@ -314,13 +305,12 @@ class ShapeBlock {
 
   void updatePhysics(double dt) {
     if (!isDragging && !isMatched) {
-      vel = Offset(vel.dx, vel.dy + 450.0 * dt); // Gravity acceleration
+      vel = Offset(vel.dx, vel.dy + 450.0 * dt);
       currentPos += vel * dt;
 
-      // Bounce off ground
       if (currentPos.dy >= 310) {
         currentPos = Offset(currentPos.dx, 310);
-        vel = Offset(vel.dx * 0.5, -vel.dy * 0.45); // Elastic collision rebound
+        vel = Offset(vel.dx * 0.5, -vel.dy * 0.45);
       }
     }
   }
@@ -380,7 +370,30 @@ class ShapeGamePainter extends CustomPainter {
 }
 
 // =========================================================================
-// INTERACTIVE MAIN ADAPTIVE LOGIC GAMES
+// VOICE AI SCHOLAR ADVENTURE PORTAL MODELS
+// =========================================================================
+class ScholarVoiceConfig {
+  final String id;
+  final String name;
+  final String titleUz;
+  final String initials;
+  final String avatarAsset;
+  final Color solidColor;
+  final String audioScript;
+
+  ScholarVoiceConfig({
+    required this.id,
+    required this.name,
+    required this.titleUz,
+    required this.initials,
+    required this.avatarAsset,
+    required this.solidColor,
+    required this.audioScript,
+  });
+}
+
+// =========================================================================
+// MAIN ADAPTIVE POWERHOUSE VIEW
 // =========================================================================
 class AdaptiveLogicGames extends StatefulWidget {
   final int initialGameIndex;
@@ -391,7 +404,7 @@ class AdaptiveLogicGames extends StatefulWidget {
 }
 
 class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProviderStateMixin {
-  late int _activeGameIndex;
+  late int _activeGameIndex; // 0: Pachinko, 1: Phonics/Shape, 2: 3D Seismic, 3: Voice AI Portal
 
   // Toddler Pachinko Game State
   final List<FruitBubble> _bubbles = [];
@@ -402,7 +415,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   late final Ticker _physicsTicker;
   double _spawnTimer = 0.0;
 
-  // Intermediate Syllable Game State
+  // Intermediate Phonics Game State
   final List<SyllableWordConfig> _wordLevels = [
     SyllableWordConfig(correctWord: "OLMA", syllablesScrambled: ["MA", "OL"], correctSequence: ["OL", "MA"]),
     SyllableWordConfig(correctWord: "KITOB", syllablesScrambled: ["TOB", "KI"], correctSequence: ["KI", "TOB"]),
@@ -425,11 +438,56 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   // Sound/Success pulse bounce
   late final AnimationController _pulseController;
   
-  // Repeating bouncing trajectory hand guide controller
+  // Trajectory Guide
   late final AnimationController _handDemoController;
 
-  // Audio Stream Guide State simulation
+  // Audio simulation guide
   bool _kodiVoiceActive = false;
+
+  // Voice AI Scholars Adventure Portal State
+  final List<ScholarVoiceConfig> _scholars = [
+    ScholarVoiceConfig(
+      id: "xorazmiy",
+      name: "Al-Xorazmiy",
+      titleUz: "Raqamlar Sehrgari",
+      initials: "AX",
+      avatarAsset: "xorazmiy.png",
+      solidColor: const Color(0xFF1E88E5),
+      audioScript: "Salom bolajon! Men matematika va algoritm asoschisiman. Birinchi raqamli kvestni yechib, yulduzlarga ega bo'l! 📐",
+    ),
+    ScholarVoiceConfig(
+      id: "ibnsino",
+      name: "Ibn Sino",
+      titleUz: "Koinot Tabibi",
+      initials: "IS",
+      avatarAsset: "ibnsino.png",
+      solidColor: const Color(0xFFE53935),
+      audioScript: "Bolajon, tabiat va salomatlik sirlarini o'rganishga tayyormisan? Jismoniy mashqlar va shifobaxsh o'tlar olamiga marhamat! 🌿",
+    ),
+    ScholarVoiceConfig(
+      id: "temur",
+      name: "Amir Temur",
+      titleUz: "Sohibqiron Me'mor",
+      initials: "AT",
+      avatarAsset: "ulugbek.png",
+      solidColor: const Color(0xFF43A047),
+      audioScript: "Me'morchilik mustahkam poydevordan boshlanadi. Kel, seysmik barqaror minorani birgalikda barpo etaylik! 🏗️",
+    ),
+    ScholarVoiceConfig(
+      id: "ulugbek",
+      name: "Mirzo Ulug'bek",
+      titleUz: "Yulduzlar Sultoni",
+      initials: "MU",
+      avatarAsset: "ulugbek.png",
+      solidColor: const Color(0xFFFDD835),
+      audioScript: "Koinot bag'ridagi yulduzlar va sayyoralar xaritasini chizish senga yoqadimi? Samoviy teleskopimizni ishga sol! 🔭",
+    ),
+  ];
+  late int _selectedScholarIndex = 0;
+  bool _isMicRecording = false;
+  bool _isSpeechLoading = false;
+  String _activeVoiceReplyText = "";
+  late final AnimationController _waveAnimController;
 
   @override
   void initState() {
@@ -441,15 +499,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _updatePhysics(dt);
     });
 
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _handDemoController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _handDemoController = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+    _waveAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat();
 
     if (_activeGameIndex == 0) {
       _setupPachinkoPegs();
@@ -457,7 +509,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     } else if (_activeGameIndex == 1) {
       _setupSyllableGame();
       _setupShapeGame();
-      _physicsTicker.start(); // Start physics for shape drops
+      _physicsTicker.start();
     }
 
     _snapController = AnimationController(
@@ -470,22 +522,22 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             final double damping = math.exp(-5.0 * t);
             final double oscillation = math.cos(18.0 * t);
             final double scale = damping * oscillation;
-
             final Offset original = _syllableBlocks[_animatingIndex].originalPos;
             final Offset diff = _animatingStartOffset - original;
-
             _syllableBlocks[_animatingIndex].currentPos = original + diff * scale;
           });
         }
       });
 
-    // Auto Play Voice Guide simulation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tier = Provider.of<AgeTierController>(context, listen: false).activeTier;
       if (tier == AgeTier.intermediate) {
         _playVoiceGuide('welcome.mp3');
       }
     });
+
+    // Default voice text greeting
+    _activeVoiceReplyText = _scholars[0].audioScript;
   }
 
   void _playVoiceGuide(String filename) {
@@ -536,6 +588,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _snapController.dispose();
     _pulseController.dispose();
     _handDemoController.dispose();
+    _waveAnimController.dispose();
     super.dispose();
   }
 
@@ -609,7 +662,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         _particles.removeWhere((p) => p.opacity <= 0.0 || p.size <= 0.0);
       });
     } else if (_activeGameIndex == 1) {
-      // Physics Shape Matcher drops physics
       setState(() {
         for (final block in _shapeBlocks) {
           block.updatePhysics(dt);
@@ -806,8 +858,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
 
       if (!matched) {
-        // Drop down with physics gravity
-        _shapeBlocks[index].vel = const Offset(0, -60); // initial small lift upward
+        _shapeBlocks[index].vel = const Offset(0, -60);
       }
 
       final bool allMatched = _shapeBlocks.every((s) => s.isMatched);
@@ -820,6 +871,51 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     });
   }
 
+  // --- VOICE AI ADVENTURE PORTAL INTERFACE LOOP ---
+  void _triggerMicRecordingStart() {
+    setState(() {
+      _isMicRecording = true;
+      _activeVoiceReplyText = "";
+    });
+    _playVoiceGuide('recording.mp3');
+  }
+
+  void _triggerMicRecordingRelease() {
+    if (!_isMicRecording) return;
+    setState(() {
+      _isMicRecording = false;
+      _isSpeechLoading = true;
+    });
+
+    // Simulated speech model delay
+    Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      final config = _scholars[_selectedScholarIndex];
+      setState(() {
+        _isSpeechLoading = false;
+        _activeVoiceReplyText = config.audioScript;
+      });
+
+      // Synchronize reward stars to Firestore
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.awardStars(100);
+      Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
+      _playVoiceGuide('response.mp3');
+    });
+  }
+
+  void _selectScholar(int index) {
+    setState(() {
+      _selectedScholarIndex = index;
+      _activeVoiceReplyText = _scholars[index].audioScript;
+    });
+    _playVoiceGuide('scholar_select.mp3');
+  }
+
+  // =========================================================================
+  // POPUP CELEBRATION WIN GAME STATE
+  // =========================================================================
   void _winGame(int rewardStars) {
     final state = Provider.of<AppState>(context, listen: false);
     state.awardStars(rewardStars);
@@ -882,6 +978,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     );
   }
 
+  // =========================================================================
+  // VIEW RENDER MATRIX
+  // =========================================================================
   @override
   Widget build(BuildContext context) {
     final ageController = Provider.of<AgeTierController>(context);
@@ -899,7 +998,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                   Icon(
                     _activeGameIndex == 0 
                         ? Icons.gamepad_rounded 
-                        : (_activeGameIndex == 1 ? Icons.abc_rounded : Icons.construction_rounded), 
+                        : (_activeGameIndex == 1 ? Icons.abc_rounded : (_activeGameIndex == 2 ? Icons.construction_rounded : Icons.record_voice_over_rounded)), 
                     color: AppTheme.darkPurple, 
                     size: 36
                   ),
@@ -908,7 +1007,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
             : Text(
                 _activeGameIndex == 0 
                     ? "Meva pachinko shousi!" 
-                    : (_activeGameIndex == 1 ? "Bo'g'inli So'zlar" : "3D Arxitektor"),
+                    : (_activeGameIndex == 1 ? "Bo'g'inli So'zlar" : (_activeGameIndex == 2 ? "3D Arxitektor" : "Ovozli Allomalar Portali")),
                 style: AppTheme.headerMedium,
               ),
         leading: IconButton(
@@ -927,8 +1026,10 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       return _buildToddlerMathGame();
     } else if (_activeGameIndex == 1) {
       return _buildIntermediatePhonicsGame(tier);
-    } else {
+    } else if (_activeGameIndex == 2) {
       return BuildingGameTab(appState: Provider.of<AppState>(context, listen: false));
+    } else {
+      return _buildVoiceAIScholarPortal(tier);
     }
   }
 
@@ -1002,10 +1103,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
 
   Widget _buildIntermediatePhonicsGame(AgeTier tier) {
     if (tier == AgeTier.intermediate) {
-      // 5-6 Age Tier: Zero-Text Layout
       return Column(
         children: [
-          // Sub-game selection bar (tactile layout icons only)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             child: Row(
@@ -1043,12 +1142,28 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     ),
                   ),
                 ),
+                // Voice AI Scholars Portal link button inside game map for kids
+                GestureDetector(
+                  onTap: () => setState(() => _activeGameIndex = 3),
+                  child: AnimatedScale(
+                    scale: 0.95,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: AppTheme.white,
+                        radius: 18,
+                        borderColor: Colors.grey.shade300,
+                      ),
+                      child: const Icon(Icons.record_voice_over_rounded, color: AppTheme.mandarin, size: 36),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
 
           if (_intermediateSubMode == 0) ...[
-            // Phonics Syllables Game Mode
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Row(
@@ -1137,7 +1252,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     },
                     child: Stack(
                       children: [
-                        // Target Slots
                         ..._slots.map((slot) {
                           return Positioned(
                             left: slot.pos.dx,
@@ -1152,7 +1266,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                           );
                         }),
 
-                        // Draggable blocks
                         ..._syllableBlocks.map((s) {
                           return Positioned(
                             left: s.currentPos.dx,
@@ -1174,10 +1287,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                           );
                         }),
 
-                        // Animated visual pulsing hand overlay indicating path
                         _buildBouncingTrajectoryGuide(),
 
-                        // Particle explosions
                         Positioned.fill(
                           child: IgnorePointer(
                             child: CustomPaint(
@@ -1192,7 +1303,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
               ),
             )
           ] else ...[
-            // Physics Shape Matcher Mode
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Row(
@@ -1263,7 +1373,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     },
                     child: Stack(
                       children: [
-                        // Target Shape Sockets at the top
                         ..._shapeSockets.map((socket) {
                           return Positioned(
                             left: socket.pos.dx,
@@ -1279,7 +1388,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                           );
                         }),
 
-                        // Draggable blocks at the bottom with gravity/bounce
                         ..._shapeBlocks.map((s) {
                           return Positioned(
                             left: s.currentPos.dx,
@@ -1299,10 +1407,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                           );
                         }),
 
-                        // Animated visual pulsing hand overlay indicating shape matching trajectory
                         _buildShapeBouncingTrajectoryGuide(),
 
-                        // Particle explosions
                         Positioned.fill(
                           child: IgnorePointer(
                             child: CustomPaint(
@@ -1321,7 +1427,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       );
     }
 
-    // Default Intermediate Phonics Game with text
+    // Default Phonics Syllable Game Mode
     return Column(
       children: [
         Padding(
@@ -1507,5 +1613,223 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
     }
     return const SizedBox.shrink();
+  }
+
+  // =========================================================================
+  // GORGEOUS ALLOMALAR OVOZLI PORTAL (MATNSIZ MULoqot)
+  // =========================================================================
+  Widget _buildVoiceAIScholarPortal(AgeTier tier) {
+    final activeScholar = _scholars[_selectedScholarIndex];
+    final bool isIntermediate = tier == AgeTier.intermediate;
+
+    return Column(
+      children: [
+        // 1. Sliding Carousel of 4 Great Scholars
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: _scholars.length,
+            itemBuilder: (context, idx) {
+              final s = _scholars[idx];
+              final bool isSelected = idx == _selectedScholarIndex;
+              return GestureDetector(
+                onTap: () => _selectScholar(idx),
+                child: AnimatedScale(
+                  scale: isSelected ? 1.12 : 0.92,
+                  duration: const Duration(milliseconds: 250),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    width: 90,
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: isSelected ? s.solidColor : AppTheme.white,
+                      radius: 24,
+                      borderColor: s.solidColor,
+                      shadowOffset: const Offset(3, 3),
+                    ),
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: s.solidColor.withAlpha(50),
+                          radius: 24,
+                          child: Text(s.initials, style: TextStyle(color: isSelected ? Colors.white : s.solidColor, fontWeight: FontWeight.bold)),
+                        ),
+                        if (!isIntermediate) ...[
+                          const SizedBox(height: 4),
+                          Text(s.name, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : AppTheme.darkPurple, fontWeight: FontWeight.bold)),
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 2. High-fidelity Portrait & Name tag
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Container(
+              width: double.infinity,
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.porcelain,
+                radius: 32,
+                borderColor: activeScholar.solidColor,
+                shadowOffset: const Offset(5, 5),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Rotating radial background pulses
+                  Positioned(
+                    top: 10,
+                    child: AnimatedBuilder(
+                      animation: _waveAnimController,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _waveAnimController.value * math.pi * 2,
+                          child: Icon(Icons.blur_circular_rounded, color: activeScholar.solidColor.withAlpha(20), size: 280),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Scholar detail
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: AppTheme.vibrant3DBoxDecoration(
+                          color: activeScholar.solidColor.withAlpha(50),
+                          radius: 70,
+                          borderColor: activeScholar.solidColor,
+                          borderWidth: 3,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(activeScholar.initials, style: TextStyle(fontSize: 48, color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 14),
+                      if (!isIntermediate) ...[
+                        Text(activeScholar.name, style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
+                        Text(activeScholar.titleUz, style: AppTheme.bodySmall.copyWith(color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      // Uzbek Voice Bubble widget
+                      if (_activeVoiceReplyText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: AnimatedScale(
+                            scale: 1.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: AppTheme.white,
+                                radius: 24,
+                                shadowColor: activeScholar.solidColor.withAlpha(80),
+                                shadowOffset: const Offset(3, 3),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.record_voice_over_rounded, color: activeScholar.solidColor, size: 20),
+                                      const SizedBox(width: 8),
+                                      if (!isIntermediate)
+                                        Text("Ovozli Javob", style: AppTheme.headerSmall.copyWith(fontSize: 12, color: activeScholar.solidColor)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _activeVoiceReplyText,
+                                    style: AppTheme.bodyMedium.copyWith(fontSize: 12, height: 1.4),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_isSpeechLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child: CircularProgressIndicator(color: AppTheme.mandarin),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 3. Audio Recording Micro Button & Waveform
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Waveform animation loop during recording
+              if (_isMicRecording)
+                Container(
+                  height: 40,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(8, (i) {
+                      final double h = 10 + 25 * math.sin((_waveAnimController.value * math.pi * 2) + i * 0.8).abs();
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: 4,
+                        height: h,
+                        decoration: BoxDecoration(color: AppTheme.mandarin, borderRadius: BorderRadius.circular(2)),
+                      );
+                    }),
+                  ),
+                ),
+
+              // Giant Tactile Mandarin circular mic button
+              GestureDetector(
+                onTapDown: (_) => _triggerMicRecordingStart(),
+                onTapUp: (_) => _triggerMicRecordingRelease(),
+                child: AnimatedScale(
+                  scale: _isMicRecording ? 1.25 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.bounceOut,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: AppTheme.mandarin,
+                      radius: 45,
+                      borderColor: const Color(0xFFD84B1A),
+                      shadowColor: AppTheme.mandarin,
+                      shadowOffset: const Offset(4, 4),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.mic_rounded, color: Colors.white, size: 48),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
