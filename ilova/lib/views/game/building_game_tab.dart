@@ -229,6 +229,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   bool _isCollapsing = false;
   double _collapseTime = 0.0;
   bool _isCollapsed = false;
+  bool _isVictory = false;
 
   @override
   void initState() {
@@ -467,8 +468,15 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       _currentColor = _blockColors[_colorIndex];
       _currentType = _blockTypes[_colorIndex];
 
-      if (_blocks.length >= 5 || isCritical) {
+      if (isCritical) {
+        _isVictory = false;
         _triggerEarthquakeDisaster();
+      } else if (_blocks.length >= 5) {
+        _isVictory = true;
+        _showBriefing = true;
+        _isCollapsed = false;
+        widget.appState.awardStars(100);
+        Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
       }
     });
   }
@@ -705,13 +713,18 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
   }
 
   Widget _buildTemurBriefingOverlay() {
-    String postMortem = "Bino barpo etishda poydevor kengligi va og‘irlik markazi (center of gravity) o‘ta muhimdir. ";
-    if (_selectedMaterial == GameBuildingMaterial.wood) {
-      postMortem += "Siz tanlagan 'Yog'och Sinchi' elastik va yengil, ammo massasi yetarli bo'lmagani uchun eng kichik shamolda minorani ag'dardi.";
-    } else if (_selectedMaterial == GameBuildingMaterial.brick) {
-      postMortem += "Siz tanlagan 'Pishiq G'isht' og'ir va baquvvat, biroq elastiklik yetishmasligi sababli seysmik silkinishda chort-kesilib sindi.";
+    String postMortem = "";
+    if (_isVictory) {
+      postMortem = "Mashallah! Siz poydevorni o'ta mustahkam va muvozanatli qurdilaringiz! Temuriylar me'morchiligi an'analarini mukammal tarzda davom ettirdingiz. Minoramiz mag'rur qad ko'tarib turibdi! 🕌";
     } else {
-      postMortem += "Siz tanlagan 'Poydevor Tosh' o'ta mustahkam va massasi yuqori, poydevor ishqalanishi yuqoriligi sabab minorani uzoqroq ushlab turdi!";
+      postMortem = "Bino barpo etishda poydevor kengligi va og‘irlik markazi (center of gravity) o‘ta muhimdir. ";
+      if (_selectedMaterial == GameBuildingMaterial.wood) {
+        postMortem += "Siz tanlagan 'Yog'och Sinchi' elastik va yengil, ammo massasi yetarli bo'lmagani uchun eng kichik shamolda minorani ag'dardi.";
+      } else if (_selectedMaterial == GameBuildingMaterial.brick) {
+        postMortem += "Siz tanlagan 'Pishiq G'isht' og'ir va baquvvat, biroq elastiklik yetishmasligi sababli seysmik silkinishda chort-kesilib sindi.";
+      } else {
+        postMortem += "Siz tanlagan 'Poydevor Tosh' o'ta mustahkam va massasi yuqori, poydevor ishqalanishi yuqoriligi sabab minorani uzoqroq ushlab turdi!";
+      }
     }
 
     return AnimatedPositioned(
@@ -763,7 +776,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
               ),
               const SizedBox(height: 14),
               Text(
-                "Temur Tuzuklari: Seysmik Saboq",
+                _isVictory ? "Temur Tuzuklari: Muvaffaqiyat! 🏆" : "Temur Tuzuklari: Seysmik Saboq",
                 style: AppTheme.headerMedium.copyWith(color: AppTheme.mandarin, fontSize: 18),
               ),
               const SizedBox(height: 10),
@@ -795,7 +808,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                     const Icon(Icons.star_rounded, color: AppTheme.yellow, size: 22),
                     const SizedBox(width: 6),
                     Text(
-                      "+100 Super Bonus Yulduzcha! ⭐",
+                      _isVictory ? "+100 Super G'alaba Yulduzchasi! ⭐" : "+20 Saboq Yulduzchasi! ⭐",
                       style: AppTheme.headerSmall.copyWith(color: AppTheme.darkMintGreen, fontSize: 13),
                     ),
                   ],
@@ -804,8 +817,10 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  widget.appState.awardStars(100);
-                  Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
+                  if (!_isVictory) {
+                    widget.appState.awardStars(20);
+                    Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(20);
+                  }
                   _rebuildEmpire();
                 },
                 child: Container(
@@ -818,7 +833,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    "Qayta Qurish 🏗️",
+                    _isVictory ? "Kestni Yakunlash 🏆" : "Qayta Qurish 🏗️",
                     style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
                   ),
                 ),
@@ -850,6 +865,7 @@ class _BuildingGameTabState extends State<BuildingGameTab> with TickerProviderSt
       _isDropping = false;
       _isCollapsed = false;
       _showBriefing = false;
+      _isVictory = false;
       _colorIndex = 0;
       _currentType = _blockTypes[0];
       
