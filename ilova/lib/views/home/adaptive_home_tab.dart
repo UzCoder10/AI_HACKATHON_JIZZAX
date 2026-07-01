@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../controllers/age_tier_controller.dart';
 import '../../controllers/app_state.dart';
 import '../game/adaptive_logic_games.dart';
+import 'smart_shorts_view.dart';
 
 // =========================================================================
 // KODI THE BEAR IDLE BREATHING & NEON GLOW PAINTER
@@ -539,6 +540,21 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
             },
             actionIcon: Icons.architecture_rounded,
+          ),
+          const SizedBox(height: 20),
+
+          // 4. Uzbek Tarbiyaviy Shorts (🎬): Lola va uning do'stlari, Dono Momo, Bek Kids
+          _buildTreehouseLayer(
+            icon: "🎬",
+            title: isPreLiterate ? "🎬" : "Uzbek Tarbiyaviy Shorts",
+            subtitle: isPreLiterate ? "🎬" : "Qiziqarli Uzbek Multfilmlari",
+            color: AppTheme.pastelGold.withValues(alpha: 0.8),
+            borderColor: AppTheme.mandarin,
+            isPreLiterate: isPreLiterate,
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SmartShortsView()));
+            },
+            actionIcon: Icons.video_library_rounded,
           ),
         ],
       ),
