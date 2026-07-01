@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/data_models.dart';
 import '../../controllers/app_state.dart';
+import '../../controllers/age_tier_controller.dart';
 
 class ParentTab extends StatefulWidget {
   final AppState appState;
@@ -312,10 +314,14 @@ class _ParentTabState extends State<ParentTab> {
     );
   }
 
+  TextEditingController? _childNameController;
+
   // Parents Analytics & Monetization Dashboard
   Widget _buildParentDashboard() {
     final state = widget.appState;
     final fav = state.favoriteScholar;
+    final ageController = Provider.of<AgeTierController>(context);
+    _childNameController ??= TextEditingController(text: ageController.activeChildName);
 
     return Scaffold(
       backgroundColor: AppTheme.porcelain,
@@ -370,6 +376,71 @@ class _ParentTabState extends State<ParentTab> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Child Profile Editor Card
+            Text("Farzand Profilini Tahrirlash", style: AppTheme.headerMedium),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Farzand ismi:", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.porcelain,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: TextField(
+                      controller: _childNameController,
+                      decoration: const InputDecoration(border: InputBorder.none, hintText: "Masalan: Sabohat"),
+                      onChanged: (val) {
+                        ageController.updateChildProfileLocalAndRemote(val, ageController.activeAge);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text("Yoshini sozlash (Slider): ${ageController.activeAge} yoshda", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                  Slider(
+                    value: ageController.activeAge.toDouble().clamp(3.0, 9.0),
+                    min: 3.0,
+                    max: 9.0,
+                    divisions: 6,
+                    activeColor: AppTheme.marineBlue,
+                    onChanged: (val) {
+                      ageController.updateChildProfileLocalAndRemote(
+                        _childNameController?.text ?? ageController.activeChildName,
+                        val.round(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Sandbox Shield Card
+            Text("Kiddos Shield (Xavfsiz Sandbox)", style: AppTheme.headerMedium),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.white),
+              child: SwitchListTile(
+                title: Text("Tashqi Ilovalarni Bloklash", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                subtitle: const Text("Faollashtirilganda bolaning telefondagi boshqa ilovalarga o'tishi cheklanadi", style: TextStyle(fontSize: 11)),
+                value: ageController.sandboxBlockerActive,
+                activeTrackColor: AppTheme.mintGreen,
+                activeThumbColor: AppTheme.white,
+                onChanged: (val) {
+                  ageController.toggleSandboxBlocker(val);
+                },
               ),
             ),
             const SizedBox(height: 20),

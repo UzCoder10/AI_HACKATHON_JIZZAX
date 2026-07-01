@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -179,31 +180,217 @@ class _BouncyNavItemState extends State<BouncyNavItem> with SingleTickerProvider
 // =========================================================================
 // MAIN NAVIGATION LAYOUT & ADAPTIVE TOY BAR
 // =========================================================================
-class MainNavigationLayout extends StatelessWidget {
+class MainNavigationLayout extends StatefulWidget {
   final AppState appState;
 
   const MainNavigationLayout({super.key, required this.appState});
 
   @override
+  State<MainNavigationLayout> createState() => _MainNavigationLayoutState();
+}
+
+class _MainNavigationLayoutState extends State<MainNavigationLayout> {
+  bool _isDeflectionLocked = false;
+  String _unlockPinInput = "";
+  String _unlockError = "";
+
+  void _onPinKeyTap(String val) {
+    setState(() {
+      _unlockError = "";
+      if (_unlockPinInput.length < 4) {
+        _unlockPinInput += val;
+      }
+      if (_unlockPinInput.length == 4) {
+        if (_unlockPinInput == widget.appState.parentPin) {
+          _isDeflectionLocked = false;
+          _unlockPinInput = "";
+        } else {
+          _unlockPinInput = "";
+          _unlockError = "PIN xato. Qayta urinib ko'ring!";
+        }
+      }
+    });
+  }
+
+  void _onDeleteTap() {
+    setState(() {
+      if (_unlockPinInput.isNotEmpty) {
+        _unlockPinInput = _unlockPinInput.substring(0, _unlockPinInput.length - 1);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final ageController = Provider.of<AgeTierController>(context);
+
+    // Sandbox deflection monitoring loop simulation
+    if (ageController.sandboxBlockerActive && 
+        (widget.appState.activeTab == 1 || widget.appState.activeTab == 2 || widget.appState.activeTab == 3)) {
+      if (!_isDeflectionLocked) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          widget.appState.changeTab(0);
+          setState(() {
+            _isDeflectionLocked = true;
+          });
+        });
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.porcelain,
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: IndexedStack(
-              index: appState.activeTab,
-              children: [
-                AdaptiveHomeTab(appState: appState),
-                ChatTab(appState: appState),
-                EducationalFeed(appState: appState),
-                AchievementsTab(appState: appState),
-                ParentTab(appState: appState),
-              ],
+          Column(
+            children: [
+              Expanded(
+                child: IndexedStack(
+                  index: widget.appState.activeTab,
+                  children: [
+                    AdaptiveHomeTab(appState: widget.appState),
+                    ChatTab(appState: widget.appState),
+                    EducationalFeed(appState: widget.appState),
+                    AchievementsTab(appState: widget.appState),
+                    ParentTab(appState: widget.appState),
+                  ],
+                ),
+              ),
+              _buildCustomBottomBar(context),
+            ],
+          ),
+
+          if (_isDeflectionLocked)
+            _buildLockOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withAlpha(220),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.all(24),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.white,
+                radius: 28,
+                borderColor: AppTheme.appleRed,
+                shadowOffset: const Offset(4, 4),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.shield_rounded, size: 54, color: AppTheme.appleRed),
+                  const SizedBox(height: 12),
+                  Text("Kiddos Shield Faol! 🔒", style: AppTheme.headerMedium),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Tashqi ilovalarni bloklash rejimi yoqilgan. Sahifani o'zgartirish yoki chiqish uchun PIN kodni kiriting (Standart: 2026):",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppTheme.darkPurple),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (index) {
+                      final bool isFilled = index < _unlockPinInput.length;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isFilled ? AppTheme.appleRed : Colors.grey.shade200,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.darkPurpleBorder, width: 2),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_unlockError.isNotEmpty)
+                    Text(
+                      _unlockError,
+                      style: AppTheme.bodySmall.copyWith(color: AppTheme.appleRed, fontWeight: FontWeight.bold),
+                    ),
+                  const SizedBox(height: 24),
+
+                  Container(
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 12,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.4,
+                      ),
+                      itemBuilder: (context, index) {
+                        if (index == 9) {
+                          return const SizedBox.shrink();
+                        }
+                        if (index == 10) {
+                          return _buildPinButton("0");
+                        }
+                        if (index == 11) {
+                          return GestureDetector(
+                            onTap: _onDeleteTap,
+                            child: Container(
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: AppTheme.white,
+                                radius: 12,
+                                shadowOffset: const Offset(2, 2),
+                                borderColor: AppTheme.darkAppleRed,
+                                shadowColor: AppTheme.appleRed,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.backspace_rounded, color: AppTheme.appleRed, size: 20),
+                            ),
+                          );
+                        }
+                        final numValue = (index + 1).toString();
+                        return _buildPinButton(numValue);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isDeflectionLocked = false;
+                        _unlockPinInput = "";
+                      });
+                    },
+                    child: const Text("Orqaga (Bosh sahifa)", style: TextStyle(color: Colors.grey)),
+                  )
+                ],
+              ),
             ),
           ),
-          _buildCustomBottomBar(context),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPinButton(String val) {
+    return GestureDetector(
+      onTap: () => _onPinKeyTap(val),
+      child: Container(
+        decoration: AppTheme.vibrant3DBoxDecoration(
+          color: AppTheme.white,
+          radius: 12,
+          shadowOffset: const Offset(2, 2),
+          borderColor: AppTheme.darkAppleRed,
+          shadowColor: AppTheme.appleRed,
+        ),
+        alignment: Alignment.center,
+        child: Text(val, style: AppTheme.headerMedium.copyWith(color: AppTheme.appleRed, fontSize: 16)),
       ),
     );
   }
@@ -239,45 +426,45 @@ class MainNavigationLayout extends StatelessWidget {
                 index: 0,
                 icon: Icons.home_rounded,
                 label: "Bosh sahifa",
-                isActive: appState.activeTab == 0,
+                isActive: widget.appState.activeTab == 0,
                 activeColor: accentColor,
-                onTap: () => appState.changeTab(0),
+                onTap: () => widget.appState.changeTab(0),
               ),
             if (visibleTabIndices.contains(1))
               BouncyNavItem(
                 index: 1,
                 icon: Icons.forum_rounded,
                 label: "Suhbatlar",
-                isActive: appState.activeTab == 1,
+                isActive: widget.appState.activeTab == 1,
                 activeColor: accentColor,
-                onTap: () => appState.changeTab(1),
+                onTap: () => widget.appState.changeTab(1),
               ),
             if (visibleTabIndices.contains(2))
               BouncyNavItem(
                 index: 2,
                 icon: Icons.play_circle_outline_rounded,
                 label: "Shorts",
-                isActive: appState.activeTab == 2,
+                isActive: widget.appState.activeTab == 2,
                 activeColor: accentColor,
-                onTap: () => appState.changeTab(2),
+                onTap: () => widget.appState.changeTab(2),
               ),
             if (visibleTabIndices.contains(3))
               BouncyNavItem(
                 index: 3,
                 icon: Icons.military_tech_rounded,
                 label: "Yutuqlar",
-                isActive: appState.activeTab == 3,
+                isActive: widget.appState.activeTab == 3,
                 activeColor: accentColor,
-                onTap: () => appState.changeTab(3),
+                onTap: () => widget.appState.changeTab(3),
               ),
             if (visibleTabIndices.contains(4))
               BouncyNavItem(
                 index: 4,
                 icon: Icons.shield_rounded,
                 label: "Ota-ona",
-                isActive: appState.activeTab == 4,
+                isActive: widget.appState.activeTab == 4,
                 activeColor: accentColor,
-                onTap: () => appState.changeTab(4),
+                onTap: () => widget.appState.changeTab(4),
               ),
           ],
         ),

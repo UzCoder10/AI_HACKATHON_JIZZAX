@@ -260,9 +260,36 @@ class AgeTierController extends ChangeNotifier {
   bool _voiceAIActive = false;
   bool get voiceAIActive => _voiceAIActive;
 
+  bool _sandboxBlockerActive = false;
+  bool get sandboxBlockerActive => _sandboxBlockerActive;
+
   void toggleVoiceAI(bool active) {
     _voiceAIActive = active;
     notifyListeners();
+  }
+
+  void toggleSandboxBlocker(bool val) {
+    _sandboxBlockerActive = val;
+    notifyListeners();
+  }
+
+  Future<void> updateChildProfileLocalAndRemote(String name, int age) async {
+    setChildProfileLocal(name, age);
+    if (_currentUser != null && _activeChildId != null) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .collection('children')
+            .doc(_activeChildId)
+            .update({
+              'name': name,
+              'age': age,
+            });
+      } catch (e) {
+        debugPrint("Failed to sync child profile: $e");
+      }
+    }
   }
 
   void selectMaterial(BuildingMaterial material) {

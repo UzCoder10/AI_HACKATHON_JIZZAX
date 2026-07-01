@@ -3,15 +3,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
-import '../../models/data_models.dart';
-import '../../controllers/app_state.dart';
 import '../../controllers/age_tier_controller.dart';
+import '../../controllers/app_state.dart';
+import '../../models/data_models.dart';
 import '../game/adaptive_logic_games.dart';
-import '../game/building_game_tab.dart';
 import 'drawing_quest_screen.dart';
 
 // =========================================================================
-// INTERACTIVE KODI THE BEAR AVATAR (AAA JUMP & SPEECH STATE-MACHINE)
+// KODI THE BEAR IDLE BREATHING & NEON GLOW PAINTER
 // =========================================================================
 class KodiPainter extends CustomPainter {
   final double blinkVal;
@@ -38,7 +37,7 @@ class KodiPainter extends CustomPainter {
     final pMuzzle = Paint()..color = const Color(0xFFF3C598)..style = PaintingStyle.fill;
     final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 3.0;
 
-    // Left Ear (With earTwitch rotation)
+    // Left Ear
     canvas.save();
     canvas.translate(cx - r * 0.8, cy - r * 0.8);
     canvas.rotate(earTwitch);
@@ -47,7 +46,7 @@ class KodiPainter extends CustomPainter {
     canvas.drawCircle(Offset.zero, r * 0.18, pMuzzle);
     canvas.restore();
 
-    // Right Ear (With opposite earTwitch rotation)
+    // Right Ear
     canvas.save();
     canvas.translate(cx + r * 0.8, cy - r * 0.8);
     canvas.rotate(-earTwitch);
@@ -119,11 +118,9 @@ class KodiPainter extends CustomPainter {
     canvas.translate(cx + r * 0.9, cy + r * 0.3);
     final double waveAngle = math.sin(waveVal * math.pi * 4) * 0.25;
     canvas.rotate(waveAngle);
-    
     canvas.drawOval(Rect.fromCenter(center: const Offset(15, -15), width: r * 0.45, height: r * 0.35), pBear);
     canvas.drawOval(Rect.fromCenter(center: const Offset(15, -15), width: r * 0.45, height: r * 0.35), pBorder);
     canvas.drawCircle(const Offset(15, -15), r * 0.1, pMuzzle);
-
     canvas.restore();
   }
 
@@ -145,7 +142,6 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
   late final AnimationController _breatheController;
   late final AnimationController _earController;
   late final AnimationController _jumpController;
-  
   Timer? _waveTimer;
 
   @override
@@ -262,17 +258,19 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
 }
 
 // =========================================================================
-// ROADMAP PATH PAINTER (WITH MULTI-BIOMES)
+// 3D-STYLED environment LANDSCAPE ROADMAP CUSTOM PAINTER
 // =========================================================================
-class RoadmapPainter extends CustomPainter {
+class LandscapeRoadmapPainter extends CustomPainter {
   final AgeTier tier;
   final int activeIndex;
   final List<String> focusAreas;
+  final double timeVal; // For animated floating clouds
 
-  RoadmapPainter({
+  LandscapeRoadmapPainter({
     required this.tier,
     required this.activeIndex,
     required this.focusAreas,
+    required this.timeVal,
   });
 
   @override
@@ -280,17 +278,74 @@ class RoadmapPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    final path = Path();
-    path.moveTo(w * 0.25, h * 0.9);
-    path.quadraticBezierTo(w * 0.65, h * 0.85, w * 0.76, h * 0.72);
-    path.quadraticBezierTo(w * 0.85, h * 0.62, w * 0.35, h * 0.54);
-    path.quadraticBezierTo(w * 0.05, h * 0.44, w * 0.74, h * 0.3);
-    path.quadraticBezierTo(w * 0.95, h * 0.20, w * 0.5, h * 0.08);
+    // Draw Sky Background Gradient
+    final Rect skyRect = Offset.zero & size;
+    final Paint pSky = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFE0F2F1), Color(0xFFE8F5E9)],
+      ).createShader(skyRect);
+    canvas.drawRect(skyRect, pSky);
 
+    // Distant procedural rolling green hills
+    final pFarHills = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFA5D6A7), Color(0xFF81C784)],
+      ).createShader(skyRect);
+
+    final pathFarHills = Path()
+      ..moveTo(0, h * 0.5)
+      ..quadraticBezierTo(w * 0.25, h * 0.38, w * 0.5, h * 0.48)
+      ..quadraticBezierTo(w * 0.75, h * 0.58, w, h * 0.45)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(pathFarHills, pFarHills);
+
+    // Procedural Cascading River
+    final pRiver = Paint()
+      ..color = const Color(0xFF4FC3F7).withAlpha(160)
+      ..style = PaintingStyle.fill;
+    final pathRiver = Path()
+      ..moveTo(w * 0.15, h)
+      ..quadraticBezierTo(w * 0.35, h * 0.75, w * 0.52, h * 0.65)
+      ..quadraticBezierTo(w * 0.7, h * 0.55, w * 0.85, 0)
+      ..lineTo(w * 0.92, 0)
+      ..quadraticBezierTo(w * 0.75, h * 0.58, w * 0.58, h * 0.68)
+      ..quadraticBezierTo(w * 0.42, h * 0.78, w * 0.28, h)
+      ..close();
+    canvas.drawPath(pathRiver, pRiver);
+
+    // Near procedural rolling green hills
+    final pNearHills = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+      ).createShader(skyRect);
+
+    final pathNearHills = Path()
+      ..moveTo(0, h * 0.65)
+      ..quadraticBezierTo(w * 0.3, h * 0.78, w * 0.65, h * 0.62)
+      ..quadraticBezierTo(w * 0.85, h * 0.52, w, h * 0.68)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(pathNearHills, pNearHills);
+
+    // Floating animated cotton clouds
+    final pCloud = Paint()..color = Colors.white.withAlpha(200)..style = PaintingStyle.fill;
+    _drawCloud(canvas, w * 0.2 + (50 * math.sin(timeVal)), h * 0.2, pCloud);
+    _drawCloud(canvas, w * 0.7 + (40 * math.cos(timeVal)), h * 0.15, pCloud);
+
+    // Dotted Roadmap Pathway
     final pPathShadow = Paint()
       ..color = const Color(0xFFE4C39E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 34.0
+      ..strokeWidth = 36.0
       ..strokeCap = StrokeCap.round;
 
     final pPath = Paint()
@@ -299,38 +354,62 @@ class RoadmapPainter extends CustomPainter {
       ..strokeWidth = 30.0
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawPath(path, pPathShadow);
-    canvas.drawPath(path, pPath);
+    final pathRoad = Path();
+    pathRoad.moveTo(100, h * 0.75);
+    pathRoad.cubicTo(w * 0.28, h * 0.85, w * 0.35, h * 0.55, w * 0.52, h * 0.72);
+    pathRoad.cubicTo(w * 0.68, h * 0.88, w * 0.76, h * 0.58, w - 120, h * 0.68);
 
-    final pDotted = Paint()
-      ..color = const Color(0xFFDCA776)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
+    canvas.drawPath(pathRoad, pPathShadow);
+    canvas.drawPath(pathRoad, pPath);
 
-    for (double i = 0.05; i < 0.95; i += 0.06) {
-      final p1 = _getPointOnBezier(i, w, h);
-      final p2 = _getPointOnBezier(i + 0.03, w, h);
-      canvas.drawLine(p1, p2, pDotted);
-    }
+    // Traditional Uzbek Turquoise Archway at the start
+    _drawUzbekArchway(canvas, 100, h * 0.75, 42, 65);
+    // Traditional Uzbek Turquoise Archway at the end
+    _drawUzbekArchway(canvas, w - 120, h * 0.68, 42, 65);
 
-    _drawFocusDecorations(canvas, w, h);
-  }
-
-  void _drawFocusDecorations(Canvas canvas, double w, double h) {
+    // Draw decorators based on focus areas
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
     for (final area in focusAreas) {
       if (area.contains("Aniq Fanlar")) {
-        _drawEmojiLabel(canvas, "📐", Offset(w * 0.52, h * 0.84), textPainter);
-        _drawEmojiLabel(canvas, "🧮", Offset(w * 0.25, h * 0.49), textPainter);
+        _drawEmojiLabel(canvas, "📐", Offset(w * 0.3, h * 0.68), textPainter);
+        _drawEmojiLabel(canvas, "🧮", Offset(w * 0.62, h * 0.75), textPainter);
       } else if (area.contains("Tanqidiy Fikr")) {
-        _drawEmojiLabel(canvas, "⚙️", Offset(w * 0.82, h * 0.67), textPainter);
-        _drawEmojiLabel(canvas, "🧠", Offset(w * 0.48, h * 0.26), textPainter);
+        _drawEmojiLabel(canvas, "🧠", Offset(w * 0.45, h * 0.62), textPainter);
+        _drawEmojiLabel(canvas, "⚙️", Offset(w * 0.78, h * 0.65), textPainter);
       } else if (area.contains("Allomalar Tarixi")) {
-        _drawEmojiLabel(canvas, "📜", Offset(w * 0.15, h * 0.58), textPainter);
-        _drawEmojiLabel(canvas, "🕌", Offset(w * 0.80, h * 0.35), textPainter);
+        _drawEmojiLabel(canvas, "🕌", Offset(w * 0.2, h * 0.72), textPainter);
+        _drawEmojiLabel(canvas, "📜", Offset(w * 0.85, h * 0.58), textPainter);
       }
     }
+  }
+
+  void _drawCloud(Canvas canvas, double cx, double cy, Paint paint) {
+    canvas.drawCircle(Offset(cx, cy), 22, paint);
+    canvas.drawCircle(Offset(cx - 16, cy + 4), 16, paint);
+    canvas.drawCircle(Offset(cx + 16, cy + 4), 16, paint);
+    canvas.drawRect(Rect.fromLTWH(cx - 20, cy, 40, 20), paint);
+  }
+
+  void _drawUzbekArchway(Canvas canvas, double x, double y, double width, double height) {
+    final pArch = Paint()..color = const Color(0xFF00ACC1)..style = PaintingStyle.fill;
+    final pArchOutline = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.0;
+
+    final leftPillar = Rect.fromLTWH(x - width / 2, y - height, 8, height);
+    final rightPillar = Rect.fromLTWH(x + width / 2 - 8, y - height, 8, height);
+
+    canvas.drawRect(leftPillar, pArch);
+    canvas.drawRect(leftPillar, pArchOutline);
+    canvas.drawRect(rightPillar, pArch);
+    canvas.drawRect(rightPillar, pArchOutline);
+
+    // Arch dome top
+    final pathDome = Path()
+      ..moveTo(x - width / 2, y - height)
+      ..quadraticBezierTo(x, y - height - 24, x + width / 2, y - height)
+      ..quadraticBezierTo(x, y - height - 8, x - width / 2, y - height)
+      ..close();
+    canvas.drawPath(pathDome, pArch);
+    canvas.drawPath(pathDome, pArchOutline);
   }
 
   void _drawEmojiLabel(Canvas canvas, String emoji, Offset pos, TextPainter painter) {
@@ -340,28 +419,6 @@ class RoadmapPainter extends CustomPainter {
     );
     painter.layout();
     painter.paint(canvas, Offset(pos.dx - painter.width / 2, pos.dy - painter.height / 2));
-  }
-
-  Offset _getPointOnBezier(double t, double w, double h) {
-    final p0 = Offset(w * 0.25, h * 0.9);
-    final p1 = Offset(w * 0.76, h * 0.72);
-    final p2 = Offset(w * 0.35, h * 0.54);
-    final p3 = Offset(w * 0.74, h * 0.3);
-    final p4 = Offset(w * 0.5, h * 0.08);
-
-    if (t < 0.25) {
-      final double localT = t / 0.25;
-      return Offset.lerp(p0, p1, localT)!;
-    } else if (t < 0.5) {
-      final double localT = (t - 0.25) / 0.25;
-      return Offset.lerp(p1, p2, localT)!;
-    } else if (t < 0.75) {
-      final double localT = (t - 0.5) / 0.25;
-      return Offset.lerp(p2, p3, localT)!;
-    } else {
-      final double localT = (t - 0.75) / 0.25;
-      return Offset.lerp(p3, p4, localT)!;
-    }
   }
 
   @override
@@ -429,23 +486,27 @@ class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateM
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              if (widget.isActive)
-                Container(
-                  width: 72 + (24 * _controller.value),
-                  height: 72 + (24 * _controller.value),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: widget.activeColor.withAlpha(((1.0 - _controller.value) * 255).round()),
-                      width: 3.0,
+          final double pulseScale = 1.0 + (widget.isActive ? 0.08 * math.sin(_controller.value * math.pi * 2) : 0.0);
+          return Transform.scale(
+            scale: pulseScale,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (widget.isActive)
+                  Container(
+                    width: 72 + (24 * _controller.value),
+                    height: 72 + (24 * _controller.value),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.activeColor.withAlpha(((1.0 - _controller.value) * 255).round()),
+                        width: 3.0,
+                      ),
                     ),
                   ),
-                ),
-              child!,
-            ],
+                child!,
+              ],
+            ),
           );
         },
         child: Container(
@@ -472,7 +533,7 @@ class _LivingNodeState extends State<LivingNode> with SingleTickerProviderStateM
 }
 
 // =========================================================================
-// MAIN ROADMAP COMPONENT
+// MAIN ROADMAP PAGE WITH DOPAMINE SCROLLING BIOMES & REACTIVE AUDIO
 // =========================================================================
 class AdaptiveHomeTab extends StatefulWidget {
   final AppState appState;
@@ -482,21 +543,58 @@ class AdaptiveHomeTab extends StatefulWidget {
   State<AdaptiveHomeTab> createState() => _AdaptiveHomeTabState();
 }
 
-class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
+class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProviderStateMixin {
+  late final AnimationController _landscapeAnimController;
+
+  @override
+  void initState() {
+    super.initState();
+    _landscapeAnimController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    
+    // Trigger simulated child-friendly audio and visual greeting loop on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _playBackgroundMusic();
+      _sayKodiWelcome();
+    });
+  }
+
+  @override
+  void dispose() {
+    _landscapeAnimController.dispose();
+    super.dispose();
+  }
+
+  void _playBackgroundMusic() {
+    debugPrint("🎵 Simulated Ambient Music: looping background melody activated.");
+  }
+
+  void _sayKodiWelcome() {
+    debugPrint("🐻 Kodi Vocal Companion: 'Xush kelibsiz, bolajon! Olamni kashf qilamiz!'");
+    final ageController = Provider.of<AgeTierController>(context, listen: false);
+    ageController.toggleVoiceAI(true);
+    Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        ageController.toggleVoiceAI(false);
+      }
+    });
+  }
+
   Offset _getNodeOffset(int index, Size size) {
     final double w = size.width;
     final double h = size.height;
+    
+    // Wide horizontal roadmap offsets
     switch (index) {
       case 0:
-        return Offset(w * 0.25, h * 0.9);
+        return Offset(100, h * 0.75);
       case 1:
-        return Offset(w * 0.76, h * 0.72);
+        return Offset(w * 0.28, h * 0.81);
       case 2:
-        return Offset(w * 0.35, h * 0.54);
+        return Offset(w * 0.42, h * 0.65);
       case 3:
-        return Offset(w * 0.74, h * 0.3);
+        return Offset(w * 0.62, h * 0.76);
       case 4:
-        return Offset(w * 0.5, h * 0.08);
+        return Offset(w - 120, h * 0.68);
       default:
         return Offset(w * 0.5, h * 0.5);
     }
@@ -527,12 +625,14 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)));
       } else if (index == 1) {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrawingQuestScreen(appState: widget.appState)));
+      } else if (index == 2) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi kvest kutilmoqda!")));
       }
     } else {
       if (index == 0) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BuildingGameTab(appState: widget.appState)));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 2)));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Yangi 3D kvest kutilmoqda!")));
       }
@@ -588,7 +688,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
     final tier = ageController.activeTier;
     final accentColor = ageController.getAccentColor();
     final size = MediaQuery.of(context).size;
-    final double roadmapHeight = size.height * 1.15;
+    final double roadmapWidth = size.width * 2.8;
 
     return Scaffold(
       backgroundColor: ageController.getBiomeBgColor(),
@@ -599,25 +699,28 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
 
             Expanded(
               child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: roadmapHeight,
-                      width: double.infinity,
-                      child: Stack(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: roadmapWidth,
+                  height: double.infinity,
+                  child: AnimatedBuilder(
+                    animation: _landscapeAnimController,
+                    builder: (context, child) {
+                      return Stack(
                         children: [
                           Positioned.fill(
                             child: CustomPaint(
-                              painter: RoadmapPainter(
+                              painter: LandscapeRoadmapPainter(
                                 tier: tier,
                                 activeIndex: ageController.activeNodeIndex,
                                 focusAreas: ageController.focusAreas,
+                                timeVal: _landscapeAnimController.value * math.pi * 2,
                               ),
                             ),
                           ),
 
                           ...List.generate(5, (index) {
-                            final pos = _getNodeOffset(index, Size(size.width, roadmapHeight));
+                            final pos = _getNodeOffset(index, Size(roadmapWidth, size.height));
                             final bool isLocked = index > ageController.activeNodeIndex;
                             final bool isActive = index == ageController.activeNodeIndex;
 
@@ -634,20 +737,21 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
                             );
                           }),
 
-                          _buildScholarNode(scholarsList[0], Offset(size.width * 0.8, roadmapHeight * 0.8), "Al-Xorazmiy", tier),
-                          _buildScholarNode(scholarsList[1], Offset(size.width * 0.15, roadmapHeight * 0.6), "Abu Rayhon Beruniy", tier),
-                          _buildScholarNode(scholarsList[2], Offset(size.width * 0.82, roadmapHeight * 0.42), "Ibn Sino", tier),
-                          _buildScholarNode(scholarsList[3], Offset(size.width * 0.18, roadmapHeight * 0.22), "Mirzo Ulug'bek", tier),
+                          _buildScholarNode(scholarsList[0], Offset(roadmapWidth * 0.15, size.height * 0.58), "Al-Xorazmiy", tier),
+                          _buildScholarNode(scholarsList[1], Offset(roadmapWidth * 0.45, size.height * 0.52), "Abu Rayhon Beruniy", tier),
+                          _buildScholarNode(scholarsList[2], Offset(roadmapWidth * 0.72, size.height * 0.62), "Ibn Sino", tier),
+                          _buildScholarNode(scholarsList[3], Offset(roadmapWidth * 0.9, size.height * 0.48), "Mirzo Ulug'bek", tier),
                         ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: _buildShortsRecommendationCard(accentColor, tier),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
               ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: _buildShortsRecommendationCard(accentColor, tier),
             ),
           ],
         ),
@@ -781,7 +885,6 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> {
   Widget _buildShortsRecommendationCard(Color accentColor, AgeTier tier) {
     final bool isIntermediate = tier == AgeTier.intermediate;
 
-    // Organic interactive button style with thick 3D offset (Offset(5, 5))
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.vibrant3DBoxDecoration(

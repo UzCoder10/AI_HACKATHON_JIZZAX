@@ -438,8 +438,17 @@ class SeismicTycoonPainter extends CustomPainter {
 
     for (int i = 0; i < placedBlocks.length; i++) {
       final block = placedBlocks[i];
-      final double bx = cx;
-      final double by = cy - (i * blockHeight) - 15.0;
+      final Offset offset = block["fallOffset"] as Offset? ?? Offset.zero;
+      final double bx = cx + offset.dx;
+      final double by = cy - (i * blockHeight) - 15.0 + offset.dy;
+
+      canvas.save();
+      final double rot = block["rotation"] as double? ?? 0.0;
+      if (rot != 0.0) {
+        canvas.translate(bx, by);
+        canvas.rotate(rot);
+        canvas.translate(-bx, -by);
+      }
 
       final Color baseColor = block["color"] as Color;
       final pFront = Paint()..color = baseColor..style = PaintingStyle.fill;
@@ -473,6 +482,8 @@ class SeismicTycoonPainter extends CustomPainter {
         ..close();
       canvas.drawPath(pathBoxRight, pSide);
       canvas.drawPath(pathBoxRight, pBorder);
+
+      canvas.restore();
     }
   }
 
@@ -523,7 +534,9 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   String _selectedBuildingMaterial = "Tosh"; // Tosh, Yog'och, G'isht
   double _seismicShakeOffset = 0.0;
   bool _seismicTesting = false;
+  bool _isStructureStable = true;
   bool _showSeismicSuccessOverlay = false;
+  bool _showSeismicFailureOverlay = false;
   late final AnimationController _seismicController;
 
   // Kinetic Snap-back animation properties
@@ -607,13 +620,33 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         setState(() {
           // Dynamic sinusoidal shaking viewport offset
           _seismicShakeOffset = math.sin(t * math.pi * 30.0) * 12.0 * (1.0 - t);
+
+          if (!_isStructureStable && t >= 0.4) {
+            final double collapseProgress = (t - 0.4) / 0.6;
+            for (int i = 0; i < _placedBlocks.length; i++) {
+              final double startFactor = 0.12 * (4 - i);
+              if (collapseProgress >= startFactor) {
+                final double itemT = ((collapseProgress - startFactor) / 0.5).clamp(0.0, 1.0);
+                final double fallDir = i % 2 == 0 ? -1.0 : 1.0;
+                _placedBlocks[i]["fallOffset"] = Offset(
+                  fallDir * 320.0 * itemT,
+                  600.0 * itemT * itemT,
+                );
+                _placedBlocks[i]["rotation"] = fallDir * itemT * math.pi * 0.9;
+              }
+            }
+          }
         });
       })..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
             _seismicTesting = false;
             _seismicShakeOffset = 0.0;
-            _showSeismicSuccessOverlay = true;
+            if (_isStructureStable) {
+              _showSeismicSuccessOverlay = true;
+            } else {
+              _showSeismicFailureOverlay = true;
+            }
           });
         }
       });
@@ -1068,15 +1101,33 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         "color": blockColor,
         "mass": mass,
         "elasticity": elasticity,
+        "fallOffset": Offset.zero,
+        "rotation": 0.0,
       });
     });
   }
 
   void _triggerLegoSeismicTest() {
     if (_placedBlocks.length < 5 || _seismicTesting) return;
+
+    // Check stability: if any block is heavier than the block directly beneath it
+    bool stable = true;
+    for (int i = 1; i < _placedBlocks.length; i++) {
+      final double currentMass = _placedBlocks[i]["mass"] as double;
+      final double belowMass = _placedBlocks[i - 1]["mass"] as double;
+      if (currentMass > belowMass) {
+        stable = false;
+        break;
+      }
+    }
+
     setState(() {
+      _isStructureStable = stable;
       _seismicTesting = true;
+      _showSeismicSuccessOverlay = false;
+      _showSeismicFailureOverlay = false;
     });
+
     _seismicController.forward(from: 0.0);
   }
 
@@ -1086,6 +1137,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _seismicTesting = false;
       _seismicShakeOffset = 0.0;
       _showSeismicSuccessOverlay = false;
+      _showSeismicFailureOverlay = false;
     });
     _seismicController.reset();
   }
@@ -1781,7 +1833,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                             ),
 
                           // Volcano tester button
-                          if (_placedBlocks.length >= 5 && !_seismicTesting && !_showSeismicSuccessOverlay)
+                          if (_placedBlocks.length >= 5 && !_seismicTesting && !_showSeismicSuccessOverlay && !_showSeismicFailureOverlay)
                             Positioned(
                               bottom: 20,
                               left: 30,
@@ -1803,7 +1855,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                                       const Icon(Icons.volcano_rounded, color: Colors.white, size: 26),
                                       const SizedBox(width: 8),
                                       Text(
-                                        "ZILZILANI SINASH 🌋",
+                                        "SINOVNI BOSHLASH 🌋",
                                         style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 15),
                                       ),
                                     ],
@@ -1896,6 +1948,69 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                           alignment: Alignment.center,
                           child: Text(
                             "KEYINGI BOSQICH 🚀",
+                            style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // Amir Temur Failure Overlay briefing
+        if (_showSeismicFailureOverlay)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withAlpha(160),
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: AppTheme.vibrant3DBoxDecoration(
+                    color: AppTheme.white,
+                    radius: 32,
+                    borderColor: AppTheme.appleRed,
+                    shadowOffset: const Offset(5, 5),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: AppTheme.vibrant3DBoxDecoration(
+                          color: AppTheme.pastelRed,
+                          radius: 45,
+                          borderColor: AppTheme.appleRed,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text("AT", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.darkAppleRed)),
+                      ),
+                      const SizedBox(height: 14),
+                      Text("Amir Temur", style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
+                      Text("Sohibqiron Me'mor", style: AppTheme.bodySmall.copyWith(color: AppTheme.appleRed, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 14),
+                      const Text(
+                        "Afsuski, bolajon, minoramiz mustahkam bo'lmadi! 🧱 Har doim og'ir toshlarni eng pastga (poydevorga), yengil yog'ochlarni esa eng tepaga qo'yishimiz kerak. Qani, yana bir urinib ko'r!",
+                        style: TextStyle(fontSize: 13, height: 1.4, color: AppTheme.darkPurple),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: _resetLegoConstructor,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: AppTheme.mandarin,
+                            radius: 20,
+                            shadowOffset: const Offset(3, 3),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            "QAYTADAN URINISH 🔄",
                             style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 14),
                           ),
                         ),
