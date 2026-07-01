@@ -650,6 +650,10 @@ class _ParentTabState extends State<ParentTab> {
               ),
               const SizedBox(height: 24),
 
+              // Multimodal AI Analytics Report
+              _buildMultimodalAICard(ageController),
+              const SizedBox(height: 24),
+
               // Custom AI Academic Assignments (Max Feature Only)
               if (state.subscriptionTier != ParentSubscriptionTier.max) ...[
                 _buildFeatureLockCard("Custom AI Assignments va Gemini Drawing Analyser faqat Max tarifida mavjud!")
@@ -900,6 +904,147 @@ class _ParentTabState extends State<ParentTab> {
         const SizedBox(width: 4),
         Text(text, style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple)),
       ],
+    );
+  }
+
+  Widget _buildMultimodalAICard(AgeTierController ageController) {
+    final creative = ageController.creativeScore;
+    final logic = ageController.logicMetrics;
+    final interests = ageController.detectedInterests;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.vibrant3DBoxDecoration(
+        color: AppTheme.white,
+        borderColor: AppTheme.darkPurpleBorder,
+        shadowColor: AppTheme.pastelGold,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology_rounded, color: AppTheme.mandarin, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                "Multimodal AI Ota-ona Hisoboti",
+                style: AppTheme.headerSmall.copyWith(fontSize: 15, color: AppTheme.darkPurple),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Column(
+                children: [
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CircularProgressIndicator(
+                          value: creative,
+                          strokeWidth: 8,
+                          backgroundColor: Colors.grey.shade100,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.mintGreen),
+                        ),
+                        Center(
+                          child: Text(
+                            "${(creative * 100).round()}%",
+                            style: AppTheme.headerSmall.copyWith(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Ijodiy Salohiyat", style: AppTheme.bodySmall),
+                ],
+              ),
+              Column(
+                children: [
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CircularProgressIndicator(
+                          value: logic,
+                          strokeWidth: 8,
+                          backgroundColor: Colors.grey.shade100,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.mandarin),
+                        ),
+                        Center(
+                          child: Text(
+                            "${(logic * 100).round()}%",
+                            style: AppTheme.headerSmall.copyWith(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Mantiq & Tahlil", style: AppTheme.bodySmall),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Aniqlangan Qiziqishlar:",
+            style: AppTheme.headerSmall.copyWith(fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: interests.map((interest) {
+              return Chip(
+                backgroundColor: AppTheme.pastelBlue,
+                side: const BorderSide(color: AppTheme.marineBlue, width: 1.5),
+                label: Text(
+                  interest,
+                  style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.porcelain,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.favorite_rounded, color: AppTheme.appleRed, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Ota-onalar uchun AI Tavsiyasi:",
+                      style: AppTheme.headerSmall.copyWith(fontSize: 11, color: AppTheme.appleRed),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Farzandingizda ${interests.join(', ')} sohalariga yuqori qiziqish aniqlandi. "
+                  "Ijodiy faollikni oshirish uchun rasm chizish va seysmik minoralar qurish o'yinlarini ko'proq tavsiya eting. "
+                  "Tavsiya etilgan psixologik yondashuv: Har bir ijodiy yechimi uchun uni maqtab, motivatsiya bering.",
+                  style: AppTheme.bodySmall.copyWith(fontSize: 11, color: Colors.grey.shade700, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

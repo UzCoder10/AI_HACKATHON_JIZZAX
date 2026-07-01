@@ -27,6 +27,11 @@ class AgeTierController extends ChangeNotifier {
   int _starsCount = 0;
   List<String> _badges = ["Mantiq Ustasi"];
   List<String> _focusAreas = ["Aniq Fanlar", "Tanqidiy Fikr"];
+
+  // Parent Multimodal Metrics
+  double _creativeScore = 0.75;
+  double _logicMetrics = 0.65;
+  List<String> _detectedInterests = ["Muhandislik", "Kosmos", "Tasviriy san'at"];
   
   // Game states
   BuildingMaterial _selectedMaterial = BuildingMaterial.brick;
@@ -71,6 +76,10 @@ class AgeTierController extends ChangeNotifier {
   List<String> get focusAreas => _focusAreas;
   BuildingMaterial get selectedMaterial => _selectedMaterial;
   List<BuildingMaterial> get unlockedMaterials => _unlockedMaterials;
+
+  double get creativeScore => _creativeScore;
+  double get logicMetrics => _logicMetrics;
+  List<String> get detectedInterests => _detectedInterests;
 
   // Set local state in case Firestore is unavailable
   void setChildProfileLocal(String name, int age, {List<String>? areas, bool canReadWrite = true}) {
@@ -140,6 +149,13 @@ class AgeTierController extends ChangeNotifier {
         final rawAreas = data['focusAreas'] as List?;
         if (rawAreas != null) {
           _focusAreas = rawAreas.map((e) => e.toString()).toList();
+        }
+
+        _creativeScore = (data['creative_score'] as num?)?.toDouble() ?? 0.75;
+        _logicMetrics = (data['logic_metrics'] as num?)?.toDouble() ?? 0.65;
+        final rawInterests = data['detected_interests'] as List?;
+        if (rawInterests != null) {
+          _detectedInterests = rawInterests.map((e) => e.toString()).toList();
         }
 
         notifyListeners();
@@ -367,6 +383,32 @@ class AgeTierController extends ChangeNotifier {
         return AppTheme.pastelBlue;
       case AgeTier.advanced:
         return AppTheme.pastelPeach;
+    }
+  }
+
+  Future<void> syncParentMetrics(double creativeDelta, double logicDelta, String newInterest) async {
+    _creativeScore = (_creativeScore + creativeDelta).clamp(0.0, 1.0);
+    _logicMetrics = (_logicMetrics + logicDelta).clamp(0.0, 1.0);
+    if (!_detectedInterests.contains(newInterest)) {
+      _detectedInterests.add(newInterest);
+    }
+    notifyListeners();
+
+    if (_currentUser != null && _activeChildId != null) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .collection('children')
+            .doc(_activeChildId)
+            .update({
+              'creative_score': _creativeScore,
+              'logic_metrics': _logicMetrics,
+              'detected_interests': _detectedInterests,
+            });
+      } catch (e) {
+        debugPrint("Failed to sync metrics to cloud: $e");
+      }
     }
   }
 }

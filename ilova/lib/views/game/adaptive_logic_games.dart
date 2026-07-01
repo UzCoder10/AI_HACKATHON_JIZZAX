@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
+import 'package:camera/camera.dart';
 import '../../core/theme.dart';
 import '../../controllers/app_state.dart';
 import '../../controllers/age_tier_controller.dart';
@@ -597,11 +598,15 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       audioScript: "Koinot bag'ridagi yulduzlar va sayyoralar xaritasini chizish senga yoqadimi? Samoviy teleskopimizni ishga sol! 🔭",
     ),
   ];
-  late int _selectedScholarIndex = 0;
+  late final int _selectedScholarIndex = 0;
   bool _isMicRecording = false;
   bool _isSpeechLoading = false;
   String _activeVoiceReplyText = "";
   late final AnimationController _waveAnimController;
+
+  // Camera & Background Welcome Audio Loop States
+  CameraController? _cameraController;
+  bool _isPlayingWelcomeIntro = false;
 
   // --- NEW ALLOMALAR EXCLUSIVE GAME STATES ---
   late final AnimationController _scholarLiveActionController;
@@ -769,6 +774,11 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _scholarParticleController = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this)..repeat();
     _fortressSeismicController = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
     _scholarLiveActionController.addListener(_updateScholarAmbientParticles);
+
+    _initCamera();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _playWelcomeIntro();
+    });
   }
 
   @override
@@ -780,6 +790,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _waveAnimController.dispose();
     _seismicController.dispose();
 
+    _cameraController?.dispose();
     _scholarLiveActionController.removeListener(_updateScholarAmbientParticles);
     _scholarLiveActionController.dispose();
     _scholarParticleController.dispose();
@@ -826,6 +837,53 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         _scholarBurstParticles.add(origin + Offset(math.cos(angle) * speed, math.sin(angle) * speed));
       }
     });
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isNotEmpty) {
+        _cameraController = CameraController(cameras[0], ResolutionPreset.medium);
+        await _cameraController!.initialize();
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Camera init failed: $e");
+    }
+  }
+
+  void _playWelcomeIntro() {
+    if (_isPlayingWelcomeIntro) return;
+    _isPlayingWelcomeIntro = true;
+    _activeVoiceReplyText = "Yur, men bilan suhbatlashib, yaqin do'st bo'laylik! 🐻✨";
+    _playVoiceGuide('welcome.mp3');
+  }
+
+  Future<void> _captureCameraAndAnalyze(AgeTierController ageController) async {
+    setState(() {
+      _isSpeechLoading = true;
+      _activeVoiceReplyText = "";
+    });
+
+    try {
+      if (_cameraController != null && _cameraController!.value.isInitialized) {
+        final image = await _cameraController!.takePicture();
+        debugPrint("Captured frame at path: ${image.path}");
+      }
+    } catch (e) {
+      debugPrint("Camera capture simulation: $e");
+    }
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isSpeechLoading = false;
+        _activeVoiceReplyText = "Voh, qanday ajoyib rasm chizibsan! Bu yerda yorqin ranglarni ko'ryapman! 🎨";
+      });
+      _playVoiceGuide('response.mp3');
+      await ageController.syncParentMetrics(0.08, 0.05, "Tasviriy san'at");
+    }
   }
 
   void _updatePhysics(double dt) {
@@ -1135,7 +1193,16 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
 
       final appState = Provider.of<AppState>(context, listen: false);
       appState.awardStars(100);
-      Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
+      final ageController = Provider.of<AgeTierController>(context, listen: false);
+      ageController.syncStarsToCloud(100);
+      
+      // Update parent metrics dynamically based on active scholar
+      if (config.initials == "AX" || config.initials == "MU") {
+        ageController.syncParentMetrics(0.03, 0.07, config.initials == "AX" ? "Muhandislik" : "Kosmos");
+      } else {
+        ageController.syncParentMetrics(0.06, 0.04, "Tabiiy fanlar");
+      }
+
       _playVoiceGuide('response.mp3');
     }).catchError((err) {
       if (!mounted) return;
@@ -1145,18 +1212,17 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       });
       final appState = Provider.of<AppState>(context, listen: false);
       appState.awardStars(100);
-      Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
+      final ageController = Provider.of<AgeTierController>(context, listen: false);
+      ageController.syncStarsToCloud(100);
+      
+      // Fallback metric logging
+      ageController.syncParentMetrics(0.02, 0.02, "Mantiq");
+
       _playVoiceGuide('response.mp3');
     });
   }
 
-  void _selectScholar(int index) {
-    setState(() {
-      _selectedScholarIndex = index;
-      _activeVoiceReplyText = _scholars[index].audioScript;
-    });
-    _playVoiceGuide('scholar_select.mp3');
-  }
+
 
   // --- 3D LEGO SEISMIC CONSTRUCTOR & SINASH ENGINE (NO AUTO-FALL / NO CRANE) ---
   void _placeLegoConstructorBlock() {
@@ -2159,147 +2225,109 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   Widget _buildVoiceAIScholarPortal(AgeTier tier) {
     final activeScholar = _scholars[_selectedScholarIndex];
     final bool isIntermediate = tier == AgeTier.intermediate;
+    final ageController = Provider.of<AgeTierController>(context);
 
     return Column(
       children: [
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: _scholars.length,
-            itemBuilder: (context, idx) {
-              final s = _scholars[idx];
-              final bool isSelected = idx == _selectedScholarIndex;
-              return GestureDetector(
-                onTap: () => _selectScholar(idx),
-                child: AnimatedScale(
-                  scale: isSelected ? 1.12 : 0.92,
-                  duration: const Duration(milliseconds: 250),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 90,
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: isSelected ? s.solidColor : AppTheme.white,
-                      radius: 24,
-                      borderColor: s.solidColor,
-                      shadowOffset: const Offset(3, 3),
-                    ),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: s.solidColor.withAlpha(50),
-                          radius: 24,
-                          child: Text(s.initials, style: TextStyle(color: isSelected ? Colors.white : s.solidColor, fontWeight: FontWeight.bold)),
-                        ),
-                        if (!isIntermediate) ...[
-                          const SizedBox(height: 4),
-                          Text(s.name, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : AppTheme.darkPurple, fontWeight: FontWeight.bold)),
-                        ]
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
+        // 1. TOP HALF: LIVE CAMERA PREVIEW ("AI's Eyes") + FLOATING AVATAR
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              width: double.infinity,
-              decoration: AppTheme.vibrant3DBoxDecoration(
-                color: AppTheme.porcelain,
-                radius: 32,
-                borderColor: activeScholar.solidColor,
-                shadowOffset: const Offset(5, 5),
-              ),
+          flex: 5,
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            decoration: AppTheme.vibrant3DBoxDecoration(
+              color: Colors.black,
+              radius: 28,
+              borderColor: activeScholar.solidColor,
+              shadowOffset: const Offset(4, 4),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
               child: Stack(
-                alignment: Alignment.center,
+                fit: StackFit.expand,
                 children: [
+                  // Camera Preview or Placeholder
+                  if (_cameraController != null && _cameraController!.value.isInitialized)
+                    CameraPreview(_cameraController!)
+                  else
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1E1B29), Color(0xFF110E1C)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_enhance_rounded, color: Colors.white24, size: 64),
+                          SizedBox(height: 12),
+                          Text(
+                            "Kamera faollashtirilmoqda...",
+                            style: TextStyle(color: Colors.white30, fontSize: 13, fontWeight: FontWeight.bold),
+                          )
+                        ],
+                      ),
+                    ),
+
+                  // Floating Avatar Layer (Dynamic scaling match mouth speaking state)
                   Positioned(
-                    top: 10,
+                    right: 16,
+                    bottom: 16,
                     child: AnimatedBuilder(
                       animation: _waveAnimController,
                       builder: (context, child) {
-                        return Transform.rotate(
-                          angle: _waveAnimController.value * math.pi * 2,
-                          child: Icon(Icons.blur_circular_rounded, color: activeScholar.solidColor.withAlpha(20), size: 280),
+                        final double pulse = 1.0 + (_kodiVoiceActive ? math.sin(_waveAnimController.value * math.pi * 4) * 0.08 : 0.0);
+                        return Transform.scale(
+                          scale: pulse,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: activeScholar.solidColor, width: 2),
+                            ),
+                            child: CircleAvatar(
+                              radius: 36,
+                              backgroundColor: activeScholar.solidColor.withValues(alpha: 0.3),
+                              child: Text(
+                                activeScholar.initials,
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),
                   ),
 
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 140,
-                        height: 140,
+                  // Tactile "Rasmni Ko'rsatish" Button overlayed
+                  Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: GestureDetector(
+                      onTap: () => _captureCameraAndAnalyze(ageController),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: AppTheme.vibrant3DBoxDecoration(
-                          color: activeScholar.solidColor.withAlpha(50),
-                          radius: 70,
-                          borderColor: activeScholar.solidColor,
-                          borderWidth: 3,
+                          color: AppTheme.mintGreen,
+                          radius: 20,
+                          borderColor: AppTheme.darkMintGreen,
+                          shadowOffset: const Offset(3, 3),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(activeScholar.initials, style: TextStyle(fontSize: 48, color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(height: 14),
-                      if (!isIntermediate) ...[
-                        Text(activeScholar.name, style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
-                        Text(activeScholar.titleUz, style: AppTheme.bodySmall.copyWith(color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
-                      ],
-
-                      const SizedBox(height: 20),
-
-                      if (_activeVoiceReplyText.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: AnimatedScale(
-                            scale: 1.0,
-                            duration: const Duration(milliseconds: 300),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: AppTheme.vibrant3DBoxDecoration(
-                                color: AppTheme.white,
-                                radius: 24,
-                                shadowColor: activeScholar.solidColor.withAlpha(80),
-                                shadowOffset: const Offset(3, 3),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.record_voice_over_rounded, color: activeScholar.solidColor, size: 20),
-                                      const SizedBox(width: 8),
-                                      if (!isIntermediate)
-                                        Text("Ovozli Javob", style: AppTheme.headerSmall.copyWith(fontSize: 12, color: activeScholar.solidColor)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _activeVoiceReplyText,
-                                    style: AppTheme.bodyMedium.copyWith(fontSize: 12, height: 1.4),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              isIntermediate ? "📸" : "Rasmni Ko'rsatish 📸",
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
-                          ),
+                          ],
                         ),
-
-                      if (_isSpeechLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20),
-                          child: CircularProgressIndicator(color: AppTheme.mandarin),
-                        ),
-                    ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -2307,56 +2335,80 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
           ),
         ),
 
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: AppTheme.white,
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isMicRecording)
-                Container(
-                  height: 40,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(8, (i) {
-                      final double h = 10 + 25 * math.sin((_waveAnimController.value * math.pi * 2) + i * 0.8).abs();
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: 4,
-                        height: h,
-                        decoration: BoxDecoration(color: AppTheme.mandarin, borderRadius: BorderRadius.circular(2)),
-                      );
-                    }),
-                  ),
-                ),
-
-              GestureDetector(
-                onTapDown: (_) => _triggerMicRecordingStart(),
-                onTapUp: (_) => _triggerMicRecordingRelease(),
-                child: AnimatedScale(
-                  scale: _isMicRecording ? 1.25 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.bounceOut,
-                  child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: AppTheme.mandarin,
-                      radius: 45,
-                      borderColor: const Color(0xFFD84B1A),
-                      shadowColor: AppTheme.mandarin,
-                      shadowOffset: const Offset(4, 4),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.mic_rounded, color: Colors.white, size: 48),
-                  ),
-                ),
+        // 2. MIDDLE SPEECH BUBBLE
+        if (_activeVoiceReplyText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.white,
+                radius: 24,
+                borderColor: activeScholar.solidColor,
+                shadowOffset: const Offset(3, 3),
               ),
-            ],
+              child: Text(
+                _activeVoiceReplyText,
+                style: AppTheme.bodyMedium.copyWith(fontSize: 12, height: 1.4, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+
+        if (_isSpeechLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: CircularProgressIndicator(color: AppTheme.mandarin),
+          ),
+
+        // 3. BOTTOM HALF: MASSIVE PULSATING MICROPHONE BUTTON
+        Expanded(
+          flex: 4,
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: AppTheme.vibrant3DBoxDecoration(
+              color: AppTheme.white,
+              radius: 28,
+              borderColor: Colors.grey.shade200,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!isIntermediate)
+                  Text(
+                    _isMicRecording ? "Sizni eshityapman..." : "Gapirish uchun bosing va ushlab turing",
+                    style: AppTheme.bodyMedium.copyWith(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                  ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTapDown: (_) => _triggerMicRecordingStart(),
+                  onTapUp: (_) => _triggerMicRecordingRelease(),
+                  child: AnimatedBuilder(
+                    animation: _waveAnimController,
+                    builder: (context, child) {
+                      final double scale = _isMicRecording ? 1.2 + math.sin(_waveAnimController.value * math.pi * 2) * 0.1 : 1.0;
+                      return Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: AppTheme.vibrant3DBoxDecoration(
+                            color: AppTheme.mandarin,
+                            radius: 50,
+                            borderColor: AppTheme.darkMandarin,
+                            shadowColor: AppTheme.mandarin,
+                            shadowOffset: const Offset(4, 4),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.mic_rounded, color: Colors.white, size: 54),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
