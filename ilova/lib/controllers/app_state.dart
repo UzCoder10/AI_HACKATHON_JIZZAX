@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/data_models.dart';
 import '../core/gemini_service.dart';
 
@@ -8,6 +9,12 @@ class AppState extends ChangeNotifier {
   String parentName = "";
   String parentEmail = "";
   String parentPin = "2026";
+
+  AppState() {
+    if (FirebaseAuth.instance.currentUser != null) {
+      hasOnboarded = true;
+    }
+  }
   
   String childName = "Ahrorbek";
   int childAge = 9;

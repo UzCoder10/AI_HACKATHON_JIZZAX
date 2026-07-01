@@ -407,17 +407,33 @@ class _ParentTabState extends State<ParentTab> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text("Yoshini sozlash (Slider): ${ageController.activeAge} yoshda", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                   Text("Yoshini sozlash (Slider): ${ageController.activeAge} yoshda", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
                   Slider(
-                    value: ageController.activeAge.toDouble().clamp(3.0, 9.0),
-                    min: 3.0,
-                    max: 9.0,
+                    value: ageController.activeAge.toDouble().clamp(6.0, 12.0),
+                    min: 6.0,
+                    max: 12.0,
                     divisions: 6,
                     activeColor: AppTheme.marineBlue,
                     onChanged: (val) {
                       ageController.updateChildProfileLocalAndRemote(
-                        _childNameController?.text ?? ageController.activeChildName,
+                        _childNameController!.text.isNotEmpty ? _childNameController!.text : ageController.activeChildName,
                         val.round(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    title: Text("Mustaqil o'qiy va yoza oladi", style: AppTheme.headerSmall.copyWith(fontSize: 13)),
+                    subtitle: const Text("Tizimdagi vazifalar turi va Kodi ayiqcha yo'riqnomalarini moslashtiradi", style: TextStyle(fontSize: 11)),
+                    value: ageController.canReadWrite,
+                    activeTrackColor: AppTheme.marineBlue,
+                    activeThumbColor: AppTheme.white,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) {
+                      ageController.updateChildProfileLocalAndRemote(
+                        _childNameController!.text.isNotEmpty ? _childNameController!.text : ageController.activeChildName,
+                        ageController.activeAge,
+                        canReadWrite: val,
                       );
                     },
                   ),

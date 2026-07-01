@@ -59,11 +59,10 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ageController = Provider.of<AgeTierController>(context);
     final appState = Provider.of<AppState>(context);
 
-    // If parent is not authenticated and hasn't onboarded local profiles, show onboarding
-    if (!ageController.isAuthenticated && !appState.hasOnboarded) {
+    // If parent has not completed the onboarding flow, show onboarding
+    if (!appState.hasOnboarded) {
       return KhanOnboarding(appState: appState);
     }
     

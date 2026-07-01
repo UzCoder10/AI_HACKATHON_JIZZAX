@@ -15,7 +15,7 @@ class KhanOnboarding extends StatefulWidget {
 }
 
 class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProviderStateMixin {
-  int _currentStep = 0; // 0: Parent PIN, 1: Auth, 2: Child Profile, 3: Curriculum Focus Matrix
+  int _currentStep = 0; // 0: Parent PIN, 1: Auth, 2: Child Profile, 3: Literacy Assessment, 4: Focus Areas
   bool _isSignUpMode = true;
 
   final TextEditingController _pinController = TextEditingController();
@@ -27,7 +27,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
   
   String _selectedRelation = "Ota";
   bool _termsAccepted = false;
-  int _selectedAge = 6; // Default to intermediate tier (ages 5-6)
+  int _selectedAge = 6; // Core starts from age 6
+  bool _canReadWriteSelection = true; // Ask if child can read/write
   
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -40,7 +41,6 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
     "Aniq Fanlar (Math & Geometry)",
     "Tanqidiy Fikr (Logic & Space)"
   ];
-  String? _createdChildId;
   String? _createdChildName;
   int? _createdChildAge;
 
@@ -241,10 +241,24 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         );
         return;
       }
-
+      setState(() {
+        _createdChildName = name;
+        _createdChildAge = _selectedAge;
+        _currentStep = 3; // Move to Literacy Assessment
+      });
+      _animController.reset();
+      _animController.forward();
+    } else if (_currentStep == 3) {
+      setState(() {
+        _currentStep = 4; // Move to Focus Areas
+      });
+      _animController.reset();
+      _animController.forward();
+    } else if (_currentStep == 4) {
+      // Final step: Save and complete onboarding
       setState(() => _isLoading = true);
-
       try {
+        final ageController = Provider.of<AgeTierController>(context, listen: false);
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final newChildRef = FirebaseFirestore.instance
@@ -253,57 +267,23 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               .collection('children')
               .doc();
 
-          _createdChildId = newChildRef.id;
-          _createdChildName = name;
-          _createdChildAge = _selectedAge;
-
           await newChildRef.set({
-            'name': name,
-            'age': _selectedAge,
+            'name': _createdChildName,
+            'age': _createdChildAge,
+            'canReadWrite': _canReadWriteSelection,
             'activeNodeIndex': 0,
             'stars': 0,
             'badges': ['Mantiq Ustasi'],
             'focusAreas': _selectedFocusAreas,
           });
 
-          if (!mounted) return;
-          final ageController = Provider.of<AgeTierController>(context, listen: false);
           await ageController.selectChildProfile(newChildRef.id);
-        } else {
-          _createdChildName = name;
-          _createdChildAge = _selectedAge;
-          
-          final ageController = Provider.of<AgeTierController>(context, listen: false);
-          ageController.setChildProfileLocal(name, _selectedAge, areas: _selectedFocusAreas);
-        }
-
-        setState(() {
-          _currentStep = 3;
-        });
-        _animController.reset();
-        _animController.forward();
-      } catch (e) {
-        debugPrint(e.toString());
-        setState(() {
-          _currentStep = 3;
-        });
-        _animController.reset();
-        _animController.forward();
-      } finally {
-        setState(() => _isLoading = false);
-      }
-    } else if (_currentStep == 3) {
-      // Step 3 Curriculum Strategies
-      setState(() => _isLoading = true);
-      try {
-        final ageController = Provider.of<AgeTierController>(context, listen: false);
-        if (_createdChildId != null) {
-          await ageController.syncFocusAreas(_selectedFocusAreas);
         } else {
           ageController.setChildProfileLocal(
             _createdChildName ?? "Ahrorbek", 
             _createdChildAge ?? 6,
             areas: _selectedFocusAreas,
+            canReadWrite: _canReadWriteSelection,
           );
         }
       } catch (e) {
@@ -354,6 +334,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
       return _buildAuthGate();
     } else if (_currentStep == 2) {
       return _buildChildProfile();
+    } else if (_currentStep == 3) {
+      return _buildLiteracyAssessment();
     } else {
       return _buildCurriculumMatrix();
     }
@@ -377,7 +359,13 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         Text(
           _currentStep == 0 
               ? "Kattalar uchun xavfsizlik darvozasi" 
-              : (_currentStep == 1 ? "Ota-ona hisobi" : (_currentStep == 2 ? "O'z profilingni yarat!" : "Curriculum Strategy Matrix")),
+              : (_currentStep == 1 
+                  ? "Ota-ona hisobi" 
+                  : (_currentStep == 2 
+                      ? "Farzandingiz profilini yarating!" 
+                      : (_currentStep == 3 
+                          ? "Qobiliyatlar testi" 
+                          : "Ta'lim yo'nalishlarini belgilang"))),
           style: AppTheme.bodyMedium.copyWith(color: AppTheme.greyText),
           textAlign: TextAlign.center,
         ),
@@ -643,14 +631,14 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
             height: 80,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: 7, 
+              itemCount: 7, // Ages 6 to 12 (7 entries)
               itemBuilder: (context, index) {
-                final age = index + 3;
+                final age = index + 6; // Starts from 6 years old
                 final isSelected = _selectedAge == age;
                 
                 Color bg = AppTheme.pastelBlue;
-                if (age <= 5) bg = AppTheme.pastelMint;
-                if (age >= 8) bg = AppTheme.pastelPeach;
+                if (age <= 7) bg = AppTheme.pastelMint; // Core 6-7 yosh biomes
+                if (age >= 10) bg = AppTheme.pastelPeach;
 
                 return GestureDetector(
                   onTap: () {
@@ -671,7 +659,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      "$age${age == 9 ? '+' : ''}",
+                      "$age${age == 12 ? '+' : ''}",
                       style: AppTheme.headerMedium.copyWith(
                         color: isSelected ? AppTheme.white : AppTheme.darkPurple,
                         fontSize: 18,
@@ -680,6 +668,105 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiteracyAssessment() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Farzandingiz mustaqil o'qiy va yoza oladimi? 📖",
+            style: AppTheme.headerSmall,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Ushbu ma'lumot ilovani bola uchun ovozli yoki yozma rejimda shakllantirishga yordam beradi.",
+            style: TextStyle(fontSize: 12, color: AppTheme.greyText),
+          ),
+          const SizedBox(height: 24),
+          
+          // Option 1: Can read/write
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _canReadWriteSelection = true;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: _canReadWriteSelection ? AppTheme.pastelBlue : AppTheme.white,
+                radius: 20,
+                borderWidth: _canReadWriteSelection ? 3 : 2,
+                borderColor: _canReadWriteSelection ? AppTheme.marineBlue : AppTheme.darkPurpleBorder,
+                shadowOffset: _canReadWriteSelection ? const Offset(3, 3) : const Offset(1, 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.menu_book_rounded, color: AppTheme.marineBlue, size: 32),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Ha, o'qiy va yoza oladi", style: AppTheme.headerSmall),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Interaktiv matnli vazifalar, savol-javoblar va yozma topshiriqlar faollashadi.",
+                          style: TextStyle(fontSize: 11, color: AppTheme.darkPurple),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Option 2: Pre-literate
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _canReadWriteSelection = false;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: !_canReadWriteSelection ? AppTheme.pastelMint : AppTheme.white,
+                radius: 20,
+                borderWidth: !_canReadWriteSelection ? 3 : 2,
+                borderColor: !_canReadWriteSelection ? AppTheme.mintGreen : AppTheme.darkPurpleBorder,
+                shadowOffset: !_canReadWriteSelection ? const Offset(3, 3) : const Offset(1, 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.record_voice_over_rounded, color: AppTheme.mintGreen, size: 32),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Yo'q, hali o'qish/yozishni bilmaydi", style: AppTheme.headerSmall),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Pedagogik audio va vizual yo'riqnomalar rejimi faollashadi. Kodi ayiqcha barcha vazifalarni ovozli tushuntiradi.",
+                          style: TextStyle(fontSize: 11, color: AppTheme.darkPurple),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -772,7 +859,11 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         decoration: AppTheme.vibrant3DBoxDecoration(
           color: _currentStep == 0 
               ? AppTheme.marineBlue 
-              : (_currentStep == 1 ? AppTheme.yellow : (_currentStep == 2 ? AppTheme.mintGreen : AppTheme.mandarin)),
+              : (_currentStep == 1 
+                  ? (_isSignUpMode ? AppTheme.yellow : AppTheme.yellow) 
+                  : (_currentStep == 2 
+                      ? AppTheme.mintGreen 
+                      : (_currentStep == 3 ? AppTheme.pastelGold : AppTheme.mandarin))),
           shadowOffset: const Offset(4, 4),
         ),
         alignment: Alignment.center,
@@ -781,7 +872,9 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               ? "Kirish" 
               : (_currentStep == 1 
                   ? (_isSignUpMode ? "Ro'yxatdan o'tish" : "Tizimga kirish") 
-                  : (_currentStep == 2 ? "Keyingisi" : "Sarguzashtni Boshlash")),
+                  : (_currentStep == 2 
+                      ? "Davom etish" 
+                      : (_currentStep == 3 ? "Keyingi qadam" : "Sarguzashtni Boshlash"))),
           style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
         ),
       ),

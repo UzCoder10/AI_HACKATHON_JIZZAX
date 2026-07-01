@@ -19,6 +19,7 @@ class AgeTierController extends ChangeNotifier {
   String? _activeChildId;
   String _activeChildName = "Ahrorbek";
   int _activeAge = 9;
+  bool _canReadWrite = true;
   AgeTier _activeTier = AgeTier.advanced;
 
   // Roadmap & Progression States
@@ -62,6 +63,7 @@ class AgeTierController extends ChangeNotifier {
   String? get activeChildId => _activeChildId;
   String get activeChildName => _activeChildName;
   int get activeAge => _activeAge;
+  bool get canReadWrite => _canReadWrite;
   AgeTier get activeTier => _activeTier;
   int get activeNodeIndex => _activeNodeIndex;
   int get starsCount => _starsCount;
@@ -71,18 +73,25 @@ class AgeTierController extends ChangeNotifier {
   List<BuildingMaterial> get unlockedMaterials => _unlockedMaterials;
 
   // Set local state in case Firestore is unavailable
-  void setChildProfileLocal(String name, int age, {List<String>? areas}) {
+  void setChildProfileLocal(String name, int age, {List<String>? areas, bool canReadWrite = true}) {
     _activeChildName = name;
     _activeAge = age;
+    _canReadWrite = canReadWrite;
     if (areas != null) {
       _focusAreas = areas;
     }
-    if (age <= 5) {
-      _activeTier = AgeTier.toddler;
-    } else if (age <= 7) {
+    
+    // If child is pre-literate (cannot read/write), force intermediate (zero-text mode) for best pedagogical overlay
+    if (!canReadWrite) {
       _activeTier = AgeTier.intermediate;
     } else {
-      _activeTier = AgeTier.advanced;
+      if (age <= 5) {
+        _activeTier = AgeTier.toddler;
+      } else if (age <= 7) {
+        _activeTier = AgeTier.intermediate;
+      } else {
+        _activeTier = AgeTier.advanced;
+      }
     }
     notifyListeners();
   }
@@ -105,14 +114,19 @@ class AgeTierController extends ChangeNotifier {
         final data = snapshot.data() as Map<String, dynamic>;
         _activeChildName = data['name'] ?? "Ahrorbek";
         _activeAge = data['age'] ?? 9;
+        _canReadWrite = data['canReadWrite'] ?? true;
         
         // Adaptive tier categorization
-        if (_activeAge <= 5) {
-          _activeTier = AgeTier.toddler;
-        } else if (_activeAge <= 7) {
+        if (!_canReadWrite) {
           _activeTier = AgeTier.intermediate;
         } else {
-          _activeTier = AgeTier.advanced;
+          if (_activeAge <= 5) {
+            _activeTier = AgeTier.toddler;
+          } else if (_activeAge <= 7) {
+            _activeTier = AgeTier.intermediate;
+          } else {
+            _activeTier = AgeTier.advanced;
+          }
         }
 
         _activeNodeIndex = data['activeNodeIndex'] ?? 0;
@@ -273,8 +287,9 @@ class AgeTierController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateChildProfileLocalAndRemote(String name, int age) async {
-    setChildProfileLocal(name, age);
+  Future<void> updateChildProfileLocalAndRemote(String name, int age, {bool? canReadWrite}) async {
+    final bool newCanReadWrite = canReadWrite ?? _canReadWrite;
+    setChildProfileLocal(name, age, canReadWrite: newCanReadWrite);
     if (_currentUser != null && _activeChildId != null) {
       try {
         await _firestore
@@ -285,6 +300,7 @@ class AgeTierController extends ChangeNotifier {
             .update({
               'name': name,
               'age': age,
+              'canReadWrite': newCanReadWrite,
             });
       } catch (e) {
         debugPrint("Failed to sync child profile: $e");
