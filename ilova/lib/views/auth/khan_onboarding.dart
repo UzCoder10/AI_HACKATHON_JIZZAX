@@ -8,7 +8,6 @@ import '../../controllers/age_tier_controller.dart';
 
 class KhanOnboarding extends StatefulWidget {
   final AppState appState;
-
   const KhanOnboarding({super.key, required this.appState});
 
   @override
@@ -16,32 +15,31 @@ class KhanOnboarding extends StatefulWidget {
 }
 
 class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProviderStateMixin {
-  int _currentStep = 0; // 0: Parent PIN, 1: Firebase Auth, 2: Child Profile Creation, 3: Curriculum Matrix
+  int _currentStep = 0; // 0: Parent PIN, 1: Auth, 2: Child Profile, 3: Curriculum Focus Matrix
   bool _isSignUpMode = true;
 
-  // Controllers
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController(); // Child name
-  
-  // Parent Registration Details
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _parentNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  
   String _selectedRelation = "Ota";
   bool _termsAccepted = false;
-
-  int _selectedAge = 5;
+  int _selectedAge = 6; // Default to intermediate tier (ages 5-6)
+  
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   bool _isLoading = false;
 
-  // Real-time password checklist
   bool _hasSixChars = false;
   bool _hasNumber = false;
 
-  // Curriculum Focus Areas selection state
-  final List<String> _selectedFocusAreas = ["Aniq Fanlar (Math & Geometry)", "Tanqidiy Fikr (Logic & Space)"];
+  final List<String> _selectedFocusAreas = [
+    "Aniq Fanlar (Math & Geometry)",
+    "Tanqidiy Fikr (Logic & Space)"
+  ];
   String? _createdChildId;
   String? _createdChildName;
   int? _createdChildAge;
@@ -51,14 +49,13 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
     );
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeInOut,
     );
     _animController.forward();
-
     _passwordController.addListener(_validatePassword);
   }
 
@@ -111,7 +108,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         if (parentName.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Iltimos, barcha ro'yxatdan o'tish ma'lumotlarini kiriting!"),
+              content: Text("Iltimos, barcha ota-ona ma'lumotlarini to'liq kiriting!"),
               backgroundColor: AppTheme.appleRed,
             ),
           );
@@ -121,7 +118,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         if (!_hasSixChars || !_hasNumber) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Parol xavfsizlik talablariga javob bermaydi!"),
+              content: Text("Parol kamida 6 ta belgi va bitta raqamdan iborat bo'lishi kerak!"),
               backgroundColor: AppTheme.appleRed,
             ),
           );
@@ -163,10 +160,10 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           }
         } on FirebaseAuthException catch (e) {
           if (!mounted) return;
-          if (e.message != null && (e.message!.contains("API Key") || e.message!.contains("API key") || e.message!.contains("api key"))) {
+          if (e.message != null && e.message!.toLowerCase().contains("api key")) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Firebase API Key xato yoki kiritilmagan. Mahalliy test rejimiga o'tilmoqda... 📲"),
+                content: Text("Firebase API Key ulanmagan. Mahalliy test rejimida davom etamiz... 📲"),
                 backgroundColor: AppTheme.mintGreen,
               ),
             );
@@ -177,11 +174,8 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
             _animController.forward();
             return;
           }
-          String errMsg = "Xatolik yuz berdi: ${e.message}";
-          if (e.code == 'weak-password') errMsg = "Parol juda zaif!";
-          if (e.code == 'email-already-in-use') errMsg = "Ushbu email ro'yxatdan o'tgan!";
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errMsg), backgroundColor: AppTheme.appleRed),
+            SnackBar(content: Text("Xatolik: ${e.message}"), backgroundColor: AppTheme.appleRed),
           );
         } catch (e) {
           if (!mounted) return;
@@ -206,31 +200,28 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         }
 
         setState(() => _isLoading = true);
-
         try {
           final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: email,
             password: password,
           );
-
           if (cred.user != null) {
             widget.appState.completeOnboarding();
           }
         } on FirebaseAuthException catch (e) {
           if (!mounted) return;
-          if (e.message != null && (e.message!.contains("API Key") || e.message!.contains("API key") || e.message!.contains("api key"))) {
+          if (e.message != null && e.message!.toLowerCase().contains("api key")) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Firebase API Key xato. Mahalliy sinov rejimiga yo'naltirilmoqda... 📲"),
+                content: Text("Firebase ulanishi topilmadi. Mahalliy sinov rejimiga yo'naltirilmoqda... 📲"),
                 backgroundColor: AppTheme.mintGreen,
               ),
             );
             widget.appState.completeOnboarding();
             return;
           }
-          String errMsg = "Kirishda xatolik: Email yoki parol noto'g'ri!";
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errMsg), backgroundColor: AppTheme.appleRed),
+            const SnackBar(content: Text("Kirishda xatolik: Parol yoki email xato!"), backgroundColor: AppTheme.appleRed),
           );
         } catch (_) {
           if (!mounted) return;
@@ -281,9 +272,11 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         } else {
           _createdChildName = name;
           _createdChildAge = _selectedAge;
+          
+          final ageController = Provider.of<AgeTierController>(context, listen: false);
+          ageController.setChildProfileLocal(name, _selectedAge, areas: _selectedFocusAreas);
         }
 
-        // Transition to Curriculum Matrix selection
         setState(() {
           _currentStep = 3;
         });
@@ -300,7 +293,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         setState(() => _isLoading = false);
       }
     } else if (_currentStep == 3) {
-      // Save curriculum focus areas and enter game map
+      // Step 3 Curriculum Strategies
       setState(() => _isLoading = true);
       try {
         final ageController = Provider.of<AgeTierController>(context, listen: false);
@@ -309,7 +302,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
         } else {
           ageController.setChildProfileLocal(
             _createdChildName ?? "Ahrorbek", 
-            _createdChildAge ?? 9,
+            _createdChildAge ?? 6,
             areas: _selectedFocusAreas,
           );
         }
@@ -402,9 +395,9 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               color: AppTheme.pastelGold,
               borderColor: AppTheme.yellow,
             ),
-            child: Text(
+            child: const Text(
               "Ushbu ilova bolalar uchun xavfsiz ta'lim makonidir. Kirish uchun maxsus ota-ona PIN kodini kiriting (PIN: 2026)",
-              style: AppTheme.bodyMedium,
+              style: TextStyle(fontSize: 14, height: 1.4, color: AppTheme.darkPurple),
               textAlign: TextAlign.center,
             ),
           ),
@@ -420,7 +413,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               color: AppTheme.white,
               radius: 18,
               borderWidth: 2,
-              shadowOffset: const Offset(2, 2),
+              shadowOffset: const Offset(3, 3),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
@@ -628,7 +621,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
               color: AppTheme.white,
               radius: 18,
               borderWidth: 2,
-              shadowOffset: const Offset(2, 2),
+              shadowOffset: const Offset(3, 3),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
@@ -642,7 +635,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           ),
           const SizedBox(height: 24),
           Text(
-            "Yoshingni tanla: $_selectedAge da",
+            "Yoshini tanlang: $_selectedAge yoshda",
             style: AppTheme.headerSmall,
           ),
           const SizedBox(height: 12),
@@ -709,7 +702,7 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
             padding: const EdgeInsets.all(14),
             decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.pastelBlue, radius: 18),
             child: Text(
-              "Ota-onalar diqqatiga: Farzandingiz uchun mos keladigan asosiy yo'nalishlarni belgilang. Ilova xaritasi ushbu yo'nalishlar bo'yicha shakllanadi.",
+              "Ota-onalar diqqatiga: Farzandingiz uchun mos keladigan strategik ta'lim yo'nalishlarini belgilang. Ilova xaritasi ushbu yo'nalishlar bo'yicha shakllanadi.",
               style: AppTheme.bodySmall.copyWith(color: AppTheme.darkPurple, height: 1.4),
             ),
           ),
@@ -780,14 +773,15 @@ class _KhanOnboardingState extends State<KhanOnboarding> with SingleTickerProvid
           color: _currentStep == 0 
               ? AppTheme.marineBlue 
               : (_currentStep == 1 ? AppTheme.yellow : (_currentStep == 2 ? AppTheme.mintGreen : AppTheme.mandarin)),
+          shadowOffset: const Offset(4, 4),
         ),
         alignment: Alignment.center,
         child: Text(
           _currentStep == 0 
-              ? "Ruxsat Berish" 
+              ? "Kirish" 
               : (_currentStep == 1 
                   ? (_isSignUpMode ? "Ro'yxatdan o'tish" : "Tizimga kirish") 
-                  : (_currentStep == 2 ? "Bolakay Sozlamalari" : "Mening Olamimga Kirish! 🚀")),
+                  : (_currentStep == 2 ? "Keyingisi" : "Sarguzashtni Boshlash")),
           style: AppTheme.headerMedium.copyWith(color: AppTheme.white),
         ),
       ),

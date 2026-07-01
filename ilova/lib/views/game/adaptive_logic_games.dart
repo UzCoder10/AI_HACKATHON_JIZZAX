@@ -7,7 +7,6 @@ import '../../core/theme.dart';
 import '../../controllers/app_state.dart';
 import '../../controllers/age_tier_controller.dart';
 import '../../core/gemini_service.dart';
-import 'building_game_tab.dart';
 
 // =========================================================================
 // TODDLER PEG / PACHINKO / PHYSICS MODEL DEFINITIONS
@@ -38,7 +37,7 @@ class FruitBubble {
 
   void update(double dt, List<Peg> pegs) {
     if (!isPopped) {
-      vel = Offset(vel.dx, vel.dy + 250.0 * dt); // Gravity acceleration
+      vel = Offset(vel.dx, vel.dy + 250.0 * dt);
       pos += vel * dt;
 
       for (final peg in pegs) {
@@ -74,7 +73,7 @@ class BubbleParticle {
   });
 
   void update(double dt) {
-    vel = Offset(vel.dx, vel.dy + 300.0 * dt); // Gravity physics on particles
+    vel = Offset(vel.dx, vel.dy + 300.0 * dt);
     pos += vel * dt;
     if (pos.dy >= 380) {
       pos = Offset(pos.dx, 380);
@@ -394,6 +393,172 @@ class ScholarVoiceConfig {
 }
 
 // =========================================================================
+// 3D SEISMIC TYCOON (MANUAL CONSTRUCTOR) BLOCK MODEL
+// =========================================================================
+class SeismicBlock {
+  final int tier; // 0 to 4
+  final String material; // G'isht, Yog'och, Tosh
+  final Color color;
+  Offset fallOffset = Offset.zero;
+  double rotation = 0.0;
+
+  SeismicBlock({
+    required this.tier,
+    required this.material,
+    required this.color,
+  });
+}
+
+class SeismicTycoonPainter extends CustomPainter {
+  final List<SeismicBlock> blocks;
+  final double shakeOffset;
+  final String activeMaterial;
+
+  SeismicTycoonPainter({
+    required this.blocks,
+    required this.shakeOffset,
+    required this.activeMaterial,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2 + shakeOffset;
+    final double cy = size.height - 110.0;
+    
+    // Draw 3D Ground Platform
+    final pGroundTop = Paint()..color = const Color(0xFF8D6E63)..style = PaintingStyle.fill;
+    final pGroundSide = Paint()..color = const Color(0xFF5D4037)..style = PaintingStyle.fill;
+    final pBorder = Paint()..color = AppTheme.darkPurpleBorder..style = PaintingStyle.stroke..strokeWidth = 2.5;
+
+    // Draw isometric baseline platform
+    final pathTop = Path()
+      ..moveTo(cx - 90, cy)
+      ..lineTo(cx, cy - 25)
+      ..lineTo(cx + 90, cy)
+      ..lineTo(cx, cy + 25)
+      ..close();
+    canvas.drawPath(pathTop, pGroundTop);
+    canvas.drawPath(pathTop, pBorder);
+
+    final pathSide = Path()
+      ..moveTo(cx - 90, cy)
+      ..lineTo(cx - 90, cy + 18)
+      ..lineTo(cx, cy + 43)
+      ..lineTo(cx + 90, cy + 18)
+      ..lineTo(cx + 90, cy)
+      ..lineTo(cx, cy + 25)
+      ..close();
+    canvas.drawPath(pathSide, pGroundSide);
+    canvas.drawPath(pathSide, pBorder);
+
+    // Draw active stacked tiers isometrically
+    const double blockHeight = 44.0;
+
+    for (int i = 0; i < blocks.length; i++) {
+      final block = blocks[i];
+      final double bx = cx + block.fallOffset.dx;
+      final double by = cy - (i * blockHeight) - 15.0 + block.fallOffset.dy;
+
+      canvas.save();
+      if (block.rotation != 0.0) {
+        canvas.translate(bx, by);
+        canvas.rotate(block.rotation);
+        canvas.translate(-bx, -by);
+      }
+
+      final pFront = Paint()..color = block.color..style = PaintingStyle.fill;
+      final pSide = Paint()..color = block.color.withAlpha(200)..style = PaintingStyle.fill;
+      final pTop = Paint()..color = block.color.withAlpha(235)..style = PaintingStyle.fill;
+
+      // Draw different shapes based on materials for visual fidelity
+      if (block.material == "Tosh") {
+        // Heavy pillars or carved arches
+        final pathBoxTop = Path()
+          ..moveTo(bx - 45, by - 16)
+          ..lineTo(bx, by - 30)
+          ..lineTo(bx + 45, by - 16)
+          ..lineTo(bx, by - 2)
+          ..close();
+        canvas.drawPath(pathBoxTop, pTop);
+        canvas.drawPath(pathBoxTop, pBorder);
+
+        final pathBoxLeft = Path()
+          ..moveTo(bx - 45, by - 16)
+          ..lineTo(bx - 45, by + 16)
+          ..lineTo(bx, by + 30)
+          ..lineTo(bx, by - 2)
+          ..close();
+        canvas.drawPath(pathBoxLeft, pFront);
+        canvas.drawPath(pathBoxLeft, pBorder);
+
+        final pathBoxRight = Path()
+          ..moveTo(bx, by - 2)
+          ..lineTo(bx, by + 30)
+          ..lineTo(bx + 45, by + 16)
+          ..lineTo(bx + 45, by - 16)
+          ..close();
+        canvas.drawPath(pathBoxRight, pSide);
+        canvas.drawPath(pathBoxRight, pBorder);
+      } else if (block.material == "Yog'och") {
+        // Hollow crossbeams or log columns
+        final pathLog = Path()
+          ..moveTo(bx - 36, by - 10)
+          ..lineTo(bx, by - 22)
+          ..lineTo(bx + 36, by - 10)
+          ..lineTo(bx, by + 2)
+          ..close();
+        canvas.drawPath(pathLog, pTop);
+        canvas.drawPath(pathLog, pBorder);
+
+        final pathLogBody = Path()
+          ..moveTo(bx - 36, by - 10)
+          ..lineTo(bx - 36, by + 20)
+          ..lineTo(bx, by + 32)
+          ..lineTo(bx + 36, by + 20)
+          ..lineTo(bx + 36, by - 10)
+          ..lineTo(bx, by + 2)
+          ..close();
+        canvas.drawPath(pathLogBody, pFront);
+        canvas.drawPath(pathLogBody, pBorder);
+      } else {
+        // Brick layers
+        final pathBrickTop = Path()
+          ..moveTo(bx - 40, by - 12)
+          ..lineTo(bx, by - 24)
+          ..lineTo(bx + 40, by - 12)
+          ..lineTo(bx, by)
+          ..close();
+        canvas.drawPath(pathBrickTop, pTop);
+        canvas.drawPath(pathBrickTop, pBorder);
+
+        final pathBrickLeft = Path()
+          ..moveTo(bx - 40, by - 12)
+          ..lineTo(bx - 40, by + 18)
+          ..lineTo(bx, by + 30)
+          ..lineTo(bx, by)
+          ..close();
+        canvas.drawPath(pathBrickLeft, pFront);
+        canvas.drawPath(pathBrickLeft, pBorder);
+
+        final pathBrickRight = Path()
+          ..moveTo(bx, by)
+          ..lineTo(bx, by + 30)
+          ..lineTo(bx + 40, by + 18)
+          ..lineTo(bx + 40, by - 12)
+          ..close();
+        canvas.drawPath(pathBrickRight, pSide);
+        canvas.drawPath(pathBrickRight, pBorder);
+      }
+
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// =========================================================================
 // MAIN ADAPTIVE POWERHOUSE VIEW
 // =========================================================================
 class AdaptiveLogicGames extends StatefulWidget {
@@ -405,7 +570,7 @@ class AdaptiveLogicGames extends StatefulWidget {
 }
 
 class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProviderStateMixin {
-  late int _activeGameIndex; // 0: Pachinko, 1: Phonics/Shape, 2: 3D Seismic, 3: Voice AI Portal
+  late int _activeGameIndex;
 
   // Toddler Pachinko Game State
   final List<FruitBubble> _bubbles = [];
@@ -430,6 +595,13 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   int _intermediateSubMode = 0;
   final List<ShapeBlock> _shapeBlocks = [];
   final List<ShapeSocket> _shapeSockets = [];
+
+  // 3D Seismic Tycoon Game State
+  final List<SeismicBlock> _seismicBlocks = [];
+  String _selectedBuildingMaterial = "Tosh"; // Tosh, Yog'och, G'isht
+  double _seismicShakeOffset = 0.0;
+  bool _seismicTesting = false;
+  late final AnimationController _seismicController;
 
   // Kinetic Snap-back animation properties
   late final AnimationController _snapController;
@@ -504,6 +676,42 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _handDemoController = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
     _waveAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat();
 
+    _seismicController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..addListener(() {
+        final double t = _seismicController.value;
+        setState(() {
+          if (t < 0.4) {
+            // Seismic shaking phase: dynamic sinusoidal shake
+            _seismicShakeOffset = math.sin(t * math.pi * 32.0) * 14.0 * (1.0 - t * 2.5);
+          } else {
+            // Staggered collapse physics calculation
+            _seismicShakeOffset = 0.0;
+            final double collapseProgress = (t - 0.4) / 0.6;
+            
+            for (int i = 0; i < _seismicBlocks.length; i++) {
+              final double startFactor = 0.15 * (4 - i);
+              if (collapseProgress >= startFactor) {
+                final double itemT = ((collapseProgress - startFactor) / 0.45).clamp(0.0, 1.0);
+                final double fallDir = i % 2 == 0 ? -1.0 : 1.0;
+                
+                _seismicBlocks[i].fallOffset = Offset(
+                  fallDir * 350.0 * itemT,
+                  650.0 * itemT * itemT,
+                );
+                _seismicBlocks[i].rotation = fallDir * itemT * math.pi * 0.9;
+              }
+            }
+          }
+        });
+      })..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _seismicTesting = false;
+          _winGame(100);
+        }
+      });
+
     if (_activeGameIndex == 0) {
       _setupPachinkoPegs();
       _physicsTicker.start();
@@ -537,20 +745,24 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
     });
 
-    // Default voice text greeting
     _activeVoiceReplyText = _scholars[0].audioScript;
   }
 
   void _playVoiceGuide(String filename) {
     debugPrint("🎵 Simulated Audio Stream triggered: playing audio guide '$filename'");
+    final ageController = Provider.of<AgeTierController>(context, listen: false);
+    ageController.toggleVoiceAI(true);
+    
     setState(() {
       _kodiVoiceActive = true;
     });
+    
     Timer(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
           _kodiVoiceActive = false;
         });
+        ageController.toggleVoiceAI(false);
       }
     });
   }
@@ -590,6 +802,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _pulseController.dispose();
     _handDemoController.dispose();
     _waveAnimController.dispose();
+    _seismicController.dispose();
     super.dispose();
   }
 
@@ -888,7 +1101,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _isSpeechLoading = true;
     });
 
-    // Fire Gemini 2.5 Flash query asynchronously
     final config = _scholars[_selectedScholarIndex];
     final prompt = "Sen buyuk o'zbek allomasi ${config.name}san. Menga o'zbek tilida qiziqarli qisqa javob ber. Menga motivatsiya ber va +100 yulduzcha sovg'a qilganingni ayt (va javob oxirida '⭐' belgisini qo'y). Maksimum 2-3 ta qiziqarli gap bo'lsin.";
 
@@ -899,7 +1111,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
         _activeVoiceReplyText = response;
       });
 
-      // Synchronize reward stars to Firestore
       final appState = Provider.of<AppState>(context, listen: false);
       appState.awardStars(100);
       Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
@@ -923,6 +1134,46 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _activeVoiceReplyText = _scholars[index].audioScript;
     });
     _playVoiceGuide('scholar_select.mp3');
+  }
+
+  // --- 3D SEISMIC TYCOON MANUAL PLACEMENT & TEST ENGINE ---
+  void _placeManualBlueprintBlock() {
+    if (_seismicBlocks.length >= 5 || _seismicTesting) return;
+
+    final int nextTier = _seismicBlocks.length;
+    Color blockColor = AppTheme.porcelain;
+    if (_selectedBuildingMaterial == "G'isht") {
+      blockColor = AppTheme.mandarin;
+    } else if (_selectedBuildingMaterial == "Yog'och") {
+      blockColor = AppTheme.cyan;
+    } else {
+      blockColor = AppTheme.pastelGold;
+    }
+
+    setState(() {
+      _seismicBlocks.add(SeismicBlock(
+        tier: nextTier,
+        material: _selectedBuildingMaterial,
+        color: blockColor,
+      ));
+    });
+  }
+
+  void _triggerSeismicTest() {
+    if (_seismicBlocks.length < 5 || _seismicTesting) return;
+    setState(() {
+      _seismicTesting = true;
+    });
+    _seismicController.forward(from: 0.0);
+  }
+
+  void _resetSeismicConstructor() {
+    setState(() {
+      _seismicBlocks.clear();
+      _seismicTesting = false;
+      _seismicShakeOffset = 0.0;
+    });
+    _seismicController.reset();
   }
 
   // =========================================================================
@@ -1039,7 +1290,7 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     } else if (_activeGameIndex == 1) {
       return _buildIntermediatePhonicsGame(tier);
     } else if (_activeGameIndex == 2) {
-      return BuildingGameTab(appState: Provider.of<AppState>(context, listen: false));
+      return _build3DSeismicTycoonGame();
     } else {
       return _buildVoiceAIScholarPortal(tier);
     }
@@ -1154,7 +1405,6 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     ),
                   ),
                 ),
-                // Voice AI Scholars Portal link button inside game map for kids
                 GestureDetector(
                   onTap: () => setState(() => _activeGameIndex = 3),
                   child: AnimatedScale(
@@ -1493,8 +1743,8 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                     if (_syllableBlocks[i].isDragging) {
                       _onSyllableDragUpdate(i, details.localPosition);
                       break;
-                    }
-                  }
+                        }
+                      }
                 },
                 onPanEnd: (details) {
                   for (int i = 0; i < _syllableBlocks.length; i++) {
@@ -1549,6 +1799,366 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
                 ),
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================================
+  // 3D SEISMIC TYCOON (NO AUTOMATIC BLOCKS - MANUAL blueprint PLACE)
+  // =========================================================================
+  Widget _build3DSeismicTycoonGame() {
+    return Column(
+      children: [
+        // Building Status Info
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _seismicBlocks.length < 5 ? "Ttier: ${_seismicBlocks.length + 1} / 5" : "Barcha bloklar qo'yildi!",
+                style: AppTheme.headerSmall,
+              ),
+              if (_seismicBlocks.isNotEmpty && !_seismicTesting)
+                GestureDetector(
+                  onTap: _resetSeismicConstructor,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: AppTheme.vibrant3DBoxDecoration(color: AppTheme.appleRed, radius: 12),
+                    child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // 3D Isometric Viewport Canvas Area
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: AppTheme.vibrant3DBoxDecoration(color: const Color(0xFFECEFF1), radius: 28),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: GestureDetector(
+                onTap: () {
+                  if (_seismicBlocks.length < 5) {
+                    _placeManualBlueprintBlock();
+                  }
+                },
+                child: CustomPaint(
+                  painter: SeismicTycoonPainter(
+                    blocks: _seismicBlocks,
+                    shakeOffset: _seismicShakeOffset,
+                    activeMaterial: _selectedBuildingMaterial,
+                  ),
+                  child: Stack(
+                    children: [
+                      // Instructions Overlay for Kids
+                      if (_seismicBlocks.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text(
+                              "Material tanlang va ekranga bosib stacklang! 👇",
+                              style: TextStyle(fontSize: 16, color: Colors.black54, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+
+                      // Seismic vibration volcano tester button
+                      if (_seismicBlocks.length == 5 && !_seismicTesting)
+                        Positioned(
+                          bottom: 20,
+                          left: 40,
+                          right: 40,
+                          child: GestureDetector(
+                            onTap: _triggerSeismicTest,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: AppTheme.mandarin,
+                                radius: 24,
+                                shadowColor: const Color(0xFFD84B1A),
+                                shadowOffset: const Offset(4, 4),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.volcano_rounded, color: Colors.white, size: 28),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    "ZILZILANI SINASH 🌋",
+                                    style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Material Selector Tiles Row
+        if (!_seismicTesting && _seismicBlocks.length < 5)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildMaterialSelectorTile("G'isht", "Pishiq G'isht", AppTheme.mandarin),
+                _buildMaterialSelectorTile("Yog'och", "Yog'och Sinchi", AppTheme.cyan),
+                _buildMaterialSelectorTile("Tosh", "Poydevor Tosh", AppTheme.pastelGold),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMaterialSelectorTile(String code, String displayName, Color color) {
+    final bool isSelected = _selectedBuildingMaterial == code;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedBuildingMaterial = code;
+        });
+      },
+      child: AnimatedScale(
+        scale: isSelected ? 1.08 : 0.95,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: AppTheme.vibrant3DBoxDecoration(
+            color: isSelected ? color : AppTheme.white,
+            radius: 20,
+            borderColor: isSelected ? Colors.transparent : Colors.grey.shade300,
+            shadowOffset: isSelected ? const Offset(4, 4) : const Offset(1, 1),
+          ),
+          child: Text(
+            displayName,
+            style: AppTheme.headerSmall.copyWith(
+              color: isSelected ? Colors.white : AppTheme.darkPurple,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // =========================================================================
+  // GORGEOUS ALLOMALAR OVOZLI PORTAL
+  // =========================================================================
+  Widget _buildVoiceAIScholarPortal(AgeTier tier) {
+    final activeScholar = _scholars[_selectedScholarIndex];
+    final bool isIntermediate = tier == AgeTier.intermediate;
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: _scholars.length,
+            itemBuilder: (context, idx) {
+              final s = _scholars[idx];
+              final bool isSelected = idx == _selectedScholarIndex;
+              return GestureDetector(
+                onTap: () => _selectScholar(idx),
+                child: AnimatedScale(
+                  scale: isSelected ? 1.12 : 0.92,
+                  duration: const Duration(milliseconds: 250),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    width: 90,
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: isSelected ? s.solidColor : AppTheme.white,
+                      radius: 24,
+                      borderColor: s.solidColor,
+                      shadowOffset: const Offset(3, 3),
+                    ),
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: s.solidColor.withAlpha(50),
+                          radius: 24,
+                          child: Text(s.initials, style: TextStyle(color: isSelected ? Colors.white : s.solidColor, fontWeight: FontWeight.bold)),
+                        ),
+                        if (!isIntermediate) ...[
+                          const SizedBox(height: 4),
+                          Text(s.name, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : AppTheme.darkPurple, fontWeight: FontWeight.bold)),
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Container(
+              width: double.infinity,
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.porcelain,
+                radius: 32,
+                borderColor: activeScholar.solidColor,
+                shadowOffset: const Offset(5, 5),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 10,
+                    child: AnimatedBuilder(
+                      animation: _waveAnimController,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _waveAnimController.value * math.pi * 2,
+                          child: Icon(Icons.blur_circular_rounded, color: activeScholar.solidColor.withAlpha(20), size: 280),
+                        );
+                      },
+                    ),
+                  ),
+
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: AppTheme.vibrant3DBoxDecoration(
+                          color: activeScholar.solidColor.withAlpha(50),
+                          radius: 70,
+                          borderColor: activeScholar.solidColor,
+                          borderWidth: 3,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(activeScholar.initials, style: TextStyle(fontSize: 48, color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 14),
+                      if (!isIntermediate) ...[
+                        Text(activeScholar.name, style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
+                        Text(activeScholar.titleUz, style: AppTheme.bodySmall.copyWith(color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      if (_activeVoiceReplyText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: AnimatedScale(
+                            scale: 1.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: AppTheme.vibrant3DBoxDecoration(
+                                color: AppTheme.white,
+                                radius: 24,
+                                shadowColor: activeScholar.solidColor.withAlpha(80),
+                                shadowOffset: const Offset(3, 3),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.record_voice_over_rounded, color: activeScholar.solidColor, size: 20),
+                                      const SizedBox(width: 8),
+                                      if (!isIntermediate)
+                                        Text("Ovozli Javob", style: AppTheme.headerSmall.copyWith(fontSize: 12, color: activeScholar.solidColor)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _activeVoiceReplyText,
+                                    style: AppTheme.bodyMedium.copyWith(fontSize: 12, height: 1.4),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_isSpeechLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child: CircularProgressIndicator(color: AppTheme.mandarin),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isMicRecording)
+                Container(
+                  height: 40,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(8, (i) {
+                      final double h = 10 + 25 * math.sin((_waveAnimController.value * math.pi * 2) + i * 0.8).abs();
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: 4,
+                        height: h,
+                        decoration: BoxDecoration(color: AppTheme.mandarin, borderRadius: BorderRadius.circular(2)),
+                      );
+                    }),
+                  ),
+                ),
+
+              GestureDetector(
+                onTapDown: (_) => _triggerMicRecordingStart(),
+                onTapUp: (_) => _triggerMicRecordingRelease(),
+                child: AnimatedScale(
+                  scale: _isMicRecording ? 1.25 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.bounceOut,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: AppTheme.mandarin,
+                      radius: 45,
+                      borderColor: const Color(0xFFD84B1A),
+                      shadowColor: AppTheme.mandarin,
+                      shadowOffset: const Offset(4, 4),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.mic_rounded, color: Colors.white, size: 48),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1625,223 +2235,5 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       }
     }
     return const SizedBox.shrink();
-  }
-
-  // =========================================================================
-  // GORGEOUS ALLOMALAR OVOZLI PORTAL (MATNSIZ MULoqot)
-  // =========================================================================
-  Widget _buildVoiceAIScholarPortal(AgeTier tier) {
-    final activeScholar = _scholars[_selectedScholarIndex];
-    final bool isIntermediate = tier == AgeTier.intermediate;
-
-    return Column(
-      children: [
-        // 1. Sliding Carousel of 4 Great Scholars
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: _scholars.length,
-            itemBuilder: (context, idx) {
-              final s = _scholars[idx];
-              final bool isSelected = idx == _selectedScholarIndex;
-              return GestureDetector(
-                onTap: () => _selectScholar(idx),
-                child: AnimatedScale(
-                  scale: isSelected ? 1.12 : 0.92,
-                  duration: const Duration(milliseconds: 250),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 90,
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: isSelected ? s.solidColor : AppTheme.white,
-                      radius: 24,
-                      borderColor: s.solidColor,
-                      shadowOffset: const Offset(3, 3),
-                    ),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: s.solidColor.withAlpha(50),
-                          radius: 24,
-                          child: Text(s.initials, style: TextStyle(color: isSelected ? Colors.white : s.solidColor, fontWeight: FontWeight.bold)),
-                        ),
-                        if (!isIntermediate) ...[
-                          const SizedBox(height: 4),
-                          Text(s.name, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : AppTheme.darkPurple, fontWeight: FontWeight.bold)),
-                        ]
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-        // 2. High-fidelity Portrait & Name tag
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              width: double.infinity,
-              decoration: AppTheme.vibrant3DBoxDecoration(
-                color: AppTheme.porcelain,
-                radius: 32,
-                borderColor: activeScholar.solidColor,
-                shadowOffset: const Offset(5, 5),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Rotating radial background pulses
-                  Positioned(
-                    top: 10,
-                    child: AnimatedBuilder(
-                      animation: _waveAnimController,
-                      builder: (context, child) {
-                        return Transform.rotate(
-                          angle: _waveAnimController.value * math.pi * 2,
-                          child: Icon(Icons.blur_circular_rounded, color: activeScholar.solidColor.withAlpha(20), size: 280),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Scholar detail
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 140,
-                        height: 140,
-                        decoration: AppTheme.vibrant3DBoxDecoration(
-                          color: activeScholar.solidColor.withAlpha(50),
-                          radius: 70,
-                          borderColor: activeScholar.solidColor,
-                          borderWidth: 3,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(activeScholar.initials, style: TextStyle(fontSize: 48, color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(height: 14),
-                      if (!isIntermediate) ...[
-                        Text(activeScholar.name, style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple)),
-                        Text(activeScholar.titleUz, style: AppTheme.bodySmall.copyWith(color: activeScholar.solidColor, fontWeight: FontWeight.bold)),
-                      ],
-
-                      const SizedBox(height: 20),
-
-                      // Uzbek Voice Bubble widget
-                      if (_activeVoiceReplyText.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: AnimatedScale(
-                            scale: 1.0,
-                            duration: const Duration(milliseconds: 300),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: AppTheme.vibrant3DBoxDecoration(
-                                color: AppTheme.white,
-                                radius: 24,
-                                shadowColor: activeScholar.solidColor.withAlpha(80),
-                                shadowOffset: const Offset(3, 3),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.record_voice_over_rounded, color: activeScholar.solidColor, size: 20),
-                                      const SizedBox(width: 8),
-                                      if (!isIntermediate)
-                                        Text("Ovozli Javob", style: AppTheme.headerSmall.copyWith(fontSize: 12, color: activeScholar.solidColor)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _activeVoiceReplyText,
-                                    style: AppTheme.bodyMedium.copyWith(fontSize: 12, height: 1.4),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      if (_isSpeechLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20),
-                          child: CircularProgressIndicator(color: AppTheme.mandarin),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // 3. Audio Recording Micro Button & Waveform
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: AppTheme.white,
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Waveform animation loop during recording
-              if (_isMicRecording)
-                Container(
-                  height: 40,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(8, (i) {
-                      final double h = 10 + 25 * math.sin((_waveAnimController.value * math.pi * 2) + i * 0.8).abs();
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: 4,
-                        height: h,
-                        decoration: BoxDecoration(color: AppTheme.mandarin, borderRadius: BorderRadius.circular(2)),
-                      );
-                    }),
-                  ),
-                ),
-
-              // Giant Tactile Mandarin circular mic button
-              GestureDetector(
-                onTapDown: (_) => _triggerMicRecordingStart(),
-                onTapUp: (_) => _triggerMicRecordingRelease(),
-                child: AnimatedScale(
-                  scale: _isMicRecording ? 1.25 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.bounceOut,
-                  child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: AppTheme.vibrant3DBoxDecoration(
-                      color: AppTheme.mandarin,
-                      radius: 45,
-                      borderColor: const Color(0xFFD84B1A),
-                      shadowColor: AppTheme.mandarin,
-                      shadowOffset: const Offset(4, 4),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.mic_rounded, color: Colors.white, size: 48),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }

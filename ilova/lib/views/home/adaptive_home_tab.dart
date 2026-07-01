@@ -18,7 +18,6 @@ class KodiPainter extends CustomPainter {
   final double waveVal;
   final double breatheOffset;
   final double earTwitch;
-  final double mouthScale;
   final AgeTier tier;
 
   KodiPainter({
@@ -26,7 +25,6 @@ class KodiPainter extends CustomPainter {
     required this.waveVal,
     required this.breatheOffset,
     required this.earTwitch,
-    required this.mouthScale,
     required this.tier,
   });
 
@@ -107,16 +105,14 @@ class KodiPainter extends CustomPainter {
     // Nose
     canvas.drawOval(Rect.fromCenter(center: Offset(cx, cy + r * 0.22), width: r * 0.25, height: r * 0.16), pEye);
 
-    // Mouth (Dynamically wiggles/scales mimicking voice frequencies)
+    // Mouth
     final pMouth = Paint()
       ..color = AppTheme.darkPurpleBorder
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
-    
-    final double mouthRadius = r * 0.1 * mouthScale;
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx - r * 0.08, cy + r * 0.32), radius: mouthRadius), 0, math.pi, false, pMouth);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx + r * 0.08, cy + r * 0.32), radius: mouthRadius), 0, math.pi, false, pMouth);
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx - r * 0.08, cy + r * 0.32), radius: r * 0.1), 0, math.pi, false, pMouth);
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx + r * 0.08, cy + r * 0.32), radius: r * 0.1), 0, math.pi, false, pMouth);
 
     // Waving Paw
     canvas.save();
@@ -148,11 +144,9 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
   late final AnimationController _waveController;
   late final AnimationController _breatheController;
   late final AnimationController _earController;
-  late final AnimationController _speechController;
   late final AnimationController _jumpController;
   
   Timer? _waveTimer;
-  Timer? _speechTimer;
 
   @override
   void initState() {
@@ -161,18 +155,7 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
     _waveController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     _breatheController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat(reverse: true);
     _earController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
-    _speechController = AnimationController(vsync: this, duration: const Duration(milliseconds: 250))..repeat(reverse: true);
     _jumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-
-    // Periodic voice companion mouth scaling
-    _speechTimer = Timer.periodic(const Duration(seconds: 9), (timer) {
-      if (mounted) {
-        _speechController.repeat(reverse: true);
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) _speechController.stop();
-        });
-      }
-    });
 
     _waveTimer = Timer.periodic(const Duration(seconds: 8), (t) {
       if (mounted) _triggerWave();
@@ -185,10 +168,8 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
     _waveController.dispose();
     _breatheController.dispose();
     _earController.dispose();
-    _speechController.dispose();
     _jumpController.dispose();
     _waveTimer?.cancel();
-    _speechTimer?.cancel();
     super.dispose();
   }
 
@@ -206,6 +187,9 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    final ageController = Provider.of<AgeTierController>(context);
+    final voiceActive = ageController.voiceAIActive;
+
     return GestureDetector(
       onTap: () {
         _triggerJump();
@@ -217,7 +201,6 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
           _waveController,
           _breatheController,
           _earController,
-          _speechController,
           _jumpController,
         ]),
         builder: (context, child) {
@@ -226,17 +209,10 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
             blinkVal = 1.0;
           }
 
-          // Sinusoidal Scale breathing
           final double breatheScale = 0.96 + math.sin(_breatheController.value * math.pi * 2) * 0.04;
           final double breatheOffset = math.sin(_breatheController.value * math.pi * 2) * 3.5;
           final double earTwitch = math.sin(_earController.value * math.pi * 2) * 0.08;
 
-          // Voice speech scale mouth factor
-          final double mouthScale = _speechController.isAnimating 
-              ? 0.7 + math.sin(_speechController.value * math.pi * 2) * 0.6 
-              : 1.0;
-
-          // Squash-and-stretch jump sequence
           double squashY = 1.0;
           double stretchX = 1.0;
           if (_jumpController.isAnimating) {
@@ -246,20 +222,35 @@ class _AnimatedKodiAvatarState extends State<AnimatedKodiAvatar> with TickerProv
             stretchX = 1.0 + 0.16 * math.sin(t * math.pi) * (1.0 - elastic);
           }
 
-          return Opacity(
-            opacity: breatheScale.clamp(0.9, 1.0),
-            child: Transform(
-              transform: Matrix4.diagonal3Values(stretchX * breatheScale, squashY * breatheScale, 1.0),
-              alignment: Alignment.bottomCenter,
-              child: CustomPaint(
-                size: const Size(110, 100),
-                painter: KodiPainter(
-                  blinkVal: blinkVal,
-                  waveVal: _waveController.value,
-                  breatheOffset: breatheOffset,
-                  earTwitch: earTwitch,
-                  mouthScale: mouthScale,
-                  tier: widget.tier,
+          final double glow = voiceActive 
+              ? 12.0 + 8.0 * math.sin(_breatheController.value * math.pi * 2).abs()
+              : 0.0;
+
+          return Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: voiceActive ? [
+                BoxShadow(
+                  color: AppTheme.mandarin.withAlpha(200),
+                  blurRadius: glow,
+                  spreadRadius: glow * 0.35,
+                )
+              ] : null,
+            ),
+            child: Opacity(
+              opacity: breatheScale.clamp(0.9, 1.0),
+              child: Transform(
+                transform: Matrix4.diagonal3Values(stretchX * breatheScale, squashY * breatheScale, 1.0),
+                alignment: Alignment.bottomCenter,
+                child: CustomPaint(
+                  size: const Size(110, 100),
+                  painter: KodiPainter(
+                    blinkVal: blinkVal,
+                    waveVal: _waveController.value,
+                    breatheOffset: breatheOffset,
+                    earTwitch: earTwitch,
+                    tier: widget.tier,
+                  ),
                 ),
               ),
             ),
