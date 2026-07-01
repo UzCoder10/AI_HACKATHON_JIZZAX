@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../controllers/app_state.dart';
 import '../../controllers/age_tier_controller.dart';
+import '../../core/gemini_service.dart';
 import 'building_game_tab.dart';
 
 // =========================================================================
@@ -887,17 +888,28 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
       _isSpeechLoading = true;
     });
 
-    // Simulated speech model delay
-    Timer(const Duration(seconds: 2), () async {
-      if (!mounted) return;
+    // Fire Gemini 2.5 Flash query asynchronously
+    final config = _scholars[_selectedScholarIndex];
+    final prompt = "Sen buyuk o'zbek allomasi ${config.name}san. Menga o'zbek tilida qiziqarli qisqa javob ber. Menga motivatsiya ber va +100 yulduzcha sovg'a qilganingni ayt (va javob oxirida '⭐' belgisini qo'y). Maksimum 2-3 ta qiziqarli gap bo'lsin.";
 
-      final config = _scholars[_selectedScholarIndex];
+    GeminiService.generateTextResponse(prompt).then((response) {
+      if (!mounted) return;
       setState(() {
         _isSpeechLoading = false;
-        _activeVoiceReplyText = config.audioScript;
+        _activeVoiceReplyText = response;
       });
 
       // Synchronize reward stars to Firestore
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.awardStars(100);
+      Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);
+      _playVoiceGuide('response.mp3');
+    }).catchError((err) {
+      if (!mounted) return;
+      setState(() {
+        _isSpeechLoading = false;
+        _activeVoiceReplyText = "Kechirasiz bolajon, hozir ulanishda xatolik bo'ldi. Lekin baribir +100 yulduzchaga ega bo'ldingiz! ⭐";
+      });
       final appState = Provider.of<AppState>(context, listen: false);
       appState.awardStars(100);
       Provider.of<AgeTierController>(context, listen: false).syncStarsToCloud(100);

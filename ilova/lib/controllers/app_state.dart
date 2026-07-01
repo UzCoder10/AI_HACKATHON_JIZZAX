@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
+import '../core/gemini_service.dart';
 
 class AppState extends ChangeNotifier {
   // Authentication & Onboarding
@@ -281,10 +282,10 @@ class AppState extends ChangeNotifier {
   }
 
   // Mock Gemini Vision AI Analyzer
-  void submitDrawingForGeminiAnalysis() {
-    drawingAnalysisLogs.add(
-      "Yangi tahlil: Farzandingiz koinot va yulduzlar rasmini chizdi. Unda tabiat va koinotga qiziqish juda baland. Ranglardan erkin foydalanish ijodiy mustaqillikni ifodalaydi."
-    );
+  void submitDrawingForGeminiAnalysis() async {
+    const prompt = "Bolaning koinot va yulduzlar chizgan rasmini psixologik tahlil qiling. Farzandning ijodiy va shaxsiy rivojlanishi haqida ota-onaga tavsiyalar bering. Javob qisqa, o'zbek tilida va qiziqarli bo'lsin (maksimum 3 ta gap).";
+    final response = await GeminiService.generateTextResponse(prompt);
+    drawingAnalysisLogs.add("Yangi tahlil: $response");
     notifyListeners();
   }
 
