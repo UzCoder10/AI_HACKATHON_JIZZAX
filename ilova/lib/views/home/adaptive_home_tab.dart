@@ -521,7 +521,7 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
             borderColor: AppTheme.marineBlue,
             isPreLiterate: isPreLiterate,
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdaptiveLogicGames(initialGameIndex: 1)));
+              _showScholarSelectorDialog(context, isPreLiterate);
             },
             actionIcon: Icons.spellcheck_rounded,
           ),
@@ -667,6 +667,104 @@ class _AdaptiveHomeTabState extends State<AdaptiveHomeTab> with SingleTickerProv
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showScholarSelectorDialog(BuildContext context, bool isPreLiterate) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        title: isPreLiterate
+            ? const Center(child: Text("🤔 🧭 ✨", style: TextStyle(fontSize: 24)))
+            : Text(
+                "Olimingizni tanlang",
+                style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
+                textAlign: TextAlign.center,
+              ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Mirzo Ulugbek
+            _buildScholarChoiceTile(
+              context: ctx,
+              name: "Mirzo Ulug'bek",
+              tag: "ulugbek",
+              icon: "🔭",
+              color: AppTheme.pastelBlue,
+              isPreLiterate: isPreLiterate,
+            ),
+            const SizedBox(height: 12),
+            // Ibn Sino
+            _buildScholarChoiceTile(
+              context: ctx,
+              name: "Ibn Sino",
+              tag: "ibnsino",
+              icon: "🧪",
+              color: AppTheme.pastelMint,
+              isPreLiterate: isPreLiterate,
+            ),
+            const SizedBox(height: 12),
+            // Al-Xorazmiy
+            _buildScholarChoiceTile(
+              context: ctx,
+              name: "Al-Xorazmiy",
+              tag: "xorazmiy",
+              icon: "🧮",
+              color: AppTheme.pastelPeach,
+              isPreLiterate: isPreLiterate,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScholarChoiceTile({
+    required BuildContext context,
+    required String name,
+    required String tag,
+    required String icon,
+    required Color color,
+    required bool isPreLiterate,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context); // close dialog
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AdaptiveLogicGames(scholarType: tag),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: AppTheme.vibrant3DBoxDecoration(
+          color: color,
+          radius: 20,
+          borderColor: AppTheme.darkPurpleBorder,
+          shadowOffset: const Offset(3, 3),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: isPreLiterate
+                  ? const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(Icons.play_circle_fill_rounded, color: AppTheme.darkPurple, size: 28),
+                    )
+                  : Text(
+                      name,
+                      style: AppTheme.headerSmall.copyWith(color: AppTheme.darkPurple),
+                    ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.darkPurple, size: 16),
+          ],
+        ),
       ),
     );
   }

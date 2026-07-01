@@ -496,7 +496,12 @@ class SeismicTycoonPainter extends CustomPainter {
 // =========================================================================
 class AdaptiveLogicGames extends StatefulWidget {
   final int initialGameIndex;
-  const AdaptiveLogicGames({super.key, this.initialGameIndex = 0});
+  final String? scholarType; // "ulugbek", "ibnsino", "xorazmiy", "temur"
+  const AdaptiveLogicGames({
+    super.key,
+    this.initialGameIndex = 0,
+    this.scholarType,
+  });
 
   @override
   State<AdaptiveLogicGames> createState() => _AdaptiveLogicGamesState();
@@ -504,6 +509,7 @@ class AdaptiveLogicGames extends StatefulWidget {
 
 class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProviderStateMixin {
   late int _activeGameIndex;
+  String? _activeScholarType;
 
   // Toddler Pachinko Game State
   final List<FruitBubble> _bubbles = [];
@@ -596,6 +602,37 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   bool _isSpeechLoading = false;
   String _activeVoiceReplyText = "";
   late final AnimationController _waveAnimController;
+
+  // --- NEW ALLOMALAR EXCLUSIVE GAME STATES ---
+  late final AnimationController _scholarLiveActionController;
+  late final AnimationController _scholarParticleController;
+  late final AnimationController _fortressSeismicController;
+  final List<Map<String, dynamic>> _scholarAmbientParticles = [];
+
+  // Mirzo Ulug'bek (Constellation Matching)
+  final List<Offset> _scholarStarPoints = [
+    const Offset(60, 60),
+    const Offset(220, 80),
+    const Offset(140, 160),
+    const Offset(80, 240),
+    const Offset(240, 220),
+  ];
+  final List<int> _scholarConnectedStars = [];
+  int? _scholarActiveStarIdx;
+  Offset? _scholarDragOffset;
+  final List<Offset> _scholarBurstParticles = [];
+
+  // Ibn Sino (Potion Mixer)
+  String _cauldronStatusText = "Qizil Giyohni qozonga soling! 🧪";
+
+  // Al-Xorazmiy (Number Connect)
+  int _traceNextExpectedNumber = 1;
+  final List<Offset> _traceUserPoints = [];
+
+  // Amir Temur (Fortress Build)
+  final List<String> _fortressBlocksList = [];
+  bool _fortressIsShaking = false;
+  bool _scholarGameFinished = false;
 
   @override
   void initState() {
@@ -725,6 +762,13 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _shapeBlocks.add(ShapeBlock(type: ShapeType.circle, currentPos: const Offset(30, 310), originalPos: const Offset(30, 310), color: colors[0]));
     _shapeBlocks.add(ShapeBlock(type: ShapeType.square, currentPos: const Offset(136, 310), originalPos: const Offset(136, 310), color: colors[1]));
     _shapeBlocks.add(ShapeBlock(type: ShapeType.triangle, currentPos: const Offset(242, 310), originalPos: const Offset(242, 310), color: colors[2]));
+
+    // Initialize new scholar game states
+    _activeScholarType = widget.scholarType;
+    _scholarLiveActionController = AnimationController(duration: const Duration(seconds: 3), vsync: this)..repeat(reverse: true);
+    _scholarParticleController = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this)..repeat();
+    _fortressSeismicController = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
+    _scholarLiveActionController.addListener(_updateScholarAmbientParticles);
   }
 
   @override
@@ -735,7 +779,53 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     _handDemoController.dispose();
     _waveAnimController.dispose();
     _seismicController.dispose();
+
+    _scholarLiveActionController.removeListener(_updateScholarAmbientParticles);
+    _scholarLiveActionController.dispose();
+    _scholarParticleController.dispose();
+    _fortressSeismicController.dispose();
     super.dispose();
+  }
+
+  void _updateScholarAmbientParticles() {
+    if (!mounted) return;
+    if (_activeScholarType == null) return;
+    setState(() {
+      // Spawn new floating particles according to active scholar
+      if (math.Random().nextDouble() < 0.08) {
+        _scholarAmbientParticles.add({
+          'x': 80.0 + math.Random().nextDouble() * 200.0,
+          'y': 150.0,
+          'speed': 1.0 + math.Random().nextDouble() * 2.0,
+          'size': 6.0 + math.Random().nextDouble() * 8.0,
+          'opacity': 1.0,
+          'type': _activeScholarType,
+          'angle': math.Random().nextDouble() * math.pi * 2,
+        });
+      }
+
+      // Update existing particles
+      for (int i = _scholarAmbientParticles.length - 1; i >= 0; i--) {
+        final p = _scholarAmbientParticles[i];
+        p['y'] -= p['speed'] as double;
+        p['opacity'] = (p['opacity'] as double) - 0.015;
+        p['x'] += math.sin(p['y'] / 10.0) * 0.5; // slight wave drift
+        if (p['opacity'] <= 0.0) {
+          _scholarAmbientParticles.removeAt(i);
+        }
+      }
+    });
+  }
+
+  void _scholarTriggerBurst(Offset origin) {
+    setState(() {
+      _scholarBurstParticles.clear();
+      for (int i = 0; i < 24; i++) {
+        final double angle = (i * 15.0) * math.pi / 180.0;
+        final double speed = 3.0 + math.Random().nextDouble() * 4.0;
+        _scholarBurstParticles.add(origin + Offset(math.cos(angle) * speed, math.sin(angle) * speed));
+      }
+    });
   }
 
   void _updatePhysics(double dt) {
@@ -1208,6 +1298,12 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
   Widget build(BuildContext context) {
     final ageController = Provider.of<AgeTierController>(context);
     final tier = ageController.activeTier;
+    final appState = Provider.of<AppState>(context, listen: false);
+    final bool isPreLiterate = !ageController.canReadWrite;
+
+    if (_activeScholarType != null) {
+      return _buildNewScholarGameBody(tier, appState, isPreLiterate);
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.white,
@@ -2383,6 +2479,608 @@ class _AdaptiveLogicGamesState extends State<AdaptiveLogicGames> with TickerProv
     }
     return const SizedBox.shrink();
   }
+
+  // =========================================================================
+  // PIXAR-GRADE GRAND SCHOLARS MINI-GAMES PORTAL
+  // =========================================================================
+  Widget _buildNewScholarGameBody(AgeTier tier, AppState appState, bool isPreLiterate) {
+    return Scaffold(
+      backgroundColor: _getNewScholarThemeColor(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          isPreLiterate ? "👑" : _getNewScholarTitle(),
+          style: AppTheme.headerMedium.copyWith(color: Colors.white),
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // 🎭 GRAND SCHOLAR LIVE-ANIMATION MATRIX
+          Expanded(
+            flex: 4,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: ScholarEnvironmentPainter(type: _activeScholarType!),
+                  ),
+                ),
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: AmbientParticlePainter(particles: _scholarAmbientParticles, type: _activeScholarType!),
+                  ),
+                ),
+                _buildNewScholarAnimatedCharacterLayer(),
+              ],
+            ),
+          ),
+
+          // 💬 SPEECH BUBBLE & TACTILE VOICE COMPANION
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: AppTheme.white,
+                radius: 28,
+                borderColor: _getNewScholarThemeColor(),
+                shadowOffset: const Offset(4, 4),
+              ),
+              child: Row(
+                children: [
+                  const Text("👑", style: TextStyle(fontSize: 28)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: isPreLiterate
+                        ? Row(
+                            children: [
+                              const Icon(Icons.volume_up_rounded, color: AppTheme.marineBlue, size: 28),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Kodi ovozli yo'riqnomasi... 🔊",
+                                style: AppTheme.headerSmall.copyWith(fontSize: 12, color: AppTheme.darkPurple),
+                              )
+                            ],
+                          )
+                        : Text(
+                            _getNewScholarSpeechText(),
+                            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkPurple),
+                          ),
+                  ),
+                  AnimatedBuilder(
+                    animation: _scholarParticleController,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, math.sin(_scholarParticleController.value * math.pi * 2) * 6),
+                        child: const Icon(Icons.pan_tool_alt_rounded, color: AppTheme.mandarin, size: 36),
+                      );
+                    },
+                  )
+                ],
+              ),
+            ),
+          ),
+
+          // 🕹️ MINI-GAME PORTAL
+          Expanded(
+            flex: 5,
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              decoration: AppTheme.vibrant3DBoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                radius: 32,
+                borderColor: _getNewScholarThemeColor(),
+                shadowOffset: const Offset(5, 5),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: _buildNewScholarSpecificGame(Provider.of<AgeTierController>(context, listen: false), appState, isPreLiterate),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewScholarAnimatedCharacterLayer() {
+    String assetName = "ulugbek.png";
+    if (_activeScholarType == "xorazmiy") assetName = "xorazmiy.png";
+    if (_activeScholarType == "ibnsino") assetName = "ibnsino.png";
+    if (_activeScholarType == "temur") assetName = "ulugbek.png";
+
+    return AnimatedBuilder(
+      animation: _scholarLiveActionController,
+      builder: (context, child) {
+        final double scaleY = 0.96 + math.sin(_scholarLiveActionController.value * math.pi * 2) * 0.04;
+        final double scaleX = 1.0 - math.sin(_scholarLiveActionController.value * math.pi * 2) * 0.02;
+        final double rotate = math.cos(_scholarLiveActionController.value * math.pi * 2) * 0.03;
+
+        return Transform(
+          transform: Matrix4.diagonal3Values(scaleX, scaleY, 1.0)..rotateZ(rotate),
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: 220,
+            alignment: Alignment.bottomCenter,
+            child: Image.asset(
+              "assets/images/$assetName",
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 140,
+                  height: 140,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [Colors.white, _getNewScholarThemeColor().withValues(alpha: 0.4)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _getNewScholarInitials(),
+                    style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: _getNewScholarThemeColor()),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNewScholarSpecificGame(AgeTierController controller, AppState appState, bool isPreLiterate) {
+    if (_scholarGameFinished) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: AppTheme.yellow, size: 72),
+            const SizedBox(height: 12),
+            Text(
+              isPreLiterate ? "🏆 ⭐ ✨" : "Ajoyib kashfiyot yakunlandi!",
+              style: AppTheme.headerMedium.copyWith(color: AppTheme.darkPurple),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.mintGreen,
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              ),
+              onPressed: () async {
+                await controller.syncStarsToCloud(100);
+                await controller.advanceNode();
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(
+                isPreLiterate ? "👍" : "MUKOFOTNI OLISH (+100 ⭐)",
+                style: AppTheme.headerMedium.copyWith(color: Colors.white, fontSize: 15),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_activeScholarType == "ulugbek") {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onPanStart: (d) {
+                final RenderBox rb = context.findRenderObject() as RenderBox;
+                final Offset localPos = rb.globalToLocal(d.globalPosition);
+                final double canvasWidth = rb.size.width;
+                final double canvasHeight = rb.size.height / 2;
+                for (int i = 0; i < _scholarStarPoints.length; i++) {
+                  final Offset nodePos = Offset(_scholarStarPoints[i].dx * (canvasWidth / 300), _scholarStarPoints[i].dy * (canvasHeight / 300));
+                  if ((nodePos - localPos).distance < 36) {
+                    setState(() {
+                      _scholarActiveStarIdx = i;
+                      _scholarDragOffset = localPos;
+                    });
+                    break;
+                  }
+                }
+              },
+              onPanUpdate: (d) {
+                final RenderBox rb = context.findRenderObject() as RenderBox;
+                setState(() {
+                  _scholarDragOffset = rb.globalToLocal(d.globalPosition);
+                });
+              },
+              onPanEnd: (d) {
+                if (_scholarActiveStarIdx == null || _scholarDragOffset == null) return;
+                final RenderBox rb = context.findRenderObject() as RenderBox;
+                final double canvasWidth = rb.size.width;
+                final double canvasHeight = rb.size.height / 2;
+                for (int i = 0; i < _scholarStarPoints.length; i++) {
+                  final Offset nodePos = Offset(_scholarStarPoints[i].dx * (canvasWidth / 300), _scholarStarPoints[i].dy * (canvasHeight / 300));
+                  if (i != _scholarActiveStarIdx && (nodePos - _scholarDragOffset!).distance < 36) {
+                    setState(() {
+                      if (!_scholarConnectedStars.contains(i)) _scholarConnectedStars.add(i);
+                      if (!_scholarConnectedStars.contains(_scholarActiveStarIdx!)) _scholarConnectedStars.add(_scholarActiveStarIdx!);
+                      _scholarTriggerBurst(nodePos);
+                    });
+                    break;
+                  }
+                }
+                setState(() {
+                  _scholarActiveStarIdx = null;
+                  _scholarDragOffset = null;
+                });
+                if (_scholarConnectedStars.length >= _scholarStarPoints.length) {
+                  setState(() => _scholarGameFinished = true);
+                }
+              },
+              child: CustomPaint(
+                painter: StarMatchingPainter(
+                  stars: _scholarStarPoints,
+                  connected: _scholarConnectedStars,
+                  activeIdx: _scholarActiveStarIdx,
+                  dragOffset: _scholarDragOffset,
+                  burstParticles: _scholarBurstParticles,
+                ),
+              ),
+            ),
+          ),
+          if (isPreLiterate)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.gesture_rounded, color: AppTheme.marineBlue, size: 24),
+              ),
+            )
+        ],
+      );
+    }
+
+    if (_activeScholarType == "ibnsino") {
+      final List<Map<String, dynamic>> herbs = [
+        {'name': "Qizil Giyoh 🛑", 'color': Colors.red, 'id': "red"},
+        {'name': "Yashil Barg 🌿", 'color': Colors.green, 'id': "green"},
+        {'name': "Moviy Ildiz 💎", 'color': Colors.blue, 'id': "blue"},
+      ];
+
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.science_rounded, color: Colors.red, size: 36),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isPreLiterate ? "🛑 🧪" : _cauldronStatusText,
+                  style: AppTheme.headerSmall.copyWith(color: AppTheme.darkPurple),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            AnimatedBuilder(
+              animation: _scholarLiveActionController,
+              builder: (context, child) {
+                final double rotate = math.sin(_scholarLiveActionController.value * math.pi * 2) * 0.1;
+                return Transform.rotate(
+                  angle: rotate,
+                  child: child,
+                );
+              },
+              child: const SizedBox(
+                height: 120,
+                width: 120,
+                child: Icon(Icons.cookie_rounded, size: 100, color: AppTheme.darkPurple),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: herbs.map((h) {
+                return InkWell(
+                  onTap: () {
+                    if (h['id'] == "red") {
+                      setState(() {
+                        _cauldronStatusText = "Tabriklayman! Dorivor malham tayyor bo'ldi!";
+                        _scholarGameFinished = true;
+                      });
+                    } else {
+                      setState(() {
+                        _cauldronStatusText = "Xato! Qaytadan urinib ko'r!";
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Bouncing back... 🛑"),
+                          duration: Duration(milliseconds: 500),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: AppTheme.vibrant3DBoxDecoration(
+                      color: h['color'],
+                      radius: 20,
+                      shadowOffset: const Offset(3, 3),
+                    ),
+                    child: Text(
+                      isPreLiterate ? "🌿" : h['name'],
+                      style: AppTheme.headerSmall.copyWith(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_activeScholarType == "xorazmiy") {
+      final List<Map<String, dynamic>> sequenceNodes = [
+        {'id': 1, 'pos': const Offset(50, 80)},
+        {'id': 2, 'pos': const Offset(150, 50)},
+        {'id': 3, 'pos': const Offset(250, 100)},
+        {'id': 4, 'pos': const Offset(180, 180)},
+        {'id': 5, 'pos': const Offset(80, 220)},
+      ];
+
+      return GestureDetector(
+        onPanStart: (d) {
+          final RenderBox rb = context.findRenderObject() as RenderBox;
+          final Offset localPos = rb.globalToLocal(d.globalPosition);
+          final double canvasWidth = rb.size.width;
+          final double canvasHeight = rb.size.height / 2;
+
+          final Offset firstNodePos = Offset(sequenceNodes[0]['pos'].dx * (canvasWidth / 300), sequenceNodes[0]['pos'].dy * (canvasHeight / 300));
+          if ((localPos - firstNodePos).distance < 40 && _traceNextExpectedNumber == 1) {
+            setState(() {
+              _traceUserPoints.add(localPos);
+            });
+          }
+        },
+        onPanUpdate: (d) {
+          if (_traceUserPoints.isEmpty) return;
+          final RenderBox rb = context.findRenderObject() as RenderBox;
+          final Offset localPos = rb.globalToLocal(d.globalPosition);
+          final double canvasWidth = rb.size.width;
+          final double canvasHeight = rb.size.height / 2;
+
+          setState(() {
+            _traceUserPoints.add(localPos);
+
+            if (_traceNextExpectedNumber <= 5) {
+              final Map<String, dynamic> targetNode = sequenceNodes[_traceNextExpectedNumber - 1];
+              final Offset targetPos = Offset(targetNode['pos'].dx * (canvasWidth / 300), targetNode['pos'].dy * (canvasHeight / 300));
+              if ((localPos - targetPos).distance < 28) {
+                _traceNextExpectedNumber++;
+                if (_traceNextExpectedNumber > 5) {
+                  _scholarGameFinished = true;
+                }
+              }
+            }
+          });
+        },
+        onPanEnd: (d) {
+          setState(() {
+            if (_traceNextExpectedNumber <= 5) {
+              _traceUserPoints.clear();
+              _traceNextExpectedNumber = 1;
+            }
+          });
+        },
+        child: CustomPaint(
+          painter: NumberConnectPainter(
+            nodes: sequenceNodes,
+            tracePoints: _traceUserPoints,
+            expected: _traceNextExpectedNumber,
+          ),
+          child: Container(),
+        ),
+      );
+    }
+
+    final List<Map<String, dynamic>> fortressMaterials = [
+      {'name': "Tosh", 'icon': "🧱"},
+      {'name': "G'isht", 'icon': "🧱"},
+      {'name': "Sinch", 'icon': "🪵"},
+    ];
+
+    return AnimatedBuilder(
+      animation: _fortressSeismicController,
+      builder: (context, child) {
+        final double val = _fortressSeismicController.value;
+        final double shakeX = math.sin(val * math.pi * 30.0) * 14.0 * (1.0 - val);
+        final double shakeY = math.cos(val * math.pi * 25.0) * 8.0 * (1.0 - val);
+        final double angle = math.sin(val * math.pi * 15.0) * 0.05 * (1.0 - val);
+
+        return Transform(
+          transform: _fortressIsShaking
+              ? (Matrix4.translationValues(shakeX, shakeY, 0.0)..rotateZ(angle))
+              : Matrix4.identity(),
+          alignment: Alignment.bottomCenter,
+          child: child,
+        );
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  color: Colors.brown.shade400,
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: List.generate(_fortressBlocksList.length, (index) {
+                    final isLight = _fortressBlocksList[index] == "Sinch";
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      width: 180.0 - (index * 15.0),
+                      height: 36,
+                      decoration: AppTheme.vibrant3DBoxDecoration(
+                        color: isLight ? Colors.cyan : Colors.orangeAccent,
+                        radius: 8,
+                        borderColor: Colors.black,
+                        shadowOffset: const Offset(2, 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _fortressBlocksList[index],
+                        style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 12),
+                      ),
+                    );
+                  }),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_fortressBlocksList.length < 5)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: fortressMaterials.map((m) {
+                  return ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppTheme.darkPurpleBorder, width: 2),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _fortressBlocksList.add(m['name']);
+                      });
+                    },
+                    child: Text(
+                      isPreLiterate ? m['icon'] : m['name'],
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          if (_fortressBlocksList.length >= 5)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.appleRed,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _fortressIsShaking = true;
+                  });
+                  _fortressSeismicController.forward(from: 0.0);
+                  Future.delayed(const Duration(milliseconds: 1200), () {
+                    if (mounted) {
+                      setState(() {
+                        _fortressIsShaking = false;
+                        _scholarGameFinished = true;
+                      });
+                    }
+                  });
+                },
+                icon: const Icon(Icons.volcano_rounded, color: Colors.white),
+                label: Text(
+                  isPreLiterate ? "🌋" : "ZILZILANI SINASH 🌋",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Color _getNewScholarThemeColor() {
+    switch (_activeScholarType) {
+      case "ulugbek":
+        return const Color(0xFF0B132B);
+      case "ibnsino":
+        return const Color(0xFF004B23);
+      case "xorazmiy":
+        return const Color(0xFF3D0066);
+      default:
+        return const Color(0xFF7B2CBF);
+    }
+  }
+
+  String _getNewScholarTitle() {
+    switch (_activeScholarType) {
+      case "ulugbek":
+        return "Mirzo Ulug'bek";
+      case "ibnsino":
+        return "Ibn Sino";
+      case "xorazmiy":
+        return "Al-Xorazmiy";
+      default:
+        return "Amir Temur";
+    }
+  }
+
+  String _getNewScholarInitials() {
+    switch (_activeScholarType) {
+      case "ulugbek":
+        return "MU";
+      case "ibnsino":
+        return "IS";
+      case "xorazmiy":
+        return "AX";
+      default:
+        return "AT";
+    }
+  }
+
+  String _getNewScholarSpeechText() {
+    switch (_activeScholarType) {
+      case "ulugbek":
+        return "«Yulduzlarni bir-biriga sudrab ula va yangi yulduzlar turkumini kashf qil bolajon!»";
+      case "ibnsino":
+        return "«Qozondagi qaynatmaga qo'shish uchun aynan Qizil Giyohni topib qozonga sol!»";
+      case "xorazmiy":
+        return "«Raqamlar sehrgariga yordam ber! Nuqtalarni 1 dan 5 gacha ketma-ketlikda sudrab bog'la!»";
+      default:
+        return "«Qal'a minorasini qur bolajon! 5 ta g'isht qo'y va zilzila sinovi tugmasini bos!»";
+    }
+  }
 }
 
 // =========================================================================
@@ -2483,4 +3181,195 @@ class _FloatingTalkingScholarState extends State<FloatingTalkingScholar> with Ti
       },
     );
   }
+}
+
+class ScholarEnvironmentPainter extends CustomPainter {
+  final String type;
+  ScholarEnvironmentPainter({required this.type});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+
+    if (type == "ulugbek") {
+      final skyPaint = Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF0B132B), Color(0xFF1C2541)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, skyPaint);
+
+      final starPaint = Paint()..color = Colors.white.withValues(alpha: 0.3);
+      canvas.drawCircle(Offset(w * 0.15, h * 0.2), 3, starPaint);
+      canvas.drawCircle(Offset(w * 0.8, h * 0.4), 2, starPaint);
+      canvas.drawCircle(Offset(w * 0.5, h * 0.15), 4, starPaint);
+    } else if (type == "ibnsino") {
+      final roomPaint = Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF003014), Color(0xFF004B23)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, roomPaint);
+    } else if (type == "xorazmiy") {
+      final libPaint = Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF1A0033), Color(0xFF330066)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, libPaint);
+    } else {
+      final fortPaint = Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF4A154B), Color(0xFF7B2CBF)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, fortPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class AmbientParticlePainter extends CustomPainter {
+  final List<Map<String, dynamic>> particles;
+  final String type;
+
+  AmbientParticlePainter({required this.particles, required this.type});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Map<String, Color> colorMap = {
+      'ulugbek': const Color(0xFF80FFDB),
+      'ibnsino': const Color(0xFF52B788),
+      'xorazmiy': const Color(0xFFE0AAFF),
+      'temur': const Color(0xFFFFB703),
+    };
+
+    final Color pColor = colorMap[type] ?? Colors.amber;
+
+    for (final p in particles) {
+      final paint = Paint()..color = pColor.withValues(alpha: (p['opacity'] as double).clamp(0.0, 1.0));
+      canvas.drawCircle(Offset(p['x'], p['y']), p['size'], paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class StarMatchingPainter extends CustomPainter {
+  final List<Offset> stars;
+  final List<int> connected;
+  final int? activeIdx;
+  final Offset? dragOffset;
+  final List<Offset> burstParticles;
+
+  StarMatchingPainter({
+    required this.stars,
+    required this.connected,
+    this.activeIdx,
+    this.dragOffset,
+    required this.burstParticles,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double canvasWidth = size.width;
+    final double canvasHeight = size.height;
+
+    final linePaint = Paint()
+      ..color = const Color(0xFF00E5FF)
+      ..strokeWidth = 6.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    if (activeIdx != null && dragOffset != null) {
+      final Offset activeNodePos = Offset(stars[activeIdx!].dx * (canvasWidth / 300), stars[activeIdx!].dy * (canvasHeight / 300));
+      canvas.drawLine(activeNodePos, dragOffset!, linePaint..color = Colors.amberAccent);
+    }
+
+    if (connected.length > 1) {
+      for (int i = 0; i < connected.length - 1; i++) {
+        final Offset n1 = Offset(stars[connected[i]].dx * (canvasWidth / 300), stars[connected[i]].dy * (canvasHeight / 300));
+        final Offset n2 = Offset(stars[connected[i + 1]].dx * (canvasWidth / 300), stars[connected[i + 1]].dy * (canvasHeight / 300));
+        canvas.drawLine(n1, n2, linePaint..color = const Color(0xFF00E5FF));
+      }
+    }
+
+    for (int i = 0; i < stars.length; i++) {
+      final bool isC = connected.contains(i);
+      final Offset nodePos = Offset(stars[i].dx * (canvasWidth / 300), stars[i].dy * (canvasHeight / 300));
+
+      final starPaint = Paint()..color = isC ? const Color(0xFF00E5FF) : Colors.white;
+      canvas.drawCircle(nodePos, isC ? 16 : 12, starPaint);
+      canvas.drawCircle(nodePos, 4, Paint()..color = Colors.blue.shade900);
+    }
+
+    final burstPaint = Paint()..color = const Color(0xFFFFEB3B);
+    for (final bp in burstParticles) {
+      canvas.drawCircle(bp, 6, burstPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class NumberConnectPainter extends CustomPainter {
+  final List<Map<String, dynamic>> nodes;
+  final List<Offset> tracePoints;
+  final int expected;
+
+  NumberConnectPainter({
+    required this.nodes,
+    required this.tracePoints,
+    required this.expected,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double canvasWidth = size.width;
+    final double canvasHeight = size.height;
+
+    if (tracePoints.length > 1) {
+      final pathPaint = Paint()
+        ..color = const Color(0xFFFFB627)
+        ..strokeWidth = 10.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final path = Path()..moveTo(tracePoints[0].dx, tracePoints[0].dy);
+      for (int i = 1; i < tracePoints.length; i++) {
+        path.lineTo(tracePoints[i].dx, tracePoints[i].dy);
+      }
+      canvas.drawPath(path, pathPaint);
+    }
+
+    for (final node in nodes) {
+      final Offset pos = Offset(node['pos'].dx * (canvasWidth / 300), node['pos'].dy * (canvasHeight / 300));
+      final bool isCompleted = (node['id'] as int) < expected;
+
+      final bgPaint = Paint()..color = isCompleted ? Colors.green : Colors.deepPurple;
+      canvas.drawCircle(pos, 24, bgPaint);
+
+      final textSpan = TextSpan(
+        text: "${node['id']}",
+        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(canvas, pos - Offset(textPainter.width / 2, textPainter.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
